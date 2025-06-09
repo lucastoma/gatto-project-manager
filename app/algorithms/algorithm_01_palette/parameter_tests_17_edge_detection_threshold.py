@@ -25,10 +25,39 @@ class TestEdgeDetectionThreshold(BaseAlgorithmTestCase):
         self.algorithm = create_palette_mapping_algorithm()
         self.logger = get_logger()
 
-        # A gradient image provides edges of varying intensity, perfect for testing a threshold.
-        self.target_image_path = self.create_test_image('target_gradient.png', shape=(100, 100, 3))
+        # Create a proper gradient image with varying edge intensities for testing threshold
+        gradient_array = self._create_gradient_with_edges()
+        self.target_image_path = self.create_test_image('target_gradient.png', arr_data=gradient_array)
         # Use the target gradient image as master palette source to provide multi-colored palette
         self.master_image_path = self.target_image_path
+
+    def _create_gradient_with_edges(self):
+        """Create a gradient image with edges of varying intensity."""
+        # Create a 100x100 image with dramatic color transitions
+        # to generate gradient magnitudes that span our test thresholds (10, 25, 75)
+        image = np.zeros((100, 100, 3), dtype=np.uint8)
+        
+        # Create regions with very different colors for strong edges
+        # Region 1: Black (0-20) - will create very strong edges
+        image[0:20, :] = [0, 0, 0]
+        # Region 2: Dark red (20-40) - strong edge
+        image[20:40, :] = [100, 0, 0]
+        # Region 3: Bright yellow (40-60) - medium edge  
+        image[40:60, :] = [255, 255, 0]
+        # Region 4: White (60-80) - strong edge
+        image[60:80, :] = [255, 255, 255]
+        # Region 5: Blue (80-100) - strong edge
+        image[80:100, :] = [0, 0, 255]
+        
+        # Add vertical stripes to create more edge variety
+        for x in range(0, 100, 20):
+            # Every 20 pixels, add a contrasting vertical stripe
+            if x < 100:
+                end_x = min(x + 5, 100)
+                # Invert colors in stripe areas to create more edges
+                image[:, x:end_x] = 255 - image[:, x:end_x]
+        
+        return image
 
     def run_and_analyze(self, threshold):
         """Helper to run the algorithm with a specific threshold."""
@@ -38,8 +67,8 @@ class TestEdgeDetectionThreshold(BaseAlgorithmTestCase):
             target_path=self.target_image_path,
             output_path=output_path,
             edge_blur_enabled=True,
-            edge_blur_radius=1.5,
-            edge_blur_strength=0.5,
+            edge_blur_radius=2.0,
+            edge_blur_strength=0.9,  # Increased for more pronounced effect
             edge_detection_threshold=threshold,
             num_colors=8
         )

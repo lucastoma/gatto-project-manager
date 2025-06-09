@@ -1863,3 +1863,33 @@ Aby zatrzymac serwer, nacisnij Ctrl+C
  * Serving Flask app 'app.server'
  * Debug mode: off
 [97m01:12:14.468[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:ad5a3f8b][0m Operation profiled: health_check [92m(8.3ms)[0m
+[97m01:37:23.245[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m01:37:23.246[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m01:37:23.246[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m01:37:23.250[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m01:37:23.259[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m01:37:23.259[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m01:37:23.286[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:29a5c4ec][0m Operation profiled: health_check [92m(8.1ms)[0m
+[97m01:38:56.078[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m01:38:56.079[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m01:38:56.079[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m01:38:56.084[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m01:38:56.094[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m01:38:56.094[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m01:38:57.342[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:32bbf42c][0m Operation profiled: health_check [92m(8.4ms)[0m
