@@ -1,0 +1,15 @@
+{
+  "resources": [
+    {
+      "filePath": ".comb-doc.py",
+      "group": "Default"
+    },
+    {
+      "filePath": ".comb-scripts.py",
+      "group": "Default"
+    }
+  ],
+  "groups": [
+    "Default"
+  ]
+}

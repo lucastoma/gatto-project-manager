@@ -1,0 +1,25 @@
+{
+	"server": {
+		"host": "127.0.0.1",
+		"port": 5000,
+		"environment": "development",
+		"python_executable": "venv\\Scripts\\python.exe",
+		"startup_command": ["venv\\Scripts\\python.exe", "run_server.py"],
+		"startup_timeout": 45,
+		"shutdown_timeout": 30,
+		"health_check_interval": 5
+	},
+	"monitoring": {
+		"failure_threshold": 3,
+		"restart_delay": 5,
+		"exponential_backoff": true,
+		"max_backoff_delay": 60
+	},
+	"logging": {
+		"log_dir"          : "logs",
+		"server_log_file"  : "gattonero_server.log",
+		"server_error_file": "gattonero_server_errors.log",
+		"manager_log_file" : "server_manager.log"
+	},
+	"files": {"pid_file": ".server_info.json"}
+}

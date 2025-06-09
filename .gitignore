@@ -1,0 +1,25 @@
+# Wirtualne środowiska Pythona
+venv/
+.venv/
+
+# Pliki tymczasowe Pythona
+__pycache__/
+*.pyc
+
+# Pliki tymczasowe VS Code
+.vscode/
+
+# Dane przetwarzane
+uploads/
+results/
+source/
+test_results/
+reports/
+
+# Ignorowanie wszystkich plików graficznych TIFF i PNG
+*.tiff
+*.tif
+*.png
+
+# Ignorowanie katalogu z plikami tymczasowymi JSX
+app/temp_jsx/
