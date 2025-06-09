@@ -7,12 +7,10 @@ This module provides palette-based color matching functionality using K-means cl
 
 from .algorithm import (
     PaletteMappingAlgorithm,
-    create_palette_mapping_algorithm,
-    simple_palette_mapping
+    create_palette_mapping_algorithm
 )
 
 __all__ = [
     'PaletteMappingAlgorithm',
-    'create_palette_mapping_algorithm',
-    'simple_palette_mapping'
+    'create_palette_mapping_algorithm'
 ]

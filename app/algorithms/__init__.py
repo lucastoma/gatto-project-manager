@@ -14,8 +14,7 @@ Available Algorithms:
 
 # Import algorithm factories for easy access
 from .algorithm_01_palette import (
-    create_palette_mapping_algorithm,
-    simple_palette_mapping
+    create_palette_mapping_algorithm
 )
 from .algorithm_02_statistical import (
     create_statistical_transfer_algorithm,
@@ -35,7 +34,6 @@ ALGORITHM_REGISTRY = {
 
 # Legacy function mapping for backward compatibility
 LEGACY_FUNCTIONS = {
-    'method1': simple_palette_mapping,
     'method2': basic_statistical_transfer,
     'method3': simple_histogram_matching,
 }
@@ -59,7 +57,6 @@ __all__ = [
     'create_histogram_matching_algorithm',
     
     # Legacy compatibility functions
-    'simple_palette_mapping',
     'basic_statistical_transfer',
     'simple_histogram_matching',
     
