@@ -9,6 +9,11 @@ from sklearn.cluster import KMeans # For K-means clustering
 from typing import TYPE_CHECKING, Any
 
 try:
+    import scipy.ndimage
+except ImportError:
+    scipy = None
+
+try:
     from app.core.development_logger import get_logger
     from app.core.performance_profiler import get_profiler
     if TYPE_CHECKING:
@@ -55,12 +60,18 @@ class PaletteMappingAlgorithm:
             'exclude_colors': [],
             'preview_mode': False,
             'preview_thumbnail_size': (500, 500),
-            
-            ## >> NEW: Nowe parametry zaawansowane
+              ## >> NEW: Nowe parametry zaawansowane
             'inject_extremes': False,           # Czy dodawać czarny i biały do palety
             'preserve_extremes': False,         # Czy chronić cienie i światła w obrazie docelowym
             'extremes_threshold': 10,           # Próg dla cieni i świateł (0-255)
-            'dithering_method': 'none'          # Metoda ditheringu: 'none' lub 'floyd_steinberg'
+            'dithering_method': 'none',         # Metoda ditheringu: 'none' lub 'floyd_steinberg'
+            
+            ## >> NEW: Edge Blending Parameters
+            'edge_blur_enabled': False,         # Włącz/wyłącz rozmycie krawędzi
+            'edge_blur_radius': 1.5,            # Promień rozmycia (px)
+            'edge_blur_strength': 0.3,          # Siła rozmycia (0.0-1.0)
+            'edge_detection_threshold': 25,     # Próg detekcji krawędzi między kolorami
+            'edge_blur_method': 'gaussian'      # 'gaussian' | 'motion' | 'selective'
         }
     
     def load_config(self, config_path):
@@ -189,6 +200,9 @@ class PaletteMappingAlgorithm:
             result_array = self._apply_extremes_preservation(result_array, target_image)
             result_image = Image.fromarray(result_array.astype(np.uint8))
 
+            ## >> NEW: Rozmycie krawędzi po mapowaniu
+            result_image = self.apply_edge_blending(result_image, target_image)
+
             return result_image
         except Exception as e:
             self.logger.error(f"Error during image mapping for {target_image_path}: {e}")
@@ -270,6 +284,83 @@ class PaletteMappingAlgorithm:
             result_array[white_mask] = [255, 255, 255]
         return result_array
     
+    ## >> NEW: Edge Blending Methods
+    def apply_edge_blending(self, result_image, original_target_image):
+        """Rozmycie krawędzi między obszarami palety kolorów"""
+        if not self.config.get('edge_blur_enabled', False):
+            return result_image
+            
+        self.logger.info("Applying edge blending to palette boundaries...")
+        
+        # Convert to numpy arrays for processing
+        result_array = np.array(result_image, dtype=np.float64)
+        original_array = np.array(original_target_image, dtype=np.float64)
+        
+        # 1. Detect edges between different palette colors
+        edge_mask = self._detect_palette_edges(result_array)
+        
+        # 2. Apply selective blur based on configuration
+        blurred_result = self._apply_selective_blur(result_array, edge_mask, original_array)
+        
+        # Convert back to PIL Image
+        return Image.fromarray(np.clip(blurred_result, 0, 255).astype(np.uint8))
+    
+    def _detect_palette_edges(self, image_array):
+        """Wykrywa krawędzie między obszarami różnych kolorów palety"""
+        from scipy import ndimage
+        
+        # Convert to grayscale for edge detection
+        gray = np.dot(image_array[...,:3], [0.2989, 0.5870, 0.1140])
+        
+        # Detect edges using gradient
+        grad_x = ndimage.sobel(gray, axis=1)
+        grad_y = ndimage.sobel(gray, axis=0)
+        magnitude = np.sqrt(grad_x**2 + grad_y**2)
+        
+        # Threshold to create edge mask
+        threshold = self.config.get('edge_detection_threshold', 25)
+        edge_mask = magnitude > threshold
+        
+        # Dilate the mask to include surrounding pixels
+        radius = int(self.config.get('edge_blur_radius', 1.5))
+        if radius > 0:
+            from scipy.ndimage import binary_dilation
+            edge_mask = binary_dilation(edge_mask, iterations=radius)
+        
+        return edge_mask
+    
+    def _apply_selective_blur(self, image_array, edge_mask, original_array):
+        """Zastosuj rozmycie tylko w obszarach określonych przez maskę"""
+        blur_method = self.config.get('edge_blur_method', 'gaussian')
+        blur_radius = self.config.get('edge_blur_radius', 1.5)
+        blur_strength = self.config.get('edge_blur_strength', 0.3)
+        
+        # Create blurred version
+        if blur_method == 'gaussian':
+            from scipy.ndimage import gaussian_filter
+            blurred = np.zeros_like(image_array)
+            for channel in range(3):
+                blurred[:,:,channel] = gaussian_filter(image_array[:,:,channel], sigma=blur_radius)
+        else:
+            # Default to simple averaging for unsupported methods
+            from scipy.ndimage import uniform_filter
+            blurred = np.zeros_like(image_array)
+            for channel in range(3):
+                blurred[:,:,channel] = uniform_filter(image_array[:,:,channel], size=int(blur_radius*2+1))
+        
+        # Blend original and blurred based on edge mask and strength
+        result = image_array.copy()
+        
+        # Apply blending only where edges are detected
+        for channel in range(3):
+            blend_factor = edge_mask * blur_strength
+            result[:,:,channel] = (
+                image_array[:,:,channel] * (1 - blend_factor) + 
+                blurred[:,:,channel] * blend_factor
+            )
+        
+        return result
+
     def process_images(self, master_path, target_path, output_path, **kwargs):
         current_config = self.config.copy()
         for key, value in kwargs.items():

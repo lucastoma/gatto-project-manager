@@ -401,6 +401,132 @@
 
 ---
 
+### 14. Parameter: edge_blur_enabled
+**Description:** Enable edge blending for smoother color transitions
+**Default Value:** False
+**Valid Values:** [True, False]
+
+#### Test Case 1: Disabled (Default)
+- **Value:** False
+- **Input Images:** Image with sharp palette transitions
+- **Expected Behavior:** Sharp color boundaries preserved
+- **Actual Results:**
+- **Verified?**
+
+#### Test Case 2: Enabled
+- **Value:** True
+- **Input Images:** Image with sharp palette transitions
+- **Expected Behavior:** Smoother color transitions at edges
+- **Actual Results:**
+- **Verified?**
+
+---
+
+### 15. Parameter: edge_blur_radius
+**Description:** Radius for edge blur effect
+**Default Value:** 1.5
+**Valid Range:** 0.1 - 5.0
+
+#### Test Case 1: Small Radius
+- **Value:** 0.5
+- **Input Images:** Image with defined edges
+- **Expected Behavior:** Minimal blur effect, tight edge smoothing
+- **Actual Results:**
+- **Verified?**
+
+#### Test Case 2: Default Radius
+- **Value:** 1.5
+- **Input Images:** Image with defined edges
+- **Expected Behavior:** Balanced edge smoothing
+- **Actual Results:**
+- **Verified?**
+
+#### Test Case 3: Large Radius
+- **Value:** 3.0
+- **Input Images:** Image with defined edges
+- **Expected Behavior:** Wide blur effect, extensive edge smoothing
+- **Actual Results:**
+- **Verified?**
+
+---
+
+### 16. Parameter: edge_blur_strength
+**Description:** Strength of edge blending effect
+**Default Value:** 0.3
+**Valid Range:** 0.1 - 1.0
+
+#### Test Case 1: Weak Strength
+- **Value:** 0.1
+- **Input Images:** Image with palette transitions
+- **Expected Behavior:** Subtle edge blending
+- **Actual Results:**
+- **Verified?**
+
+#### Test Case 2: Default Strength
+- **Value:** 0.3
+- **Input Images:** Image with palette transitions
+- **Expected Behavior:** Moderate edge blending
+- **Actual Results:**
+- **Verified?**
+
+#### Test Case 3: Strong Strength
+- **Value:** 0.8
+- **Input Images:** Image with palette transitions
+- **Expected Behavior:** Aggressive edge blending, strong color mixing
+- **Actual Results:**
+- **Verified?**
+
+---
+
+### 17. Parameter: edge_detection_threshold
+**Description:** Threshold for detecting edges requiring blending
+**Default Value:** 25
+**Valid Range:** 5 - 100
+
+#### Test Case 1: Low Threshold
+- **Value:** 10
+- **Input Images:** Image with various edge intensities
+- **Expected Behavior:** More edges detected, extensive blending
+- **Actual Results:**
+- **Verified?**
+
+#### Test Case 2: Default Threshold
+- **Value:** 25
+- **Input Images:** Image with various edge intensities
+- **Expected Behavior:** Balanced edge detection
+- **Actual Results:**
+- **Verified?**
+
+#### Test Case 3: High Threshold
+- **Value:** 50
+- **Input Images:** Image with various edge intensities
+- **Expected Behavior:** Fewer edges detected, selective blending
+- **Actual Results:**
+- **Verified?**
+
+---
+
+### 18. Parameter: edge_blur_method
+**Description:** Method used for edge blending
+**Default Value:** 'gaussian'
+**Valid Values:** ['gaussian']
+
+#### Test Case 1: Gaussian Method
+- **Value:** 'gaussian'
+- **Input Images:** Image with clear palette boundaries
+- **Expected Behavior:** Gaussian-based edge smoothing
+- **Actual Results:**
+- **Verified?**
+
+#### Test Case 2: Future Methods
+- **Value:** (To be implemented)
+- **Input Images:** Various test patterns
+- **Expected Behavior:** Alternative blending characteristics
+- **Actual Results:**
+- **Verified?**
+
+---
+
 ## 🔍 VERIFICATION METHODOLOGY
 
 ### I: Output Reactivity Check
