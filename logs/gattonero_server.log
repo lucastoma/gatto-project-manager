@@ -1365,3 +1365,123 @@ Aby zatrzymac serwer, nacisnij Ctrl+C
 [97m12:18:41.747[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:95d502ec][0m Vectorized processing finished in 15.53 seconds
 [97m12:18:42.258[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:95d502ec][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749464304638_1749464306_matched.tif
 [97m12:18:42.264[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:95d502ec][0m Dopasowywanie kolorów zakoñczone: target_1749464304638_1749464306_matched.tif
+[97m15:52:27.197[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Przetwarzanie przez algorytm: algorithm_01_palette z parametrami: {'num_colors': 16, 'distance_metric': 'weighted_rgb', 'use_dithering': True, 'preserve_luminance': False}
+[97m15:52:27.326[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Initialized algorithm: algorithm_01_palette
+[97m15:52:27.327[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Starting Simple Palette Mapping v1.2
+[97m15:52:27.327[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Master (palette): master_1749477145211_1749477147.tif
+[97m15:52:27.327[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Target (destination): target_1749477145724_1749477147.tif
+[97m15:52:27.327[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Extracting color palette from MASTER image...
+[97m15:52:27.394[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Extracted 16 colors from image (5359, 3572) -> (100, 67)
+[97m15:52:27.394[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Extracted 16 colors from the master palette
+[97m15:52:27.394[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Sample colors from master palette:
+[97m15:52:27.394[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m    Color 1: RGB(244, 242, 236)
+[97m15:52:27.394[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m    Color 2: RGB(238, 227, 182)
+[97m15:52:27.395[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m    Color 3: RGB(225, 211, 190)
+[97m15:52:27.395[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m    Color 4: RGB(226, 203, 139)
+[97m15:52:27.395[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m    Color 5: RGB(222, 181, 134)
+[97m15:52:27.395[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m    ... and 11 more
+[97m15:52:27.395[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Applying color mapping to TARGET image...
+[97m15:52:27.587[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Calculating distances vectorized for 19142348 pixels and 16 palette colors...
+[97m15:52:43.813[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Vectorized processing finished in 16.42 seconds
+[97m15:52:44.362[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:b8249dec][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749477145724_1749477147_matched.tif
+[97m15:52:44.365[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:b8249dec][0m Dopasowywanie kolorów zakoñczone: target_1749477145724_1749477147_matched.tif
+[97m15:53:45.447[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Przetwarzanie przez algorytm: algorithm_01_palette z parametrami: {'num_colors': 8, 'distance_metric': 'lab', 'use_dithering': False, 'preserve_luminance': False}
+[97m15:53:45.575[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Initialized algorithm: algorithm_01_palette
+[97m15:53:45.576[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Starting Simple Palette Mapping v1.2
+[97m15:53:45.576[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Master (palette): master_1749477223748_1749477225.tif
+[97m15:53:45.576[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Target (destination): target_1749477224401_1749477225.tif
+[97m15:53:45.576[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Extracting color palette from MASTER image...
+[97m15:53:45.639[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Extracted 16 colors from image (5359, 3572) -> (100, 67)
+[97m15:53:45.639[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Extracted 16 colors from the master palette
+[97m15:53:45.639[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Sample colors from master palette:
+[97m15:53:45.639[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m    Color 1: RGB(244, 242, 236)
+[97m15:53:45.639[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m    Color 2: RGB(238, 227, 182)
+[97m15:53:45.640[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m    Color 3: RGB(225, 211, 190)
+[97m15:53:45.640[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m    Color 4: RGB(226, 203, 139)
+[97m15:53:45.640[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m    Color 5: RGB(222, 181, 134)
+[97m15:53:45.640[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m    ... and 11 more
+[97m15:53:45.640[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Applying color mapping to TARGET image...
+[97m15:53:45.816[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Calculating distances vectorized for 19142348 pixels and 16 palette colors...
+[97m15:54:00.864[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Vectorized processing finished in 15.22 seconds
+[97m15:54:01.085[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:e9d2c1f3][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749477224401_1749477225_matched.tif
+[97m15:54:01.094[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:e9d2c1f3][0m Dopasowywanie kolorów zakoñczone: target_1749477224401_1749477225_matched.tif
+[97m16:09:30.024[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Przetwarzanie przez algorytm: algorithm_01_palette z parametrami: {'num_colors': 16, 'distance_metric': 'weighted_rgb', 'use_dithering': False, 'preserve_luminance': False}
+[97m16:09:30.153[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Initialized algorithm: algorithm_01_palette
+[97m16:09:30.153[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Starting Simple Palette Mapping v1.2
+[97m16:09:30.153[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Master (palette): master_1749478168729_1749478170.tif
+[97m16:09:30.153[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Target (destination): target_1749478169194_1749478170.tif
+[97m16:09:30.154[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Extracting color palette from MASTER image...
+[97m16:09:30.215[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Extracted 16 colors from image (5359, 3572) -> (100, 67)
+[97m16:09:30.215[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Extracted 16 colors from the master palette
+[97m16:09:30.215[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Sample colors from master palette:
+[97m16:09:30.216[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m    Color 1: RGB(244, 242, 236)
+[97m16:09:30.216[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m    Color 2: RGB(238, 227, 182)
+[97m16:09:30.216[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m    Color 3: RGB(225, 211, 190)
+[97m16:09:30.216[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m    Color 4: RGB(226, 203, 139)
+[97m16:09:30.216[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m    Color 5: RGB(222, 181, 134)
+[97m16:09:30.216[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m    ... and 11 more
+[97m16:09:30.216[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Applying color mapping to TARGET image...
+[97m16:09:30.387[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Calculating distances vectorized for 19142348 pixels and 16 palette colors...
+[97m16:09:45.385[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Vectorized processing finished in 15.17 seconds
+[97m16:09:45.592[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bfe4f3fb][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749478169194_1749478170_matched.tif
+[97m16:09:45.601[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:bfe4f3fb][0m Dopasowywanie kolorów zakoñczone: target_1749478169194_1749478170_matched.tif
+[97m16:10:36.237[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Przetwarzanie przez algorytm: algorithm_01_palette z parametrami: {'num_colors': 8, 'distance_metric': 'weighted_rgb', 'use_dithering': False, 'preserve_luminance': False}
+[97m16:10:36.399[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Initialized algorithm: algorithm_01_palette
+[97m16:10:36.400[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Starting Simple Palette Mapping v1.2
+[97m16:10:36.400[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Master (palette): master_1749478234774_1749478236.tif
+[97m16:10:36.400[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Target (destination): target_1749478235273_1749478236.tif
+[97m16:10:36.400[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Extracting color palette from MASTER image...
+[97m16:10:36.468[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Extracted 16 colors from image (5359, 3572) -> (100, 67)
+[97m16:10:36.468[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Extracted 16 colors from the master palette
+[97m16:10:36.468[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Sample colors from master palette:
+[97m16:10:36.469[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m    Color 1: RGB(244, 242, 236)
+[97m16:10:36.469[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m    Color 2: RGB(238, 227, 182)
+[97m16:10:36.469[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m    Color 3: RGB(225, 211, 190)
+[97m16:10:36.469[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m    Color 4: RGB(226, 203, 139)
+[97m16:10:36.469[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m    Color 5: RGB(222, 181, 134)
+[97m16:10:36.469[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m    ... and 11 more
+[97m16:10:36.469[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Applying color mapping to TARGET image...
+[97m16:10:36.645[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Calculating distances vectorized for 19142348 pixels and 16 palette colors...
+[97m16:10:51.642[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Vectorized processing finished in 15.17 seconds
+[97m16:10:51.853[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:f50b3b95][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749478235273_1749478236_matched.tif
+[97m16:10:51.861[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:f50b3b95][0m Dopasowywanie kolorów zakoñczone: target_1749478235273_1749478236_matched.tif
+[97m16:14:23.458[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Przetwarzanie przez algorytm: algorithm_01_palette z parametrami: {'num_colors': 8, 'distance_metric': 'weighted_rgb', 'use_dithering': False, 'preserve_luminance': False}
+[97m16:14:23.584[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Initialized algorithm: algorithm_01_palette
+[97m16:14:23.584[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Starting Simple Palette Mapping v1.2
+[97m16:14:23.584[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Master (palette): master_1749478462127_1749478463.tif
+[97m16:14:23.584[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Target (destination): target_1749478462621_1749478463.tif
+[97m16:14:23.585[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Extracting color palette from MASTER image...
+[97m16:14:23.648[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Extracted 16 colors from image (5359, 3572) -> (100, 67)
+[97m16:14:23.648[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Extracted 16 colors from the master palette
+[97m16:14:23.648[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Sample colors from master palette:
+[97m16:14:23.648[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m    Color 1: RGB(244, 242, 236)
+[97m16:14:23.648[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m    Color 2: RGB(238, 227, 182)
+[97m16:14:23.648[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m    Color 3: RGB(225, 211, 190)
+[97m16:14:23.648[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m    Color 4: RGB(226, 203, 139)
+[97m16:14:23.648[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m    Color 5: RGB(222, 181, 134)
+[97m16:14:23.648[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m    ... and 11 more
+[97m16:14:23.648[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Applying color mapping to TARGET image...
+[97m16:14:23.820[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Calculating distances vectorized for 19142348 pixels and 16 palette colors...
+[97m16:14:38.749[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Vectorized processing finished in 15.10 seconds
+[97m16:14:39.060[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:8ed9b201][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749478462621_1749478463_matched.tif
+[97m16:14:39.066[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:8ed9b201][0m Dopasowywanie kolorów zakoñczone: target_1749478462621_1749478463_matched.tif
+[97m16:16:00.865[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Przetwarzanie przez algorytm: algorithm_01_palette z parametrami: {'num_colors': 4, 'distance_metric': 'weighted_rgb', 'use_dithering': False, 'preserve_luminance': False}
+[97m16:16:00.993[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Initialized algorithm: algorithm_01_palette
+[97m16:16:00.993[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Starting Simple Palette Mapping v1.2
+[97m16:16:00.993[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Master (palette): master_1749478558388_1749478560.tif
+[97m16:16:00.993[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Target (destination): target_1749478559553_1749478560.tif
+[97m16:16:00.993[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Extracting color palette from MASTER image...
+[97m16:16:01.057[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Extracted 16 colors from image (5359, 3572) -> (100, 67)
+[97m16:16:01.057[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Extracted 16 colors from the master palette
+[97m16:16:01.057[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Sample colors from master palette:
+[97m16:16:01.057[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m    Color 1: RGB(244, 242, 236)
+[97m16:16:01.057[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m    Color 2: RGB(238, 227, 182)
+[97m16:16:01.057[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m    Color 3: RGB(225, 211, 190)
+[97m16:16:01.057[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m    Color 4: RGB(226, 203, 139)
+[97m16:16:01.057[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m    Color 5: RGB(222, 181, 134)
+[97m16:16:01.057[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m    ... and 11 more
+[97m16:16:01.058[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Applying color mapping to TARGET image...
+[97m16:16:01.229[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Calculating distances vectorized for 19142348 pixels and 16 palette colors...
+[97m16:16:16.381[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Vectorized processing finished in 15.32 seconds
+[97m16:16:16.652[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749478559553_1749478560_matched.tif
+[97m16:16:16.660[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:bb72bde0][0m Dopasowywanie kolorów zakoñczone: target_1749478559553_1749478560_matched.tif

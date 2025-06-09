@@ -1,4 +1,5 @@
-// GattoNero Color Matcher - v1.2 with Advanced Logging
+// GattoNero Color Matcher - v1.2 with Advanced Logging - DO NOT EDIT THIS, it is working v1.2 version, finalized.
+
 #target photoshop
 
 // << ZMIANA: Prosta i niezawodna funkcja do logowania na pulpicie.
@@ -28,7 +29,7 @@ function main() {
         writeToLog("Error: Less than 2 documents open. Script terminated.");
         return;
     }
-    
+
     writeToLog("Showing configuration dialog.");
     var config = showConfigurationDialog();
     if (config === null) {
@@ -45,14 +46,14 @@ function main() {
 
     var masterFile = null;
     var targetFile = null;
-    
+
     try {
         alert("Rozpoczynam przetwarzanie... Sprawdź plik gatto_nero_log.txt na pulpicie, aby śledzić postęp.");
-        
+
         writeToLog("Saving master document: " + config.masterDoc.name);
         masterFile = saveDocumentToTIFF(config.masterDoc, tempFolder, "master");
         writeToLog("Master file saved to: " + masterFile.fsName);
-        
+
         writeToLog("Saving target document: " + config.targetDoc.name);
         targetFile = saveDocumentToTIFF(config.targetDoc, tempFolder, "target");
         writeToLog("Target file saved to: " + targetFile.fsName);
@@ -60,14 +61,14 @@ function main() {
         writeToLog("Executing server request (curl).");
         var response = executeCurl(masterFile, targetFile, config);
         writeToLog("Raw server response: " + response);
-        
+
         writeToLog("Parsing server response.");
         var result = parseColorMatchResponse(response);
         writeToLog("Parsed response successfully. Filename: " + result.filename);
-        
+
         writeToLog("Opening result file.");
         openResultFile(result.filename, config.projectRoot, config.is_preview);
-        
+
     } catch (e) {
         writeToLog("!!! SCRIPT CRASHED !!! Error: " + e.message);
         alert("Wystąpił krytyczny błąd: \n" + e.message + "\n\nSprawdź plik gatto_nero_log.txt na pulpicie po więcej szczegółów.");
@@ -81,19 +82,19 @@ function main() {
 
 function executeCurl(masterFile, targetFile, config) {
     var url = config.is_preview ? "http://127.0.0.1:5000/api/colormatch/preview" : SERVER_URL;
-    
+
     // << ZMIANA: Używamy PEŁNEJ ŚCIEŻKI do curl i usuwamy flagę -s (silent), aby był bardziej "gadatliwy"
     var curlExecutable = "C:/Windows/System32/curl.exe";
-    
+
     var command = '"' + curlExecutable + '" -s -X POST ' + // << DODANO -s (silent)
-                  '-F "master_image=@' + masterFile.fsName + '" ' +
-                  '-F "target_image=@' + targetFile.fsName + '" ' +
-                  '-F "method=' + config.method + '" ' +
-                  '-F "k=' + config.k + '" ' +
-                  '-F "distance_metric=' + config.distanceMetric + '" ' +
-                  '-F "use_dithering=' + config.useDithering + '" ' +
-                  '-F "preserve_luminance=' + config.preserveLuminance + '" ' +
-                  url;
+        '-F "master_image=@' + masterFile.fsName + '" ' +
+        '-F "target_image=@' + targetFile.fsName + '" ' +
+        '-F "method=' + config.method + '" ' +
+        '-F "k=' + config.k + '" ' +
+        '-F "distance_metric=' + config.distanceMetric + '" ' +
+        '-F "use_dithering=' + config.useDithering + '" ' +
+        '-F "preserve_luminance=' + config.preserveLuminance + '" ' +
+        url;
 
     writeToLog("Executing command: " + command);
 
@@ -113,9 +114,9 @@ function executeCurl(masterFile, targetFile, config) {
 
             if (stdoutFile.exists) stdoutFile.remove();
             if (stderrFile.exists) stderrFile.remove();
-            
+
             app.system('cmd /c ""' + cmdFile.fsName + '" 1> "' + stdoutFile.fsName + '" 2> "' + stderrFile.fsName + '""');
-            
+
             var maxWaitTime = 15000;
             var waitInterval = 500;
             var totalWait = 0;
@@ -139,11 +140,11 @@ function executeCurl(masterFile, targetFile, config) {
                 stdoutFile.close();
                 writeToLog("CURL stdout: " + stdOutput); // << ZMIANA: Logujemy wyjście
             }
-            
+
             if (errorOutput) {
                 throw new Error("Błąd wykonania CURL (szczegóły w logu): " + errorOutput);
             }
-            
+
             result = stdOutput;
 
         } finally {
@@ -154,7 +155,7 @@ function executeCurl(masterFile, targetFile, config) {
     } else { // macOS
         result = app.doScript('do shell script "' + command + '"', Language.APPLESCRIPT);
     }
-    
+
     if (result.replace(/^\s+|\s+$/g, "") === "") {
         throw new Error("Nie otrzymano odpowiedzi od serwera (stdout był pusty).");
     }
@@ -192,8 +193,8 @@ function showConfigurationDialog() {
     methodPanel.alignChildren = "left";
     methodPanel.add("statictext", undefined, "Metoda dopasowania:");
     var methodDropdown = methodPanel.add("dropdownlist", undefined, [
-        "1: Palette Mapping", 
-        "2: Statistical Transfer", 
+        "1: Palette Mapping",
+        "2: Statistical Transfer",
         "3: Histogram Matching"
     ]);
     methodDropdown.selection = 0;
@@ -209,8 +210,8 @@ function showConfigurationDialog() {
 
     advancedOptionsPanel.add("statictext", undefined, "Metryka odległości:");
     var distanceMetricDropdown = advancedOptionsPanel.add("dropdownlist", undefined, [
-        "weighted_rgb: Percepcyjna (domyślna)", 
-        "rgb: Szybka (RGB)", 
+        "weighted_rgb: Percepcyjna (domyślna)",
+        "rgb: Szybka (RGB)",
         "lab: Percepcyjna (LAB)"
     ]);
     distanceMetricDropdown.selection = 0; // Default to weighted_rgb
@@ -225,9 +226,15 @@ function showConfigurationDialog() {
     var buttonGroup = dialog.add("group");
     buttonGroup.orientation = "row";
     buttonGroup.alignChildren = ["fill", "center"];
-    buttonGroup.add("button", undefined, "Anuluj", { name: "cancel" });
-    var previewButton = buttonGroup.add("button", undefined, "Generuj Podgląd", { name: "preview" });
-    var runButton = buttonGroup.add("button", undefined, "Uruchom", { name: "ok" });
+    buttonGroup.add("button", undefined, "Anuluj", {
+        name: "cancel"
+    });
+    var previewButton = buttonGroup.add("button", undefined, "Generuj Podgląd", {
+        name: "preview"
+    });
+    var runButton = buttonGroup.add("button", undefined, "Uruchom", {
+        name: "ok"
+    });
 
     previewButton.onClick = function() {
         var kValue = parseInt(kInput.text);
@@ -280,6 +287,7 @@ function showConfigurationDialog() {
     dialog.show();
     return result;
 }
+
 function saveDocumentToTIFF(doc, folderPath, prefix) {
     var activeDoc = app.activeDocument;
     app.activeDocument = doc;
@@ -290,22 +298,23 @@ function saveDocumentToTIFF(doc, folderPath, prefix) {
     tiffOptions.layers = false;
 
     doc.saveAs(filePath, tiffOptions, true, Extension.LOWERCASE);
-    
+
     app.activeDocument = activeDoc;
     return filePath;
 }
+
 function parseColorMatchResponse(response) {
     try {
         // Najpierw usuwamy wszystkie możliwe znaki nowej linii z całego tekstu
         var cleaned_response = response.replace(/(\r\n|\n|\r)/gm, "");
-        
+
         // Następnie usuwamy białe znaki z początku i końca
         cleaned_response = cleaned_response.replace(/^\s+|\s+$/g, "");
 
         var parts = cleaned_response.split(",");
-        
+
         if (parts.length < 1) throw new Error("Pusta odpowiedź serwera");
-        
+
         var status = parts[0];
         if (status === "error") {
             throw new Error("Błąd serwera: " + (parts.length > 1 ? parts.slice(1).join(',') : "Nieznany błąd"));
@@ -313,21 +322,26 @@ function parseColorMatchResponse(response) {
         if (status !== "success" || parts.length < 3) {
             throw new Error("Nieprawidłowa odpowiedź serwera (oczekiwano 'success,method,filename'): " + cleaned_response);
         }
-        
+
         // Zwracamy obiekt z idealnie czystą nazwą pliku
-        return { status: status, method: parts[1], filename: parts[2] };
+        return {
+            status: status,
+            method: parts[1],
+            filename: parts[2]
+        };
 
     } catch (e) {
         throw new Error("Błąd parsowania odpowiedzi: " + e.message + "\nOryginalna odpowiedź: " + response);
     }
 }
+
 function openResultFile(filename, projectRoot, is_preview) {
     var resultsFolder = new Folder(projectRoot + "/results");
     var resultFile = new File(resultsFolder.fsName + "/" + filename);
-    
+
     // --- PANCERNA PĘTLA OCZEKIWANIA NA PLIK ---
     var max_wait_ms = 20000; // Maksymalny czas oczekiwania: 20 sekund
-    var interval_ms = 500;   // Sprawdzaj co pół sekundy
+    var interval_ms = 500; // Sprawdzaj co pół sekundy
     var elapsed_ms = 0;
     var fileFound = false;
 
@@ -339,7 +353,7 @@ function openResultFile(filename, projectRoot, is_preview) {
             writeToLog("File found after " + elapsed_ms + "ms.");
             break; // Znaleziono plik, wyjdź z pętli
         }
-        
+
         $.sleep(interval_ms); // Czekaj
         elapsed_ms += interval_ms;
     }
@@ -360,11 +374,13 @@ function openResultFile(filename, projectRoot, is_preview) {
         alert("Gotowe! Color Matching zakończony.\n\nWynik został otwarty w nowym dokumencie.");
     }
 }
+
 function cleanupFile(file) {
     if (file && file.exists) {
         try {
             file.remove();
-        } catch (e) { /* ignoruj błędy */ }
+        } catch (e) {
+            /* ignoruj błędy */ }
     }
 }
 
