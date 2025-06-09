@@ -5,6 +5,7 @@ import os
 from tqdm import tqdm
 import json
 from skimage import color # For LAB color space conversion
+from sklearn.cluster import KMeans # For K-means clustering
 from typing import TYPE_CHECKING, Any
 
 try:
@@ -96,14 +97,24 @@ class PaletteMappingAlgorithm:
                 image = image.convert('RGB')
             
             original_size = image.size
-            image.thumbnail(self.config['thumbnail_size'])
-            quantized = image.quantize(colors=num_colors)
-            palette_data = quantized.getpalette()
-            if not palette_data:
-                raise ValueError("Could not extract palette data from image.")
-            palette_data = palette_data[:num_colors*3]
-            palette = [[palette_data[i], palette_data[i+1], palette_data[i+2]] 
-                       for i in range(0, len(palette_data), 3)]
+            image.thumbnail(self.config['thumbnail_size']) # Still use thumbnail for performance
+            
+            # Convert image to numpy array for K-means
+            img_array = np.array(image.convert('RGB'))
+            
+            # Reshape the image to be a list of pixels
+            pixels = img_array.reshape(-1, 3)
+            
+            # Apply K-means clustering to find dominant colors
+            # Ensure n_init is set to 'auto' or an integer for KMeans
+            kmeans = KMeans(n_clusters=num_colors, random_state=0, n_init='auto') 
+            kmeans.fit(pixels)
+            
+            # Get the cluster centers (the dominant colors)
+            palette = kmeans.cluster_centers_.astype(int).tolist()
+            
+            # Ensure colors are within 0-255 range after conversion
+            palette = [[max(0, min(255, c)) for c in color_val] for color_val in palette]
             
             if self.config['exclude_colors']:
                 excluded_set = set(tuple(c) for c in self.config['exclude_colors'])

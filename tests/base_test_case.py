@@ -23,7 +23,7 @@ class BaseAlgorithmTestCase(unittest.TestCase):
         shutil.rmtree(self.test_dir)
         print(f"[TEST ENV] Usunięto folder tymczasowy: {self.test_dir}")
 
-    def create_test_image(self, filename: str, shape: tuple = (64, 64, 3), color: list | None = None) -> str:
+    def create_test_image(self, filename: str, shape: tuple = (64, 64, 3), color: list | None = None, arr_data=None) -> str:
         """
         Tworzy prosty obraz testowy i zapisuje go w folderze tymczasowym.
 
@@ -32,15 +32,16 @@ class BaseAlgorithmTestCase(unittest.TestCase):
             shape (tuple): Kształt obrazu (wysokość, szerokość, kanały).
             color (list | None, optional): Kolor RGB do wypełnienia obrazu. 
                                     Jeśli None, generowany jest losowy szum.
+            arr_data (np.ndarray, optional): Tablica danych obrazu do zapisania. Jeśli podana, nadpisuje color/shape.
 
         Returns:
             str: Pełna ścieżka do utworzonego pliku obrazu.
         """
-        if color is not None:
-            # Stwórz obraz o jednolitym kolorze
+        if arr_data is not None:
+            image_array = arr_data
+        elif color is not None:
             image_array = np.full(shape, color, dtype=np.uint8)
         else:
-            # Stwórz obraz z losowym szumem
             image_array = np.random.randint(0, 256, shape, dtype=np.uint8)
         
         filepath = os.path.join(self.test_dir, filename)

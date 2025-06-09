@@ -1485,3 +1485,288 @@ Aby zatrzymac serwer, nacisnij Ctrl+C
 [97m16:16:16.381[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Vectorized processing finished in 15.32 seconds
 [97m16:16:16.652[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:bb72bde0][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749478559553_1749478560_matched.tif
 [97m16:16:16.660[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:bb72bde0][0m Dopasowywanie kolorów zakoñczone: target_1749478559553_1749478560_matched.tif
+[97m17:37:49.390[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:650260ad][0m Operation profiled: health_check [92m(7.9ms)[0m
+[97m17:44:45.455[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m17:44:45.456[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m17:44:45.456[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m17:44:45.460[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m17:44:45.468[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m17:44:45.468[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m17:44:45.968[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:6ec3a399][0m Operation profiled: health_check [92m(7.4ms)[0m
+[97m17:49:00.205[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m17:49:00.205[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m17:49:00.205[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m17:49:00.209[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m17:49:00.217[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m17:49:00.217[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m17:49:00.709[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:b21713d5][0m Operation profiled: health_check [92m(7.5ms)[0m
+[97m17:50:47.394[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m17:50:47.395[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m17:50:47.395[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m17:50:47.399[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m17:50:47.408[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m17:50:47.408[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m17:50:48.853[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:78465566][0m Operation profiled: health_check [92m(7.5ms)[0m
+[97m19:04:52.033[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m19:04:52.034[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m19:04:52.034[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m19:04:52.038[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m19:04:52.047[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m19:04:52.047[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m19:04:53.548[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:c215188b][0m Operation profiled: health_check [92m(8.4ms)[0m
+[97m19:07:27.435[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m19:07:27.435[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m19:07:27.435[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m19:07:27.440[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m19:07:27.447[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m19:07:27.448[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m19:07:27.497[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:c2fe936a][0m Operation profiled: health_check [92m(7.3ms)[0m
+[97m19:30:39.249[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m19:30:39.250[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m19:30:39.250[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m19:30:39.254[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m19:30:39.262[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m19:30:39.262[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m19:30:40.756[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:42d95e59][0m Operation profiled: health_check [92m(7.9ms)[0m
+[97m19:31:57.833[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m19:31:57.833[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m19:31:57.834[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m19:31:57.838[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m19:31:57.846[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m19:31:57.846[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m19:31:57.899[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:bdfdb750][0m Operation profiled: health_check [92m(8.0ms)[0m
+[97m19:33:21.730[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m19:33:21.731[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m19:33:21.731[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m19:33:21.735[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m19:33:21.743[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m19:33:21.743[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m19:33:23.221[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:f15bcca7][0m Operation profiled: health_check [92m(8.0ms)[0m
+[97m19:34:47.301[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m19:34:47.302[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m19:34:47.302[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m19:34:47.308[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m19:34:47.316[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m19:34:47.316[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m19:34:47.344[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:d9f31a84][0m Operation profiled: health_check [92m(7.9ms)[0m
+[97m19:50:13.668[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m19:50:13.668[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m19:50:13.668[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m19:50:13.672[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m19:50:13.681[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m19:50:13.681[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m19:50:13.709[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:ccb17103][0m Operation profiled: health_check [92m(7.4ms)[0m
+[97m20:08:11.736[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m20:08:11.736[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m20:08:11.736[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m20:08:11.740[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m20:08:11.748[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m20:08:11.749[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m20:08:13.146[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:6ecf82a9][0m Operation profiled: health_check [92m(7.5ms)[0m
+[97m20:08:34.492[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m20:08:34.493[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m20:08:34.493[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m20:08:34.498[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m20:08:34.505[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m20:08:34.505[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m20:08:34.610[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:9be5e25b][0m Operation profiled: health_check [92m(7.5ms)[0m
+[97m20:14:34.631[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Przetwarzanie przez algorytm: algorithm_01_palette z parametrami: {'num_colors': 4, 'distance_metric': 'weighted_rgb', 'use_dithering': False, 'preserve_luminance': False}
+[97m20:14:34.775[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Initialized algorithm: algorithm_01_palette
+[97m20:14:34.775[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Starting Simple Palette Mapping v1.3
+[97m20:14:34.775[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Master (palette): master_1749492873259_1749492874.tif
+[97m20:14:34.775[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Target (destination): target_1749492873784_1749492874.tif
+[97m20:14:34.775[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Extracting color palette from MASTER image...
+[97m20:14:36.182[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Extracted 4 colors from image (5359, 3572) -> (100, 67)
+[97m20:14:36.182[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Extracted 4 colors from the master palette
+[97m20:14:36.182[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Applying color mapping to TARGET image...
+[97m20:14:36.183[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Applying mapping with Numpy vectorization (fast).
+[97m20:14:36.374[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Calculating distances vectorized for 19142348 pixels and 4 palette colors...
+[97m20:14:39.630[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Vectorized processing finished in 3.45 seconds
+[97m20:14:39.910[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:83939e35][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749492873784_1749492874_matched.tif
+[97m20:14:39.913[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:83939e35][0m Dopasowywanie kolorów zakoñczone: target_1749492873784_1749492874_matched.tif
+[97m20:17:06.659[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m20:17:06.660[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m20:17:06.660[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m20:17:06.664[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m20:17:06.672[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m20:17:06.672[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m20:17:08.196[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:43a8ef40][0m Operation profiled: health_check [92m(7.4ms)[0m
+[97m20:19:12.539[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m20:19:12.540[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m20:19:12.540[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m20:19:12.550[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m20:19:12.565[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m20:19:12.565[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m20:19:13.166[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:d5afc212][0m Operation profiled: health_check [93m(15.7ms)[0m
+[97m21:02:49.345[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m21:02:49.346[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m21:02:49.346[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m21:02:49.350[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m21:02:49.359[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m21:02:49.359[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m21:02:50.763[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:177fb842][0m Operation profiled: health_check [92m(8.2ms)[0m
+[97m21:05:53.438[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m21:05:53.439[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m21:05:53.440[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m21:05:53.444[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m21:05:53.453[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m21:05:53.453[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m21:05:54.912[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:9843ca14][0m Operation profiled: health_check [92m(8.7ms)[0m
+[97m21:09:59.454[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m21:09:59.455[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m21:09:59.456[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m21:09:59.460[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m21:09:59.476[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m21:09:59.476[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m21:10:00.942[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:3666fc9e][0m Operation profiled: health_check [92m(8.1ms)[0m
+[97m21:13:20.307[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m21:13:20.308[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m21:13:20.308[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m21:13:20.312[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m21:13:20.320[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m21:13:20.321[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m21:13:20.355[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:9ea25af0][0m Operation profiled: health_check [92m(7.9ms)[0m
