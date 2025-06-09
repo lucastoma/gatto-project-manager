@@ -61,7 +61,8 @@ class ServerConfig:
                 "python_executable": "", # Puste oznacza auto-detekcję
                 "startup_timeout": 15,
                 "shutdown_timeout": 20,
-                "health_check_interval": 5
+                "health_check_interval": 5,
+                "health_check_url": "/api/health"  # Domyślny endpoint health-check
             },
             "monitoring": {
                 "failure_threshold": 3,
@@ -144,6 +145,10 @@ class ServerConfig:
             return value.lower() in ('true', '1', 'yes', 'on')
         return bool(value) if value is not None else default
 
+    def get_health_check_url(self) -> str:
+        """Zwraca endpoint health-check z konfiguracji."""
+        return self.get_str('server', 'health_check_url', '/api/health')
+
 
 class EnhancedServerManager:
     """Zarządza cyklem życia serwera z monitoringiem, logowaniem i konfiguracją."""
@@ -156,6 +161,7 @@ class EnhancedServerManager:
         self.port = port or self.config.get_int('server', 'port', 5000)
         self.environment = environment or self.config.get_str('server', 'environment', 'development')
         self.base_url = f'http://{self.host}:{self.port}'
+        self.health_check_url = self.config.get_health_check_url()
 
         self.log_dir = Path(self.config.get_str('logging', 'log_dir', 'logs'))
         self.log_dir.mkdir(exist_ok=True)
@@ -305,7 +311,8 @@ class EnhancedServerManager:
     def is_server_responding(self) -> bool:
         """Sprawdza, czy serwer odpowiada na żądania HTTP."""
         try:
-            response = requests.get(f'{self.base_url}/api/health', timeout=2)
+            url = f'{self.base_url}{self.health_check_url}'
+            response = requests.get(url, timeout=2)
             return response.status_code == 200
         except requests.RequestException:
             return False
@@ -623,29 +630,56 @@ class EnhancedServerManager:
 
 def create_parser() -> argparse.ArgumentParser:
     """Tworzy parser argumentów linii poleceń."""
-    parser = argparse.ArgumentParser(description=__doc__, formatter_class=argparse.RawTextHelpFormatter)
-    subparsers = parser.add_subparsers(dest='command', help='Available commands', required=True)
+    help_epilog = """
+-------------------------------------------------
+ GattoNero AI - Przewodnik Szybkiego Startu
+-------------------------------------------------
+1. Uruchom serwer w tle:
+   python server_manager_enhanced.py start
 
-    start = subparsers.add_parser('start', help='Starts the server.')
-    start.add_argument('--auto-restart', action='store_true', help='Enable watchdog to auto-restart on failure.')
-    start.add_argument('--port', type=int, help='Override the server port from config.')
-    start.add_argument('--no-wait', action='store_true', help='Don\'t wait for server health-check, return immediately.')
+2. Sprawdź, czy działa:
+   python server_manager_enhanced.py status
+   
+3. Uruchom testy lub pracuj z API/Photoshopem:
+   python test_basic.py
+   
+4. Zatrzymaj serwer po pracy:
+   python server_manager_enhanced.py stop
+-------------------------------------------------
+Użyj `[komenda] --help` aby zobaczyć opcje dla konkretnej komendy.
+"""
 
-    stop = subparsers.add_parser('stop', help='Stops the server.')
-    stop.add_argument('--force', action='store_true', help='Force stop without graceful shutdown.')
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=help_epilog
+    )
+    subparsers = parser.add_subparsers(dest='command', help='Dostępne komendy')
+    subparsers.required = False
+    subparsers.default = 'help'
 
-    restart = subparsers.add_parser('restart', help='Restarts the server.')
-    restart.add_argument('--auto-restart', action='store_true', help='Enable watchdog after restarting.')
+    help_parser = subparsers.add_parser('help', help='Wyświetla tę wiadomość pomocy.')
 
-    status = subparsers.add_parser('status', help='Shows the server status.')
-    status.add_argument('--detailed', action='store_true', help='Show detailed process information.')
+    start = subparsers.add_parser('start', help='Uruchamia serwer w tle.')
+    start.add_argument('--auto-restart', action='store_true', help='Włącza watchdog do auto-restartu przy awarii.')
+    start.add_argument('--port', type=int, help='Nadpisuje port serwera z configa.')
+    start.add_argument('--no-wait', action='store_true', help='Nie czeka na health-check, zwraca od razu.')
 
-    watch = subparsers.add_parser('watch', help='Monitors the server in the foreground.')
-    watch.add_argument('--interval', type=int, default=5, help='Check interval in seconds.')
+    stop = subparsers.add_parser('stop', help='Zatrzymuje serwer.')
+    stop.add_argument('--force', action='store_true', help='Wymusza natychmiastowe zatrzymanie.')
+
+    restart = subparsers.add_parser('restart', help='Restartuje serwer.')
+    restart.add_argument('--auto-restart', action='store_true', help='Włącza watchdog po restarcie.')
+
+    status = subparsers.add_parser('status', help='Pokazuje status serwera.')
+    status.add_argument('--detailed', action='store_true', help='Pokazuje szczegółowe informacje o procesie.')
+
+    watch = subparsers.add_parser('watch', help='Monitoruje serwer na żywo.')
+    watch.add_argument('--interval', type=int, default=5, help='Interwał sprawdzania w sekundach.')
     
-    logs = subparsers.add_parser('logs', help='Shows recent logs.')
-    logs.add_argument('--tail', type=int, default=20, help='Number of lines to show.')
-    logs.add_argument('--file', choices=['manager', 'server', 'errors'], default='server', help='Which log file to show.')
+    logs = subparsers.add_parser('logs', help='Wyświetla ostatnie logi.')
+    logs.add_argument('--tail', type=int, default=20, help='Liczba linii do wyświetlenia.')
+    logs.add_argument('--file', choices=['manager', 'server', 'errors'], default='server', help='Który plik logu pokazać.')
     
     return parser
 
@@ -654,6 +688,11 @@ def main():
     """Główna funkcja wykonawcza."""
     parser = create_parser()
     args = parser.parse_args()
+
+    # Jeśli komenda to 'help' lub nie podano żadnej, wyświetl pomoc i wyjdź
+    if args.command == 'help':
+        parser.print_help()
+        sys.exit(0)
 
     manager = EnhancedServerManager(port=getattr(args, 'port', None))
 

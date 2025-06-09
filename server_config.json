@@ -7,7 +7,8 @@
 		"startup_command": ["venv\\Scripts\\python.exe", "run_server.py"],
 		"startup_timeout": 45,
 		"shutdown_timeout": 30,
-		"health_check_interval": 5
+		"health_check_interval": 5,
+		"health_check_url": "/api/health"
 	},
 	"monitoring": {
 		"failure_threshold": 3,
