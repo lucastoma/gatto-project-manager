@@ -498,7 +498,7 @@ class EnhancedServerManager:
         
         self.log_event("Running tests...", "INFO")
         try:
-            result = subprocess.run([sys.executable, 'test_basic.py'], 
+            result = subprocess.run([sys.executable, 'test_algorithm_integration.py'], 
                                   capture_output=True, text=True, cwd=os.getcwd())
             
             # Log the output

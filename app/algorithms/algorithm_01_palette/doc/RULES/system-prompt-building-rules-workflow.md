@@ -38,7 +38,7 @@ GattoNeroPhotoshop/
 │   ├── algorithms/              # 🆕 NEW: Modular algorithms
 │   │   ├── algorithm_01_palette/         # Palette matching
 │   │   ├── algorithm_02_[name]color_matching/  # next algorithm
-│   │   ├── (...))
+│   │   ├── (...)
 │   │   ├── algorithm_XX_[another_name]
 │   │   └── __init__.py
 │   ├── scripts/                 # JSX scripts for Photoshop
