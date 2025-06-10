@@ -3331,3 +3331,42 @@ Aby zatrzymac serwer, nacisnij Ctrl+C
  * Serving Flask app 'app.server'
  * Debug mode: off
 [97m21:33:13.687[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:3080ef85][0m Operation profiled: health_check [92m(9.5ms)[0m
+[97m21:48:43.166[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m21:48:43.177[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m21:48:43.177[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m21:48:43.187[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m21:48:43.197[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m21:48:43.197[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m21:48:43.602[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:680c9898][0m Operation profiled: health_check [92m(8.2ms)[0m
+[97m21:48:54.015[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:03759afb][0m Initialized algorithm: algorithm_01_palette
+[97m21:48:54.026[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:03759afb][0m Analyzing with quality 10/10 (thumbnail: 1000px) using 'kmeans' method.
+[97m21:48:58.805[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:03759afb][0m Extracted 8 colors from image (3024, 4032) -> (750, 1000)
+[97m21:49:01.717[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:a2dec024][0m Initialized algorithm: algorithm_01_palette
+[97m21:49:01.717[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:a2dec024][0m Analyzing with quality 10/10 (thumbnail: 1000px) using 'kmeans' method.
+[97m21:49:05.281[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:a2dec024][0m Extracted 8 colors from image (3024, 4032) -> (750, 1000)
+[97m21:49:12.402[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:ab29f830][0m Initialized algorithm: algorithm_01_palette
+[97m21:49:12.403[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:ab29f830][0m Analyzing with quality 5/10 (thumbnail: 500px) using 'kmeans' method.
+[97m21:49:13.558[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:ab29f830][0m Extracted 8 colors from image (3024, 4032) -> (375, 500)
+[97m21:49:19.618[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:d408c36b][0m Initialized algorithm: algorithm_01_palette
+[97m21:49:19.619[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:d408c36b][0m Analyzing with quality 10/10 (thumbnail: 1000px) using 'kmeans' method.
+[97m21:49:23.183[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:d408c36b][0m Extracted 8 colors from image (3024, 4032) -> (750, 1000)
+[97m21:49:31.415[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:aaabeafa][0m Initialized algorithm: algorithm_01_palette
+[97m21:49:31.416[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:aaabeafa][0m Analyzing with quality 10/10 (thumbnail: 1000px) using 'kmeans' method.
+[97m21:49:34.948[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:aaabeafa][0m Extracted 8 colors from image (3024, 4032) -> (750, 1000)
+[97m21:49:42.585[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:72ddf3bb][0m Initialized algorithm: algorithm_01_palette
+[97m21:49:42.586[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:72ddf3bb][0m Analyzing with quality 10/10 (thumbnail: 1000px) using 'kmeans' method.
+[97m21:49:46.134[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:72ddf3bb][0m Extracted 8 colors from image (3024, 4032) -> (750, 1000)
+[97m21:49:51.410[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:53298edc][0m Initialized algorithm: algorithm_01_palette
+[97m21:49:51.410[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:53298edc][0m Analyzing with quality 10/10 (thumbnail: 1000px) using 'kmeans' method.
+[97m21:49:58.639[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:53298edc][0m Extracted 16 colors from image (3024, 4032) -> (750, 1000)
+[97m21:50:01.008[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:2f7a6a7d][0m Initialized algorithm: algorithm_01_palette
+[97m21:50:01.009[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:2f7a6a7d][0m Analyzing with quality 10/10 (thumbnail: 1000px) using 'kmeans' method.
+[97m21:50:08.297[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:2f7a6a7d][0m Extracted 16 colors from image (3024, 4032) -> (750, 1000)

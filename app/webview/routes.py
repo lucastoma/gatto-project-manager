@@ -13,22 +13,24 @@ from werkzeug.exceptions import RequestEntityTooLarge
 
 # === ZMIANA: WPROWADZAMY JAWNĄ FLAGĘ DO KONTROLOWANIA DANYCH TESTOWYCH ===
 # Ustaw na 'False', gdy dodasz brakujące moduły 'core' i 'algorithms'
-USE_MOCK_DATA = True
+USE_MOCK_DATA = False
 
 # === ZMIANA: Komentujemy importy, które powodują błąd ===
 # Zostaną one zastąpione przez logikę opartą na fladze USE_MOCK_DATA
 if not USE_MOCK_DATA:
     try:
-        from ..core.image_processor import ImageProcessor
-        from ..algorithms.algorithm_01_palette.main import process_image as process_palette
-        from ..api.utils import validate_image, create_response
+        # Zamiast ImageProcessor, importujemy bezpośrednio algorytm
+        from ..algorithms.algorithm_01_palette.algorithm import PaletteMappingAlgorithm
+        # Poniższe importy mogą być potrzebne, jeśli inne części kodu ich używają
+        # from ..core.image_processor import ImageProcessor 
+        # from ..api.utils import validate_image, create_response
     except ImportError as e:
-        # Jeśli nawet przy fladze False import się nie powiedzie, rzuć błędem.
-        raise ImportError(f"Nie udało się zaimportować modułów core/algorithms. Upewnij się, że istnieją. Błąd: {e}")
+        raise ImportError(f"Nie udało się zaimportować modułów. Upewnij się, że istnieją. Błąd: {e}")
 else:
     # Definiujemy puste zmienne, gdy używamy danych testowych
-    ImageProcessor = None
-    process_palette = None
+    PaletteMappingAlgorithm = None
+    # ImageProcessor = None # Jeśli nie jest używany gdzie indziej, można usunąć
+    # process_palette = None # Zastąpione przez PaletteMappingAlgorithm
 
 
 # Create Blueprint
@@ -153,34 +155,85 @@ def process_algorithm():
 
 # === ZMIANA: Logika funkcji process_algorithm_01 jest teraz kontrolowana przez flagę ===
 def process_algorithm_01(image_path, params):
-    """Process Algorithm 01 - Palette extraction."""
-    if USE_MOCK_DATA:
-        # Zwracamy dane testowe, jeśli flaga jest włączona
-        return create_mock_palette_result(params, image_path)
-
-    # W przeciwnym razie próbujemy użyć prawdziwego algorytmu
+    """Process Algorithm 01 - Palette extraction using the actual algorithm."""
+    # Ta funkcja jest teraz wywoływana tylko, gdy USE_MOCK_DATA = False
     try:
-        if not callable(process_palette):
-             raise ImportError("Funkcja 'process_palette' nie jest dostępna.")
+        # 1. Inicjalizuj algorytm
+        algorithm = PaletteMappingAlgorithm()
 
-        result = process_palette(
+        # 2. Przekaż parametry z UI do konfiguracji algorytmu
+        algorithm.config['quality'] = params.get('quality', 5)
+
+        # 3. Wywołaj właściwą funkcję ekstrakcji palety
+        palette_rgb = algorithm.extract_palette(
             image_path=image_path,
             num_colors=params['num_colors'],
-            method=params['method'],
-            quality=params['quality']
+            method=params['method']
         )
-        
-        if params.get('include_metadata', False):
-            result['metadata'] = get_image_metadata(image_path)
-        
-        if 'palette' not in result and 'colors' in result:
-            result['palette'] = result['colors']
-        
-        return result
-        
+
+        # 4. Przetwórz wynik do formatu oczekiwanego przez UI (z HEX, HSL itp.)
+        # Ta część jest opcjonalna, ale dobra dla spójności z mock data
+        colors = []
+        for r, g, b in palette_rgb:
+            hex_color = f"#{r:02x}{g:02x}{b:02x}"
+            # Zakładamy, że rgb_to_hsl jest zdefiniowane gdzieś globalnie lub w utils
+            # Jeśli nie, trzeba będzie je dodać lub zaimportować
+            try:
+                hsl_color = rgb_to_hsl(r, g, b) # Załóżmy, że ta funkcja istnieje
+            except NameError: # Jeśli rgb_to_hsl nie jest zdefiniowane
+                hsl_color = [0,0,0] # Placeholder
+                if hasattr(current_app, 'logger'):
+                    current_app.logger.warning("rgb_to_hsl function not found, using placeholder HSL values.")
+                else:
+                    print("Warning: rgb_to_hsl function not found, using placeholder HSL values.")
+            
+            colors.append({
+                'hex': hex_color,
+                'rgb': [r, g, b],
+                'hsl': hsl_color
+                # Procentowy udział wymagałby dodatkowej logiki, więc pomijamy go dla uproszczenia
+            })
+
+        return {
+            'palette': colors,
+            'algorithm': 'algorithm_01',
+            'method': params['method'],
+            'num_colors': params['num_colors'],
+            'quality': params['quality'],
+            'mock': False  # Wyraźnie zaznaczamy, że to nie są dane testowe
+        }
+
     except Exception as e:
-        current_app.logger.error(f"Algorithm 01 processing error: {e}")
+        # Użyj loggera, jeśli jest dostępny
+        if hasattr(current_app, 'logger'):
+            current_app.logger.error(f"Algorithm 01 real processing error: {e}", exc_info=True)
+        else:
+            print(f"Algorithm 01 real processing error: {e}")
         raise ValueError(f"Błąd przetwarzania algorytmu: {str(e)}")
+
+# Funkcja pomocnicza do konwersji RGB na HSL (jeśli nie istnieje globalnie)
+# Można ją przenieść do app/webview/utils/color_converter.py lub podobnego miejsca
+def rgb_to_hsl(r, g, b):
+    r /= 255.0
+    g /= 255.0
+    b /= 255.0
+    max_val = max(r, g, b)
+    min_val = min(r, g, b)
+    h, s, l = 0, 0, (max_val + min_val) / 2
+
+    if max_val == min_val:
+        h = s = 0  # achromatic
+    else:
+        d = max_val - min_val
+        s = d / (2 - max_val - min_val) if l > 0.5 else d / (max_val + min_val)
+        if max_val == r:
+            h = (g - b) / d + (6 if g < b else 0)
+        elif max_val == g:
+            h = (b - r) / d + 2
+        elif max_val == b:
+            h = (r - g) / d + 4
+        h /= 6
+    return [round(h * 360), round(s * 100), round(l * 100)]
 
 def create_mock_palette_result(params, image_path):
     """Create mock result for testing. Ulepszona wersja, aby dane wyglądały bardziej sensownie."""

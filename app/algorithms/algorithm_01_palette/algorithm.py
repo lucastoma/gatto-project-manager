@@ -95,70 +95,82 @@ class PaletteMappingAlgorithm:
             if not all(0 <= c <= 255 for c in color_val):
                 raise ValueError(f"Color {i} has values outside the 0-255 range: {color_val}")
                 
-    def extract_palette(self, image_path, num_colors=None):
+    def extract_palette(self, image_path, num_colors=None, method='kmeans'):
         """
-        Extracts a color palette from an image, using a quality setting
-        to determine the analysis precision.
+        Extracts a color palette from an image using either K-means or Median Cut.
         """
         if num_colors is None:
             num_colors = self.config['num_colors']
+
         try:
             image = Image.open(image_path)
             if image.mode == 'RGBA':
-                # Remove alpha channel for consistent analysis
                 background = Image.new('RGB', image.size, (255, 255, 255))
                 background.paste(image, mask=image.split()[-1])
                 image = background
             elif image.mode != 'RGB':
                 image = image.convert('RGB')
-            
+
             original_size = image.size
-            
-            # === NOWA LOGIKA JAKOŚCI ===
-            # Pobierz jakość z konfiguracji (przekazanej z WebView)
-            quality = self.config.get('quality', 5) # Domyślnie 5, jeśli nie podano
-            
-            # Mapuj jakość (1-10) na rozmiar analizowanej miniatury
-            # Jakość 1 = 100px (szybko, niska precyzja)
-            # Jakość 10 = 1000px (wolniej, wysoka precyzja)
+            quality = self.config.get('quality', 5)
             base_size = 100
             max_size = 1000
             thumbnail_size_val = int(base_size + (max_size - base_size) * (quality - 1) / 9.0)
-            
-            self.logger.info(f"Analyzing with quality {quality}/10 (thumbnail: {thumbnail_size_val}px)")
-            
-            # Zastosuj obliczony rozmiar miniatury
-            image.thumbnail((thumbnail_size_val, thumbnail_size_val))
-            # === KONIEC NOWEJ LOGIKI ===
-            
-            # Convert image to numpy array for K-means
-            img_array = np.array(image)
-            
-            # Reshape the image to be a list of pixels
-            pixels = img_array.reshape(-1, 3)
-            
-            # Apply K-means clustering to find dominant colors
-            kmeans = KMeans(n_clusters=num_colors, random_state=0, n_init='auto')
-            kmeans.fit(pixels)
-            
-            # Get the cluster centers (the dominant colors)
-            palette = kmeans.cluster_centers_.astype(int).tolist()
-            
-            # Pozostała część funkcji bez zmian...
+
+            self.logger.info(f"Analyzing with quality {quality}/10 (thumbnail: {thumbnail_size_val}px) using '{method}' method.")
+
+            # --- NOWA LOGIKA WYBORU METODY ---
+            if method == 'median_cut':
+                # Użyj Pillow's quantize dla deterministycznego Median Cut
+                temp_image = image.copy()
+                temp_image.thumbnail((thumbnail_size_val, thumbnail_size_val))
+
+                # Quantize do N kolorów
+                quantized_image = temp_image.quantize(colors=num_colors, method=Image.MEDIANCUT, dither=Image.NONE)
+
+                # Wyciągnij paletę z obrazka po kwantyzacji
+                palette_raw = quantized_image.getpalette()
+                palette = []
+                # Upewnij się, że paleta nie jest None i ma wystarczająco dużo danych
+                if palette_raw is not None:
+                    for i in range(min(num_colors, len(palette_raw) // 3)):
+                        r = palette_raw[i*3]
+                        g = palette_raw[i*3+1]
+                        b = palette_raw[i*3+2]
+                        palette.append([r, g, b])
+                else:
+                    self.logger.warning(f"Median Cut returned empty palette for {image_path}. Falling back to default.")
+                    # Fallback jeśli paleta jest pusta
+                    palette = [[j* (255//(num_colors-1)) if num_colors > 1 else 0 for _ in range(3)] for j in range(num_colors)]
+                    if not palette: # Jeśli num_colors było 0 lub 1 i paleta jest pusta
+                        palette = [[0,0,0], [255,255,255], [128,128,128]]
+
+
+            else: # Domyślnie użyj K-Means
+                image.thumbnail((thumbnail_size_val, thumbnail_size_val))
+                img_array = np.array(image)
+                pixels = img_array.reshape(-1, 3)
+
+                # Użyj random_state=0 dla deterministycznego wyniku K-Means
+                kmeans = KMeans(n_clusters=num_colors, random_state=0, n_init=10)
+                kmeans.fit(pixels)
+                palette = kmeans.cluster_centers_.astype(int).tolist()
+
+            # --- KONIEC NOWEJ LOGIKI ---
+
             palette = [[max(0, min(255, c)) for c in color_val] for color_val in palette]
-            
+
             if self.config.get('inject_extremes', False):
                 self.logger.info("Injecting pure black and white into the palette.")
                 if [0, 0, 0] not in palette: palette.insert(0, [0, 0, 0])
                 if [255, 255, 255] not in palette: palette.insert(0, [255, 255, 255])
 
             self.validate_palette(palette)
-            self.logger.info(f"Extracted {len(palette)} colors from image {original_size} -> {image.size}")
+            self.logger.info(f"Extracted {len(palette)} colors from image {original_size} -> {image.size if hasattr(image, 'size') else 'N/A'}")
             return palette
-            
+
         except Exception as e:
             self.logger.error(f"Error extracting palette from {image_path}: {e}", exc_info=True)
-            # Zwróć prostą paletę awaryjną
             return [[0,0,0], [255,255,255], [128,128,128]]
         if num_colors is None:
             num_colors = self.config['num_colors']

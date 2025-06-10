@@ -7,6 +7,10 @@
     {
       "filePath": ".comb-scripts.py",
       "group": "Default"
+    },
+    {
+      "filePath": "app\\algorithms\\algorithm_01_palette\\algorithm.py",
+      "group": "Default"
     }
   ],
   "groups": [
