@@ -1,2 +1,0 @@
-{"timestamp":"2025-06-08T18:14:28.982055","level":"ERROR","logger":"test","message":"This is an error","module":"development_logger","function":"error","line":302,"request_id":null,"operation_id":null,"algorithm_id":null,"user_session":null,"performance_data":null}
-{"timestamp":"2025-06-08T18:14:51.620098","level":"ERROR","logger":"test","message":"This is an error","module":"development_logger","function":"error","line":302,"request_id":null,"operation_id":null,"algorithm_id":null,"user_session":null,"performance_data":null}
