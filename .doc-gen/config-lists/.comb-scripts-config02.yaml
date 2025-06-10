@@ -1,0 +1,76 @@
+# =================================================================================
+# KONFIGURACJA SKRYPTU AGREGACJI PLIKÓW
+# Wersja: 5.1 (z grupami, konfiguracją YAML i exclude_patterns)
+# =================================================================================
+
+# Nazwa projektu
+project_name: "Gatto Nero Ai Manager (PY+JSX)"
+
+# Plik wyjściowy
+output_file: ".doc-gen/.comb-scripts.md"
+
+# Plik .gitignore do wykluczeń
+gitignore_file: ".gitignore"
+
+# =================================================================================
+# GRUPY PLIKÓW
+# =================================================================================
+# Każda grupa ma:
+# - name: nazwa grupy (wyświetlana w pliku wyjściowym)
+# - description: opis grupy
+# - patterns: wzorce plików do wyszukania
+# - exclude_patterns: wzorce plików do wykluczenia (opcjonalne)
+# - paths: ścieżki do przeszukania (względne do workspace_root)
+# - recursive: czy szukać rekursywnie w podkatalogach
+
+groups:
+  - name: "Dokumentacja Algorytmów"
+    description: "Pliki Markdown z dokumentacją algorytmów"
+    patterns:
+      - "*.md"
+    exclude_patterns:
+      - "*README*"
+      - "*TODO*"
+    paths:
+      - "app/algorithms/algorithm_01_palette/doc"
+      - "app/algorithms/algorithm_02_statistical/doc"
+      - "app/algorithms/algorithm_03_histogram/doc"
+    recursive: true
+
+  - name: "Kod Python"
+    description: "Wszystkie pliki Python w workspace"
+    patterns:
+      - "*.py"
+    exclude_patterns:
+      - "*test*"
+      - "*__pycache__*"
+      - "*.pyc"
+    paths:
+      - "all" # specjalna wartość oznaczająca cały workspace
+    recursive: true
+
+  - name: "Skrypty JSX"
+    description: "Skrypty Adobe JSX dla Photoshop"
+    patterns:
+      - "*.jsx"
+    exclude_patterns:
+      - "*backup*"
+      - "*old*"
+    paths:
+      - "app/scripts"
+      - "temp_jsx"
+    recursive: true
+
+  - name: "Konfiguracja i Dokumentacja"
+    description: "Pliki konfiguracyjne i dokumentacja główna"
+    patterns:
+      - "*.json"
+      - "*.yaml"
+      - "*.yml"
+      - "*.md"
+    exclude_patterns:
+      - "*package-lock*"
+      - "*node_modules*"
+    paths:
+      - "." # katalog główny
+    recursive: false # tylko katalog główny, bez podkatalogów

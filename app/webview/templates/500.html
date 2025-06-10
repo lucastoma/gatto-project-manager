@@ -1,0 +1,209 @@
+{% extends "base.html" %}
+
+{% block title %}Błąd serwera | WebView{% endblock %}
+
+{% block content %}
+<div class="error-page">
+    <div class="error-container">
+        <div class="error-icon">⚠️</div>
+        <h1 class="error-title">500 - Błąd serwera</h1>
+        <p class="error-message">
+            Przepraszamy, wystąpił nieoczekiwany błąd serwera. Nasz zespół został powiadomiony o problemie.
+        </p>
+        
+        <div class="error-details">
+            <h3>Informacje techniczne:</h3>
+            <div class="error-info">
+                <div class="info-item">
+                    <span class="info-label">Czas:</span>
+                    <span class="info-value">{{ current_time.strftime('%Y-%m-%d %H:%M:%S') }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">WebView:</span>
+                    <span class="info-value">v{{ webview_version }}</span>
+                </div>
+                <div class="info-item">
+                    <span class="info-label">Request ID:</span>
+                    <span class="info-value">{{ request.environ.get('REQUEST_ID', 'N/A') }}</span>
+                </div>
+            </div>
+        </div>
+        
+        <div class="error-suggestions">
+            <h3>Co możesz zrobić:</h3>
+            <ul>
+                <li>Odśwież stronę za kilka minut</li>
+                <li>Sprawdź czy problem występuje dla innych algorytmów</li>
+                <li>Wróć do <a href="{{ url_for('webview.index') }}">strony głównej WebView</a></li>
+                <li>Sprawdź <a href="{{ url_for('webview.health_check') }}">status systemu</a></li>
+            </ul>
+        </div>
+        
+        <div class="error-actions">
+            <a href="{{ url_for('webview.index') }}" class="btn btn-primary">
+                🏠 Strona Główna
+            </a>
+            <button onclick="location.reload()" class="btn btn-secondary">
+                🔄 Odśwież
+            </button>
+            <button onclick="history.back()" class="btn btn-secondary">
+                ← Wróć
+            </button>
+        </div>
+        
+        <div class="error-help">
+            <p class="help-text">
+                Jeśli problem się powtarza, skontaktuj się z zespołem deweloperskim.
+            </p>
+        </div>
+    </div>
+</div>
+
+<style>
+.error-page {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    min-height: 60vh;
+    padding: 2rem;
+}
+
+.error-container {
+    text-align: center;
+    max-width: 700px;
+    padding: 2rem;
+    background: white;
+    border-radius: var(--border-radius);
+    box-shadow: 0 2px 10px rgba(0, 0, 0, 0.1);
+}
+
+.error-icon {
+    font-size: 4rem;
+    margin-bottom: 1rem;
+}
+
+.error-title {
+    color: var(--error-color);
+    margin: 0 0 1rem 0;
+    font-size: 2rem;
+}
+
+.error-message {
+    color: var(--text-muted);
+    font-size: 1.1rem;
+    margin-bottom: 2rem;
+    line-height: 1.6;
+}
+
+.error-details {
+    text-align: left;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: var(--background-light);
+    border-radius: var(--border-radius);
+    border-left: 4px solid var(--warning-color);
+}
+
+.error-details h3 {
+    margin: 0 0 1rem 0;
+    color: var(--text-color);
+    font-size: 1rem;
+}
+
+.error-info {
+    font-family: monospace;
+    font-size: 0.875rem;
+}
+
+.info-item {
+    display: flex;
+    justify-content: space-between;
+    margin-bottom: 0.5rem;
+    padding: 0.25rem 0;
+}
+
+.info-item:last-child {
+    margin-bottom: 0;
+}
+
+.info-label {
+    color: var(--text-muted);
+    font-weight: 500;
+}
+
+.info-value {
+    color: var(--text-color);
+}
+
+.error-suggestions {
+    text-align: left;
+    margin-bottom: 2rem;
+    padding: 1.5rem;
+    background-color: var(--background-light);
+    border-radius: var(--border-radius);
+}
+
+.error-suggestions h3 {
+    margin: 0 0 1rem 0;
+    color: var(--text-color);
+}
+
+.error-suggestions ul {
+    margin: 0;
+    padding-left: 1.5rem;
+}
+
+.error-suggestions li {
+    margin-bottom: 0.5rem;
+    color: var(--text-muted);
+}
+
+.error-suggestions a {
+    color: var(--primary-color);
+    text-decoration: none;
+}
+
+.error-suggestions a:hover {
+    text-decoration: underline;
+}
+
+.error-actions {
+    display: flex;
+    gap: 1rem;
+    justify-content: center;
+    flex-wrap: wrap;
+    margin-bottom: 2rem;
+}
+
+.error-help {
+    padding-top: 1rem;
+    border-top: 1px solid var(--border-color);
+}
+
+.help-text {
+    color: var(--text-muted);
+    font-size: 0.875rem;
+    margin: 0;
+    font-style: italic;
+}
+
+@media (max-width: 768px) {
+    .error-container {
+        padding: 1.5rem;
+    }
+    
+    .error-title {
+        font-size: 1.5rem;
+    }
+    
+    .error-actions {
+        flex-direction: column;
+    }
+    
+    .info-item {
+        flex-direction: column;
+        gap: 0.25rem;
+    }
+}
+</style>
+{% endblock %}

@@ -300,7 +300,9 @@ class DevelopmentLogger:
         
     def error(self, message: str, extra: Optional[Dict[str, Any]] = None, **kwargs):
         """Log error message."""
-        self.logger.error(message, extra={**self._get_extra(), **(extra or {}), **kwargs})
+        # Separate exc_info from other kwargs to avoid conflicts
+        exc_info = kwargs.pop('exc_info', None)
+        self.logger.error(message, extra={**self._get_extra(), **(extra or {}), **kwargs}, exc_info=exc_info)
         
     def critical(self, message: str, extra: Optional[Dict[str, Any]] = None, **kwargs):
         """Log critical message."""

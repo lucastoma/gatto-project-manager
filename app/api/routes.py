@@ -1,9 +1,9 @@
 from flask import Blueprint, request, jsonify
 import os
-from app.core.file_handler import save_temp_file
-from app.core.file_handler import get_result_path
-from app.core.development_logger import get_logger
-from app.algorithms import get_algorithm
+from ..core.file_handler import save_temp_file
+from ..core.file_handler import get_result_path
+from ..core.development_logger import get_logger
+from ..algorithms import get_algorithm
 from typing import Any
 
 # Create Blueprint instead of Flask app
@@ -172,8 +172,8 @@ def analyze_palette_endpoint():
         return "error,Brak pliku source_image"
     file = request.files['source_image']
     k = request.form.get('k', default=8, type=int)
-    from app.core.file_handler import save_temp_file
-    from app.processing.palette_analyzer import analyze_palette
+    from ..core.file_handler import save_temp_file
+    from ..processing.palette_analyzer import analyze_palette
     try:
         temp_path = save_temp_file(file)
         palette = analyze_palette(temp_path, k)

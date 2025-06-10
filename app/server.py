@@ -22,12 +22,15 @@ from pathlib import Path
 from flask import Flask, jsonify, request
 
 # Import enhanced infrastructure
-from app.core.development_logger import get_logger, setup_flask_logging
-from app.core.performance_profiler import get_profiler
-from app.core.health_monitor_simple import get_simple_health_monitor
+from .core.development_logger import get_logger, setup_flask_logging
+from .core.performance_profiler import get_profiler
+from .core.health_monitor_simple import get_simple_health_monitor
 
 # Import existing API routes
-from app.api.routes import app as api_blueprint
+from .api.routes import app as api_blueprint
+
+# Import WebView routes
+from .webview import webview_bp
 
 # Initialize enhanced infrastructure
 logger = get_logger("gattonero_server")
@@ -42,6 +45,9 @@ setup_flask_logging(app, logger)
 
 # Register existing API routes Blueprint
 app.register_blueprint(api_blueprint)
+
+# Register WebView Blueprint
+app.register_blueprint(webview_bp)
 
 # Debug endpoint to list all routes
 @app.route('/routes')

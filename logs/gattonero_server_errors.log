@@ -8258,3 +8258,2368 @@ Press CTRL+C to quit
 127.0.0.1 - - [10/Jun/2025 01:52:47] "POST /api/colormatch HTTP/1.1" 200 -
 127.0.0.1 - - [10/Jun/2025 01:53:33] "POST /api/colormatch HTTP/1.1" 200 -
 127.0.0.1 - - [10/Jun/2025 01:54:38] "POST /api/colormatch HTTP/1.1" 200 -
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\run_server.py", line 7, in <module>
+    from app.server import app
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\server.py", line 25, in <module>
+    from core.development_logger import get_logger, setup_flask_logging
+ModuleNotFoundError: No module named 'core'
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\run_server.py", line 7, in <module>
+    from app.server import app
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\server.py", line 25, in <module>
+    from core.development_logger import get_logger, setup_flask_logging
+ModuleNotFoundError: No module named 'core'
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\run_server.py", line 7, in <module>
+    from app.server import app
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\server.py", line 25, in <module>
+    from core.development_logger import get_logger, setup_flask_logging
+ModuleNotFoundError: No module named 'core'
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\run_server.py", line 7, in <module>
+    from app.server import app
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\server.py", line 25, in <module>
+    from core.development_logger import get_logger, setup_flask_logging
+ModuleNotFoundError: No module named 'core'
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [10/Jun/2025 09:52:29] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 09:53:58,355] ERROR in app: Exception on /webview/ [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 71, in index
+    return render_template('index.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\index.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.api_docs') }}" style="color: var(--secondary-color);">API Docs</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+[2025-06-10 09:53:58,360] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 09:53:58] "GET /webview/ HTTP/1.1" 500 -
+Error on request:
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 71, in index
+    return render_template('index.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\index.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.api_docs') }}" style="color: var(--secondary-color);">API Docs</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\serving.py", line 331, in execute
+    application_iter = app(environ, start_response)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 860, in handle_exception
+    server_error = self.ensure_sync(handler)(server_error)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 363, in internal_error
+    return render_template('500.html'), 500
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\500.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.api_docs') }}" style="color: var(--secondary-color);">API Docs</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+[2025-06-10 09:53:59,630] ERROR in app: Exception on /webview/ [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 71, in index
+    return render_template('index.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\index.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.api_docs') }}" style="color: var(--secondary-color);">API Docs</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+[2025-06-10 09:53:59,633] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 09:53:59] "GET /webview/ HTTP/1.1" 500 -
+Error on request:
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 71, in index
+    return render_template('index.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\index.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.api_docs') }}" style="color: var(--secondary-color);">API Docs</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\serving.py", line 331, in execute
+    application_iter = app(environ, start_response)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 860, in handle_exception
+    server_error = self.ensure_sync(handler)(server_error)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 363, in internal_error
+    return render_template('500.html'), 500
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\500.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.api_docs') }}" style="color: var(--secondary-color);">API Docs</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+127.0.0.1 - - [10/Jun/2025 09:54:03] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 09:54:22] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 09:54:40] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 09:55:25,347] ERROR in app: Exception on /webview/ [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 71, in index
+    return render_template('index.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\index.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.api_docs') }}" style="color: var(--secondary-color);">API Docs</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+[2025-06-10 09:55:25,350] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 09:55:25] "GET /webview/ HTTP/1.1" 500 -
+Error on request:
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 71, in index
+    return render_template('index.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\index.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.api_docs') }}" style="color: var(--secondary-color);">API Docs</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\serving.py", line 331, in execute
+    application_iter = app(environ, start_response)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 860, in handle_exception
+    server_error = self.ensure_sync(handler)(server_error)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 363, in internal_error
+    return render_template('500.html'), 500
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\500.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.api_docs') }}" style="color: var(--secondary-color);">API Docs</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+127.0.0.1 - - [10/Jun/2025 09:59:02] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 09:59:20,169] ERROR in app: Exception on /webview/ [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 71, in index
+    return render_template('index.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\index.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.health_check') }}" style="color: var(--secondary-color);">Health Check</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+        endpoint,
+    ...<3 lines>...
+        force_external=_external,
+    )
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+[2025-06-10 09:59:20,171] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 09:59:20] "GET /webview/ HTTP/1.1" 500 -
+Error on request:
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 71, in index
+    return render_template('index.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\index.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.health_check') }}" style="color: var(--secondary-color);">Health Check</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+
+During handling of the above exception, another exception occurred:
+
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\serving.py", line 370, in run_wsgi
+    execute(self.server.app)
+    ~~~~~~~^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\serving.py", line 331, in execute
+    application_iter = app(environ, start_response)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1536, in __call__
+    return self.wsgi_app(environ, start_response)
+           ~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1514, in wsgi_app
+    response = self.handle_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 860, in handle_exception
+    server_error = self.ensure_sync(handler)(server_error)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 363, in internal_error
+    return render_template('500.html'), 500
+           ~~~~~~~~~~~~~~~^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\500.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 68, in top-level template code
+    <a href="{{ url_for('webview.health_check') }}" style="color: var(--secondary-color);">Health Check</a>
+    ^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1121, in url_for
+    return self.handle_url_build_error(error, endpoint, values)
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1110, in url_for
+    rv = url_adapter.build(  # type: ignore[union-attr]
+    
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\werkzeug\routing\map.py", line 924, in build
+    raise BuildError(endpoint, values, method, self)
+werkzeug.routing.exceptions.BuildError: Could not build url for endpoint 'webview.api_docs'. Did you mean 'webview.index' instead?
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [10/Jun/2025 10:00:41] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:00:52] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:17:09] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:17:09] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 10:17:09] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 10:17:09] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:17:09] "GET /static/webview/images/favicon.svg HTTP/1.1" 404 -
+[2025-06-10 10:17:29,188] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 10:17:29,193] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 10:17:29] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 10:17:29] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 10:17:29] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 10:17:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:17:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:18:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:18:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:19:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:19:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:20:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:20:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:21:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:21:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:22:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:22:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:23:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:23:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:24:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:24:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:25:29] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 10:25:33,989] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 10:25:33,991] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 10:25:33] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 10:25:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:26:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:26:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:27:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:27:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:28:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:28:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:29:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:29:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:30:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:30:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:31:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:31:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:32:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:32:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:33:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:33:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:34:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:34:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:35:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:35:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:36:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:36:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:37:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:37:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:38:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:38:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:39:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:39:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:40:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:40:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:41:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:41:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:42:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:42:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:43:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:43:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:44:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:44:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:45:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:45:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:46:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:46:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:47:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:47:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:48:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:48:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:49:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:49:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:50:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:50:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:51:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:51:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:52:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:52:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:53:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:53:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:54:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:54:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:55:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:55:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:56:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:56:59] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:57:30] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:58:31] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 10:59:31] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:00:33] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:01:33] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:02:35] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:03:36] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:04:36] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:05:37] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:06:39] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:07:40] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:08:41] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:09:42] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:10:43] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:11:44] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:12:45] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:13:45] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:14:47] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:15:48] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:16:49] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:17:50] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:18:51] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:19:51] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:20:53] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:21:54] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:22:55] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:23:56] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:24:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:25:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:26:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:27:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:28:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:30:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:31:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:32:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:34:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:35:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:36:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:38:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:39:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:40:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:41:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:42:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:44:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:45:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:46:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:47:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:48:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:49:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:50:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:51:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:52:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:54:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:56:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:57:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:58:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 11:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:00:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:02:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:03:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:04:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:06:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:08:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:09:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:10:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:12:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:14:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:15:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:16:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:17:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:18:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:19:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:20:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:21:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:22:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:23:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:24:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:25:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:26:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:28:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:30:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:31:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:32:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:34:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:35:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:36:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:38:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:39:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:40:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:41:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:42:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:43:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:44:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:46:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:48:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:49:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:50:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:52:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:53:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:54:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:56:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:58:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 12:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:00:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:02:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:04:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:06:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:08:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:09:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:10:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:12:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:14:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:15:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:16:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:17:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:18:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:19:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:20:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:21:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:22:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:23:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:24:01] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:24:29] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:24:46,109] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:24:46,110] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:24:46] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:24:46] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:24:46] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:24:46] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:24:52,232] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:24:52,233] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:24:52] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:24:52] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:24:52] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:24:52] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:24:53,961] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:24:53,963] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:24:53] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:24:54] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:24:54] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:24:54] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:24:56] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:24:56] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:24:56] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:24:57] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:24:58,451] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:24:58,453] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:24:58] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:24:58] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:24:58] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:24:59] "GET /api/health HTTP/1.1" 200 -
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [10/Jun/2025 13:25:16] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:25:29] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:25:32,606] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:25:32,610] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:25:32] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:25:32] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:25:32] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:25:33] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:25:38,605] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:25:38,607] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:25:38] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:25:38] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:25:38] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:25:39] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:25:41] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:25:41] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:25:41] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:25:41] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:25:42,031] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:25:42,033] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:25:42] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:25:42] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:25:42] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:25:42] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:25:43,244] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:25:43,245] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:25:43] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:25:43] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+[2025-06-10 13:25:43,559] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:25:43,561] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:25:43] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:25:43] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:25:43] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:25:43] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:26:10] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:26:14] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:26:17,421] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time">[{{ moment().format('HH:mm:ss') }}]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:26:17,422] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:26:17] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:26:43] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:27:14] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:27:25,759] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time" id="initial-log-time">[--:--:--]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:27:25,761] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:27:25] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:27:43] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:28:06,173] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time" id="initial-log-time">[--:--:--]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:28:06,175] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:28:06] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:28:06] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:28:06] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:28:06] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:28:14] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:28:36] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:28:44] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:29:06] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:29:14] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:29:36] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:29:57,049] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time" id="initial-log-time">[--:--:--]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:29:57,051] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:29:57] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:29:57] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:29:57] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:29:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:29:57] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:30:00,150] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time" id="initial-log-time">[--:--:--]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:30:00,152] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:30:00] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:30:00] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:30:00] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:30:00] "GET /api/health HTTP/1.1" 200 -
+[2025-06-10 13:30:01,077] ERROR in app: Exception on /webview/algorithm_01 [GET]
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 1511, in wsgi_app
+    response = self.full_dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 919, in full_dispatch_request
+    rv = self.handle_user_exception(e)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 917, in full_dispatch_request
+    rv = self.dispatch_request()
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\app.py", line 902, in dispatch_request
+    return self.ensure_sync(self.view_functions[rule.endpoint])(**view_args)  # type: ignore[no-any-return]
+           ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 77, in algorithm_01
+    return render_template('algorithm_01.html')
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 150, in render_template
+    return _render(app, template, context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\flask\templating.py", line 131, in _render
+    rv = template.render(context)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 1295, in render
+    self.environment.handle_exception()
+    ~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~~^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\environment.py", line 942, in handle_exception
+    raise rewrite_traceback_stack(source=source)
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 1, in top-level template code
+    {% extends "base.html" %}
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\base.html", line 59, in top-level template code
+    {% block content %}{% endblock %}
+    ^^^^^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\templates\algorithm_01.html", line 179, in block 'content'
+    <span class="log-time" id="initial-log-time">[--:--:--]</span>
+    ^^^^^^^^^^^^^
+  File "D:\Unity\Projects\GattoNeroPhotoshop\venv\Lib\site-packages\jinja2\utils.py", line 92, in from_obj
+    if hasattr(obj, "jinja_pass_arg"):
+       ~~~~~~~^^^^^^^^^^^^^^^^^^^^^^^
+jinja2.exceptions.UndefinedError: 'moment' is undefined
+[2025-06-10 13:30:01,079] ERROR in routes: WebView: error - {'error': '500 Internal Server Error'}
+127.0.0.1 - - [10/Jun/2025 13:30:01] "GET /webview/algorithm_01 HTTP/1.1" 500 -
+127.0.0.1 - - [10/Jun/2025 13:30:01] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:30:01] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:30:01] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:30:06] "GET /api/health HTTP/1.1" 200 -
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [10/Jun/2025 13:30:16] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:30:20] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:30:20] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:30:20] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:30:20] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:30:36] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:30:50] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:30:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:31:07] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:31:20] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:31:37] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:31:50] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:31:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:32:20] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:32:38] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:32:50] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:33:20] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:33:39] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:33:50] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:34:20] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:34:40] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:34:42] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:34:42] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:34:42] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:34:43] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:34:45] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:34:45] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:34:45] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:34:45] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:34:47] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:34:47] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:34:47] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:34:48] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:34:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:35:15] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:35:26] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:35:26] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:35:26] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:35:26] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:35:35] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:35:40] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:35:45] "GET /webview/algorithm_01?ide_webview_request_time=1749555344854 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:35:45] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:35:45] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:35:45] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:35:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:35:57] "GET /api/health HTTP/1.1" 200 -
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [10/Jun/2025 13:36:26] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:36:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:36:31] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:36:31] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:36:31] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:36:32] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:36:33] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:36:34] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:36:34] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:36:34] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:36:41] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:36:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:37:42] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:37:44] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:37:44] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:37:44] "GET /.well-known/appspecific/com.chrome.devtools.json HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:37:47] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:37:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:38:17] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:38:43] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:38:47] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:38:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:39:00] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:39:17] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:39:17] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:39:18] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:39:18] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:39:18] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:39:45] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:39:47] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:39:48] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:39:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:40:14] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:40:14] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:40:15] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:40:15] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:40:17] "GET /api/health HTTP/1.1" 200 -
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [10/Jun/2025 13:40:30] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:40:33] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:40:33] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:40:33] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:40:33] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:40:45] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:40:48] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:40:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:41:03] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:41:33] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:41:47] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:41:48] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:41:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:42:03] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:42:33] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:42:47] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:42:50] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:42:57] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:42:57] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:42:57] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 13:42:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:42:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:43:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:43:49] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:43:50] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:43:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:44:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:44:50] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:44:51] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:44:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:44:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:45:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:45:50] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:45:52] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:45:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:46:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:46:51] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:46:53] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:47:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:47:52] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:47:54] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:48:53] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:48:56] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:48:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:48:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:49:54] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:49:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:49:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:49:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:50:55] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:51:56] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:51:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:52:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:53:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:54:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:55:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:56:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:57:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:59:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 13:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:00:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:01:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:02:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:03:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:04:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:05:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:06:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:06:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:06:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:06:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:07:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:08:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:08:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:08:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:08:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:09:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:09:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:09:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:09:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:10:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:10:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:10:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:10:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:11:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:12:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:12:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:12:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:12:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:13:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:14:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:14:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:14:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:14:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:15:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:15:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:15:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:15:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:16:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:16:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:16:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:16:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:17:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:17:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:17:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:17:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:18:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:18:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:18:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:18:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:19:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:19:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:19:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:19:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:20:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:20:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:20:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:20:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:21:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:21:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:21:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:21:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:22:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:22:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:22:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:22:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:23:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:23:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:23:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:23:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:24:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:24:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:24:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:24:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:25:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:25:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:25:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:25:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:26:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:26:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:26:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:26:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:27:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:28:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:28:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:28:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:28:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:29:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:30:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:30:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:30:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:30:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:31:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:31:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:31:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:31:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:32:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:33:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:34:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:34:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:34:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:34:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:35:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:35:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:35:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:35:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:36:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:36:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:36:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:36:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:37:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:38:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:38:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:38:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:38:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:39:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:39:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:39:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:39:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:40:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:40:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:40:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:40:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:41:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:41:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:41:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:41:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:42:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:42:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:42:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:42:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:43:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:44:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:44:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:44:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:44:58] "GET /api/health HTTP/1.1" 200 -
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [10/Jun/2025 14:45:05] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:45:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:45:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:46:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:47:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:48:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:48:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:48:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:48:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:49:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:49:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:49:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:49:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:50:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:51:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:52:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:53:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:54:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:55:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:56:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:57:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:58:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:59:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 14:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:00:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:01:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:02:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:03:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:04:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:05:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:06:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:06:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:06:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:06:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:07:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:08:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:08:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:08:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:08:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:09:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:09:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:09:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:09:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:10:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:10:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:10:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:10:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:11:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:12:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:12:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:12:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:12:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:13:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:14:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:14:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:14:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:14:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:15:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:15:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:15:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:15:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:16:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:16:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:16:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:16:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:17:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:17:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:17:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:17:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:18:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:18:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:18:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:18:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:19:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:19:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:19:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:19:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:20:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:20:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:20:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:20:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:21:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:21:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:21:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:21:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:22:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:22:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:22:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:22:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:23:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:23:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:23:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:23:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:24:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:24:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:24:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:24:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:25:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:25:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:25:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:25:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:26:45] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:26:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:26:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:26:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:26:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:27:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:28:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:28:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:28:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:28:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:29:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:30:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:30:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:30:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:30:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:31:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:31:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:31:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:31:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:32:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:33:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:34:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:34:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:34:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:34:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:35:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:35:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:35:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:35:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:36:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:36:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:36:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:36:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:37:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:38:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:38:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:38:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:38:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:39:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:39:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:39:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:39:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:40:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:40:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:40:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:40:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:41:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:41:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:41:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:41:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:42:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:42:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:42:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:42:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:43:33] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:43:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:44:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:44:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:44:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:44:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:44:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:45:27] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:46:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:47:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:48:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:48:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:48:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:48:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:49:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:49:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:49:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:49:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:50:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:51:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:52:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:53:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:54:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:55:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:56:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:57:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:58:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 15:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:00:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:01:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:02:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:03:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:04:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:05:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:06:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:06:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:06:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:06:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:07:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:07:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:08:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:08:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:08:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:08:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:09:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:09:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:09:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:09:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:10:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:10:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:10:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:10:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:11:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:11:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:12:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:12:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:12:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:12:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:13:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:13:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:14:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:14:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:14:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:14:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:15:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:15:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:15:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:15:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:16:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:16:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:16:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:16:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:17:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:17:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:17:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:17:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:18:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:18:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:18:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:18:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:19:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:19:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:19:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:19:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:20:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:20:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:20:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:20:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:21:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:21:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:21:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:21:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:22:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:22:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:22:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:22:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:23:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:23:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:23:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:23:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:24:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:24:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:24:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:24:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:25:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:25:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:25:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:25:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:26:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:27:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:27:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:28:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:28:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:28:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:28:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:29:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:29:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:30:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:30:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:30:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:30:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:31:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:31:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:31:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:31:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:32:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:33:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:33:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:34:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:34:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:34:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:34:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:35:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:35:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:35:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:35:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:36:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:36:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:36:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:36:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:37:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:37:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:38:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:38:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:38:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:38:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:39:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:39:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:39:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:39:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:40:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:40:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:40:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:40:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:41:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:41:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:41:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:41:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:42:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:42:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:42:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:42:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:43:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:43:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:44:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:45:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:45:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:46:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:46:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:47:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:47:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:48:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:48:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:48:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:48:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:49:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:50:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:51:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:51:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:52:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:53:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:53:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:54:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:55:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:55:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:56:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:56:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:57:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:57:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:58:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:58:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:59:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 16:59:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:00:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:00:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:01:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:01:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:02:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:02:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:03:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:03:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:04:57] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:04:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 17:04:58] "GET /api/health HTTP/1.1" 200 -

@@ -18,10 +18,10 @@ import numpy as np
 from typing import Tuple, Optional, Dict, Any
 from pathlib import Path
 
-from app.core.development_logger import get_logger
+from ...core.development_logger import get_logger
 # Poprawka: Dodano bezpośredni import klas, aby pomóc Pylance w analizie typów
-from app.core.performance_profiler import get_profiler, PerformanceProfiler 
-from app.core.file_handler import get_result_path
+from ...core.performance_profiler import get_profiler, PerformanceProfiler 
+from ...core.file_handler import get_result_path
 
 
 class StatisticalTransferAlgorithm:

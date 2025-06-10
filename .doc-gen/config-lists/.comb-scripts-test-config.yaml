@@ -1,0 +1,48 @@
+project_name: "Test Duplikatów"
+output_file: ".doc-gen/test-duplicates-output.md"
+gitignore_file: ".gitignore"
+
+groups:
+  - name: "Grupa 1 - Wszystkie Python"
+    description: "Wszystkie pliki Python w projekcie"
+    patterns:
+      - "*.py"
+    exclude_patterns: []
+    paths:
+      - "test-duplicates"
+      - "app"
+    recursive: true
+
+  - name: "Grupa 2 - Pliki testowe (z duplikatami)"
+    description: "Pliki z katalogu test-duplicates (powinny być wykluczane duplikaty z Grupy 1)"
+    patterns:
+      - "*.py"
+      - "*.md"
+      - "*.yaml"
+    exclude_patterns: []
+    paths:
+      - "test-duplicates"
+    recursive: true
+
+  - name: "Grupa 3 - Dokumentacja (z duplikatami)"
+    description: "Pliki markdown (powinny być wykluczane duplikaty z Grup 1-2)"
+    patterns:
+      - "*.md"
+    exclude_patterns:
+      - "*WORKING*"
+    paths:
+      - "test-duplicates"
+      - ".doc"
+    recursive: true
+
+  - name: "Grupa 4 - Konfiguracja (z duplikatami)"
+    description: "Pliki konfiguracyjne (powinny być wykluczane duplikaty z Grup 1-3)"
+    patterns:
+      - "*.yaml"
+      - "*.yml"
+      - "*.json"
+    exclude_patterns: []
+    paths:
+      - "test-duplicates"
+      - "."
+    recursive: false

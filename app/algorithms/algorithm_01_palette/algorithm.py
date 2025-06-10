@@ -14,11 +14,11 @@ except ImportError:
     scipy = None
 
 try:
-    from app.core.development_logger import get_logger
-    from app.core.performance_profiler import get_profiler
+    from ...core.development_logger import get_logger
+    from ...core.performance_profiler import get_profiler
     if TYPE_CHECKING:
-        from app.core.development_logger import DevelopmentLogger
-        from app.core.performance_profiler import PerformanceProfiler
+        from ...core.development_logger import DevelopmentLogger
+        from ...core.performance_profiler import PerformanceProfiler
 except ImportError:
     import logging
     def get_logger() -> Any:
