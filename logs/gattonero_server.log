@@ -3315,3 +3315,19 @@ Aby zatrzymac serwer, nacisnij Ctrl+C
 [97m21:03:24.002[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Vectorized processing finished in 12.38 seconds
 [97m21:03:24.255[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749582189181_1749582190_matched.tif
 [97m21:03:24.258[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:14737a48][0m Dopasowywanie kolorów zakoñczone: target_1749582189181_1749582190_matched.tif
+[97m21:33:00.195[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:c72cf477][0m Operation profiled: health_check [93m(12.3ms)[0m
+[97m21:33:12.583[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m21:33:12.585[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m21:33:12.585[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m21:33:12.591[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m21:33:12.600[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m21:33:12.601[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m21:33:13.687[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:3080ef85][0m Operation profiled: health_check [92m(9.5ms)[0m

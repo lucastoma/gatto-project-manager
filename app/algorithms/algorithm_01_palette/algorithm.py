@@ -160,6 +160,59 @@ class PaletteMappingAlgorithm:
             self.logger.error(f"Error extracting palette from {image_path}: {e}", exc_info=True)
             # Zwróć prostą paletę awaryjną
             return [[0,0,0], [255,255,255], [128,128,128]]
+        if num_colors is None:
+            num_colors = self.config['num_colors']
+        try:
+            image = Image.open(image_path)
+            if image.mode == 'RGBA':
+                background = Image.new('RGB', image.size, (255, 255, 255))
+                background.paste(image, mask=image.split()[-1])
+                image = background
+            elif image.mode != 'RGB':
+                image = image.convert('RGB')
+            
+            original_size = image.size
+            image.thumbnail(self.config['thumbnail_size']) # Still use thumbnail for performance
+            
+            # Convert image to numpy array for K-means
+            img_array = np.array(image.convert('RGB'))
+            
+            # Reshape the image to be a list of pixels
+            pixels = img_array.reshape(-1, 3)
+            
+            # Apply K-means clustering to find dominant colors
+            # Ensure n_init is set to 'auto' or an integer for KMeans
+            kmeans = KMeans(n_clusters=num_colors, random_state=0, n_init='auto') 
+            kmeans.fit(pixels)
+            
+            # Get the cluster centers (the dominant colors)
+            palette = kmeans.cluster_centers_.astype(int).tolist()
+            
+            # Ensure colors are within 0-255 range after conversion
+            palette = [[max(0, min(255, c)) for c in color_val] for color_val in palette]
+            
+            if self.config['exclude_colors']:
+                excluded_set = set(tuple(c) for c in self.config['exclude_colors'])
+                palette = [color for color in palette if tuple(color) not in excluded_set]
+
+            ## >> NEW: Logika wstrzykiwania ekstremów
+            if self.config.get('inject_extremes', False):
+                self.logger.info("Injecting pure black and white into the palette.")
+                pure_black, pure_white = [0, 0, 0], [255, 255, 255]
+                # Sprawdź czy już istnieją, aby uniknąć duplikatów
+                has_black = any(c == pure_black for c in palette)
+                has_white = any(c == pure_white for c in palette)
+                if not has_black:
+                    palette.insert(0, pure_black)
+                if not has_white:
+                    palette.insert(0, pure_white)
+
+            self.validate_palette(palette)
+            self.logger.info(f"Extracted {len(palette)} colors from image {original_size} -> {image.size}")
+            return palette
+        except Exception as e:
+            self.logger.error(f"Error extracting palette from {image_path}: {e}")
+            return [[0,0,0], [255,255,255], [128,128,128]]
 
     def calculate_rgb_distance(self, c1, c2):
         key = None
