@@ -743,3 +743,12 @@
 {"timestamp": "2025-06-10 14:45:02", "level": "INFO", "event": "Starting server... Command: venv\\Scripts\\python.exe run_server.py"}
 {"timestamp": "2025-06-10 14:45:02", "level": "INFO", "event": "Waiting for server to respond (PID: 14160)..."}
 {"timestamp": "2025-06-10 14:45:05", "level": "SUCCESS", "event": "Server started successfully."}
+{"timestamp": "2025-06-10 20:23:08", "level": "INFO", "event": "Using configured Python executable: venv\\Scripts\\python.exe"}
+{"timestamp": "2025-06-10 20:23:08", "level": "INFO", "event": "Restarting server..."}
+{"timestamp": "2025-06-10 20:23:08", "level": "INFO", "event": "Server is not running."}
+{"timestamp": "2025-06-10 20:23:10", "level": "INFO", "event": "Python version: Python 3.13.3"}
+{"timestamp": "2025-06-10 20:23:10", "level": "INFO", "event": "Checking for Flask in: venv\\Scripts\\python.exe"}
+{"timestamp": "2025-06-10 20:23:10", "level": "SUCCESS", "event": "Flask is installed."}
+{"timestamp": "2025-06-10 20:23:10", "level": "INFO", "event": "Starting server... Command: venv\\Scripts\\python.exe run_server.py"}
+{"timestamp": "2025-06-10 20:23:10", "level": "INFO", "event": "Waiting for server to respond (PID: 27268)..."}
+{"timestamp": "2025-06-10 20:23:13", "level": "SUCCESS", "event": "Server started successfully."}
