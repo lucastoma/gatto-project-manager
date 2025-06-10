@@ -110,6 +110,9 @@ def find_files_for_group(group, workspace_root, ignore_patterns):
             search_paths.append(workspace_root)
         elif path_str == '.':
             search_paths.append(workspace_root)
+        elif path_str == '**/*' or path_str == '**':
+            # Wzorzec **/* oznacza przeszukiwanie całego workspace rekursywnie
+            search_paths.append(workspace_root)
         else:
             full_path = workspace_root / path_str
             if full_path.exists() and full_path.is_dir():

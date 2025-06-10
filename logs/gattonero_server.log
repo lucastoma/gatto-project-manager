@@ -3241,3 +3241,77 @@ Aby zatrzymac serwer, nacisnij Ctrl+C
 [97m17:04:58.014[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:9a402d85][0m Operation profiled: health_check [92m(9.8ms)[0m
 [97m17:04:58.275[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:dcad9c49][0m Operation profiled: health_check [92m(9.4ms)[0m
 [97m17:04:58.338[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:17530cf1][0m Operation profiled: health_check [92m(10.0ms)[0m
+[97m20:23:12.612[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+Warning: Could not import core services: No module named 'app.core.image_processor'
+[97m20:23:12.614[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m20:23:12.614[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m20:23:12.621[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m20:23:12.630[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m20:23:12.630[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m20:23:13.980[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:bf709339][0m Operation profiled: health_check [93m(13.7ms)[0m
+[97m20:28:29.255[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:2f378690][0m Operation profiled: health_check [92m(8.6ms)[0m
+[97m20:28:38.900[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:a56c7889][0m Operation profiled: health_check [92m(9.0ms)[0m
+[97m20:29:09.686[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:bc5964da][0m Operation profiled: health_check [92m(8.7ms)[0m
+[97m20:29:39.998[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:5162fa6b][0m Operation profiled: health_check [92m(8.5ms)[0m
+[97m20:30:09.692[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:dea917e8][0m Operation profiled: health_check [93m(10.1ms)[0m
+[97m20:30:40.003[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:82a93e38][0m Operation profiled: health_check [92m(9.7ms)[0m
+[97m20:31:09.696[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:89f3ac53][0m Operation profiled: health_check [92m(9.3ms)[0m
+[97m20:31:39.997[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:abb59fe9][0m Operation profiled: health_check [92m(8.5ms)[0m
+[97m20:32:09.698[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:4c96196f][0m Operation profiled: health_check [92m(9.6ms)[0m
+[97m20:32:58.008[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:dfb0e562][0m Operation profiled: health_check [92m(8.4ms)[0m
+[97m20:33:32.409[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+Warning: Could not import core services: No module named 'app.core.image_processor'
+[97m20:33:32.411[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m20:33:32.411[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m20:33:32.419[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m20:33:32.428[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m20:33:32.428[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m20:33:33.706[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:b377b4c6][0m Operation profiled: health_check [92m(9.1ms)[0m
+[97m20:33:51.048[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:681ad525][0m Operation profiled: health_check [92m(8.9ms)[0m
+[97m20:33:53.149[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:033520ae][0m Operation profiled: health_check [92m(9.3ms)[0m
+[97m20:45:07.642[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m20:49:37.317[0m [94mINFO    [0m [96mgattonero[0m.[96m__init__[0m Development Logger initialized
+[97m20:49:37.319[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Performance Profiler initialized
+[97m20:49:37.319[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Simple Health Monitor initialized
+[97m20:49:37.326[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m20:49:37.336[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m All health checks passed
+[97m20:49:37.336[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+Sprawdzam port 5000...
+Port 5000 jest wolny!
+Uruchamiam serwer Flask...
+Serwer bedzie dostepny na: http://127.0.0.1:5000
+Aby zatrzymac serwer, nacisnij Ctrl+C
+--------------------------------------------------
+ * Serving Flask app 'app.server'
+ * Debug mode: off
+[97m20:49:38.088[0m [94mINFO    [0m [96mgattonero[0m.[96mperformance[0m [93m[req:bd818a80][0m Operation profiled: health_check [93m(15.4ms)[0m
+[97m21:03:10.081[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Przetwarzanie przez algorytm: algorithm_01_palette z parametrami: {'num_colors': 16, 'distance_metric': 'weighted_rgb', 'use_dithering': False, 'preserve_luminance': False, 'dithering_method': 'none', 'inject_extremes': False, 'preserve_extremes': False, 'extremes_threshold': 0, 'edge_blur_enabled': False, 'edge_detection_threshold': 25.0, 'edge_blur_radius': 1.0, 'edge_blur_strength': 0.5}
+[97m21:03:10.212[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Initialized algorithm: algorithm_01_palette
+[97m21:03:10.213[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Starting Simple Palette Mapping v1.3
+[97m21:03:10.213[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Master (palette): master_1749582188669_1749582190.tif
+[97m21:03:10.213[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Target (destination): target_1749582189181_1749582190.tif
+[97m21:03:10.213[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Extracting color palette from MASTER image...
+[97m21:03:11.625[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Extracted 16 colors from image (5359, 3572) -> (100, 67)
+[97m21:03:11.626[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Extracted 16 colors from the master palette
+[97m21:03:11.626[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Applying color mapping to TARGET image...
+[97m21:03:11.626[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Applying mapping with Numpy vectorization (fast).
+[97m21:03:11.806[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Calculating distances vectorized for 19142348 pixels and 16 palette colors...
+[97m21:03:24.002[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Vectorized processing finished in 12.38 seconds
+[97m21:03:24.255[0m [94mINFO    [0m [96mgattonero[0m.[96minfo[0m [93m[req:14737a48][0m Result saved: D:\Unity\Projects\GattoNeroPhotoshop\results\target_1749582189181_1749582190_matched.tif
+[97m21:03:24.258[0m [94mINFO    [0m [96mgattonero[0m.[96msuccess[0m [93m[req:14737a48][0m Dopasowywanie kolorów zakoñczone: target_1749582189181_1749582190_matched.tif

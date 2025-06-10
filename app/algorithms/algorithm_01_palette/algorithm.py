@@ -96,11 +96,16 @@ class PaletteMappingAlgorithm:
                 raise ValueError(f"Color {i} has values outside the 0-255 range: {color_val}")
                 
     def extract_palette(self, image_path, num_colors=None):
+        """
+        Extracts a color palette from an image, using a quality setting
+        to determine the analysis precision.
+        """
         if num_colors is None:
             num_colors = self.config['num_colors']
         try:
             image = Image.open(image_path)
             if image.mode == 'RGBA':
+                # Remove alpha channel for consistent analysis
                 background = Image.new('RGB', image.size, (255, 255, 255))
                 background.paste(image, mask=image.split()[-1])
                 image = background
@@ -108,46 +113,52 @@ class PaletteMappingAlgorithm:
                 image = image.convert('RGB')
             
             original_size = image.size
-            image.thumbnail(self.config['thumbnail_size']) # Still use thumbnail for performance
+            
+            # === NOWA LOGIKA JAKOŚCI ===
+            # Pobierz jakość z konfiguracji (przekazanej z WebView)
+            quality = self.config.get('quality', 5) # Domyślnie 5, jeśli nie podano
+            
+            # Mapuj jakość (1-10) na rozmiar analizowanej miniatury
+            # Jakość 1 = 100px (szybko, niska precyzja)
+            # Jakość 10 = 1000px (wolniej, wysoka precyzja)
+            base_size = 100
+            max_size = 1000
+            thumbnail_size_val = int(base_size + (max_size - base_size) * (quality - 1) / 9.0)
+            
+            self.logger.info(f"Analyzing with quality {quality}/10 (thumbnail: {thumbnail_size_val}px)")
+            
+            # Zastosuj obliczony rozmiar miniatury
+            image.thumbnail((thumbnail_size_val, thumbnail_size_val))
+            # === KONIEC NOWEJ LOGIKI ===
             
             # Convert image to numpy array for K-means
-            img_array = np.array(image.convert('RGB'))
+            img_array = np.array(image)
             
             # Reshape the image to be a list of pixels
             pixels = img_array.reshape(-1, 3)
             
             # Apply K-means clustering to find dominant colors
-            # Ensure n_init is set to 'auto' or an integer for KMeans
-            kmeans = KMeans(n_clusters=num_colors, random_state=0, n_init='auto') 
+            kmeans = KMeans(n_clusters=num_colors, random_state=0, n_init='auto')
             kmeans.fit(pixels)
             
             # Get the cluster centers (the dominant colors)
             palette = kmeans.cluster_centers_.astype(int).tolist()
             
-            # Ensure colors are within 0-255 range after conversion
+            # Pozostała część funkcji bez zmian...
             palette = [[max(0, min(255, c)) for c in color_val] for color_val in palette]
             
-            if self.config['exclude_colors']:
-                excluded_set = set(tuple(c) for c in self.config['exclude_colors'])
-                palette = [color for color in palette if tuple(color) not in excluded_set]
-
-            ## >> NEW: Logika wstrzykiwania ekstremów
             if self.config.get('inject_extremes', False):
                 self.logger.info("Injecting pure black and white into the palette.")
-                pure_black, pure_white = [0, 0, 0], [255, 255, 255]
-                # Sprawdź czy już istnieją, aby uniknąć duplikatów
-                has_black = any(c == pure_black for c in palette)
-                has_white = any(c == pure_white for c in palette)
-                if not has_black:
-                    palette.insert(0, pure_black)
-                if not has_white:
-                    palette.insert(0, pure_white)
+                if [0, 0, 0] not in palette: palette.insert(0, [0, 0, 0])
+                if [255, 255, 255] not in palette: palette.insert(0, [255, 255, 255])
 
             self.validate_palette(palette)
             self.logger.info(f"Extracted {len(palette)} colors from image {original_size} -> {image.size}")
             return palette
+            
         except Exception as e:
-            self.logger.error(f"Error extracting palette from {image_path}: {e}")
+            self.logger.error(f"Error extracting palette from {image_path}: {e}", exc_info=True)
+            # Zwróć prostą paletę awaryjną
             return [[0,0,0], [255,255,255], [128,128,128]]
 
     def calculate_rgb_distance(self, c1, c2):

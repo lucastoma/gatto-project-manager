@@ -35,7 +35,8 @@ groups:
       - "*.pyc"
       - "*legacy*"
       - "*temp*"
-    paths: -"all"
+    paths:
+      - "**/*"
     recursive: true
 
   - name: "Webview"

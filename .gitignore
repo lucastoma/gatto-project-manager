@@ -23,6 +23,4 @@ reports/
 
 # Ignorowanie katalogu z plikami tymczasowymi JSX
 app/temp_jsx/
-logs/gattonero.log
-logs/*.*
-
+logs/**/*

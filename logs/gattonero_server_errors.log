@@ -10623,3 +10623,180 @@ Press CTRL+C to quit
 127.0.0.1 - - [10/Jun/2025 17:04:58] "GET /api/health HTTP/1.1" 200 -
 127.0.0.1 - - [10/Jun/2025 17:04:58] "GET /api/health HTTP/1.1" 200 -
 127.0.0.1 - - [10/Jun/2025 17:04:58] "GET /api/health HTTP/1.1" 200 -
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [10/Jun/2025 20:23:13] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:23:14] "GET /webview/algorithm_01?ide_webview_request_time=1749579793720 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:23:14] "GET /webview/static/css/main.css HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:23:14] "GET /webview/static/js/main.js HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:23:27] "GET /webview/algorithm_01?ide_webview_request_time=1749579807073 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:23:27] "GET /webview/static/css/main.css HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:23:27] "GET /webview/static/js/main.js HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:27:57] "GET /webview/algorithm_01?ide_webview_request_time=1749579807073 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:27:57] "GET /webview/static/css/main.css HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:27:58] "GET /webview/static/js/main.js HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:28:07] "GET /webview/algorithm_01?ide_webview_request_time=1749579807073 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:28:07] "GET /webview/static/css/main.css HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:28:07] "GET /webview/static/js/main.js HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:28:28] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:28:28] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 20:28:29] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 20:28:29] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:28:31] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:28:31] "GET /webview/static/css/main.css HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:28:31] "GET /webview/static/js/main.js HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:28:38] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:28:38] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 20:28:38] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 20:28:38] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:29:09] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:29:39] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:30:09] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:30:40] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:31:09] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:31:39] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:32:09] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:32:58] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:33:21] "GET /webview/algorithm_01?ide_webview_request_time=1749580400922 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:33:21] "GET /webview/static/css/main.css HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:33:21] "GET /webview/static/js/main.js HTTP/1.1" 304 -
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [10/Jun/2025 20:33:33] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:33:34] "GET /webview/algorithm_01?ide_webview_request_time=1749580414165 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:33:34] "GET /webview/static/css/main.css HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:33:34] "GET /webview/static/js/main.js HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:33:51] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:33:52] "GET /webview/ HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:33:52] "GET /static/webview/css/main.css HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 20:33:52] "GET /static/webview/js/main.js HTTP/1.1" 404 -
+127.0.0.1 - - [10/Jun/2025 20:33:53] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:33:55] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:33:56] "GET /webview/static/css/main.css HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:33:56] "GET /webview/static/js/main.js HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:34:29] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:34:47] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:34:58] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:03] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:15] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:20] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:24] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:29] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:40] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:47] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:51] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:53] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:54] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:54] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:55] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:56] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:57] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:57] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:58] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:58] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:59] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:35:59] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:00] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:01] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:02] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:03] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:03] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:04] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:09] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:10] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:10] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:11] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:13] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:14] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:15] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:16] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:17] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:18] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:19] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:33] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:34] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:38] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:39] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:36:40] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:38:12] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:38:13] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:38:15] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:38:16] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:38:29] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:38:30] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:38:32] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:39:20] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:40:31] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:40:42] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:40:51] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:40:59] "POST /webview/api/process HTTP/1.1" 200 -
+Traceback (most recent call last):
+  File "D:\Unity\Projects\GattoNeroPhotoshop\run_server.py", line 7, in <module>
+    from app.server import app
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\server.py", line 33, in <module>
+    from .webview import webview_bp
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\__init__.py", line 25, in <module>
+    from .routes import webview_bp
+  File "D:\Unity\Projects\GattoNeroPhotoshop\app\webview\routes.py", line 15, in <module>
+    from ..core.image_processor import ImageProcessor
+ModuleNotFoundError: No module named 'app.core.image_processor'
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on http://127.0.0.1:5000
+Press CTRL+C to quit
+127.0.0.1 - - [10/Jun/2025 20:49:38] "GET /api/health HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:49:39] "GET /webview/algorithm_01 HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:49:39] "GET /webview/static/css/main.css HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:49:40] "GET /webview/static/js/main.js HTTP/1.1" 304 -
+127.0.0.1 - - [10/Jun/2025 20:49:45] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:49:48] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:49:50] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:49:50] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:50:39] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:50:42] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:50:43] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:50:43] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:50:48] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:50:49] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:50:50] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:50:50] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:50:51] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:50:59] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:01] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:02] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:02] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:05] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:06] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:10] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:11] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:11] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:12] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:14] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:15] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:20] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:22] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:25] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:28] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:31] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:33] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:34] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:35] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:35] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:36] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:37] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:38] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:38] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:39] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:40] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:41] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:41] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:42] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:42] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:43] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:44] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:45] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:45] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:46] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 20:51:47] "POST /webview/api/process HTTP/1.1" 200 -
+127.0.0.1 - - [10/Jun/2025 21:03:24] "POST /api/colormatch HTTP/1.1" 200 -
