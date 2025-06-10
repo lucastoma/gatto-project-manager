@@ -172,6 +172,182 @@ class PaletteMappingAlgorithm:
         except Exception as e:
             self.logger.error(f"Error extracting palette from {image_path}: {e}", exc_info=True)
             return [[0,0,0], [255,255,255], [128,128,128]]
+
+    def process_images(self, master_path: str, target_path: str, output_path: str, **kwargs) -> bool:
+        """
+        Processes master and target images to transfer color palette.
+        Applies various effects like dithering and edge blending based on kwargs.
+        Saves the result to output_path.
+        Returns True on success, False on failure.
+        """
+        self.profiler.start("process_images_full")
+        self.logger.info(f"Starting palette transfer from '{master_path}' to '{target_path}'. Output: '{output_path}'")
+        self.logger.info(f"Processing parameters: {kwargs}")
+
+        try:
+            # Update internal config with provided kwargs for this run
+            current_run_config = self.config.copy()
+            current_run_config.update(kwargs)
+            self.logger.debug(f"Current run config: {current_run_config}")
+
+            # 1. Load images
+            self.profiler.start("load_images")
+            master_image = Image.open(master_path).convert('RGB')
+            target_image = Image.open(target_path).convert('RGB')
+            self.profiler.stop("load_images")
+            self.logger.info(f"Master: {master_image.size}, Target: {target_image.size}")
+
+            # 2. Extract palette from master image
+            self.profiler.start("extract_palette_master")
+            num_colors_palette = current_run_config.get('num_colors', self.config['num_colors'])
+            # Use 'kmeans' or 'median_cut' based on what's available or preferred for transfer
+            palette_extraction_method = current_run_config.get('palette_method', 'kmeans') 
+            palette = self.extract_palette(master_path, num_colors=num_colors_palette, method=palette_extraction_method)
+            if not palette:
+                self.logger.error("Failed to extract palette from master image.")
+                return False
+            self.profiler.stop("extract_palette_master")
+            self.logger.info(f"Extracted palette with {len(palette)} colors using '{palette_extraction_method}'.")
+
+            # 3. Map target image to the extracted palette
+            self.profiler.start("map_colors")
+            # Ensure target_image is an RGB numpy array for processing
+            target_array = np.array(target_image.convert('RGB'))
+            mapped_array = self._map_pixels_to_palette(target_array, palette, current_run_config)
+            mapped_image = Image.fromarray(mapped_array.astype(np.uint8), 'RGB')
+            self.profiler.stop("map_colors")
+            self.logger.info("Color mapping complete.")
+
+            # 4. Apply dithering (optional)
+            dithering_method = current_run_config.get('dithering_method', 'none')
+            if dithering_method == 'floyd_steinberg':
+                self.profiler.start("dithering")
+                self.logger.info("Applying Floyd-Steinberg dithering.")
+                mapped_image = self._apply_floyd_steinberg_dithering(target_image, palette, current_run_config)
+                self.profiler.stop("dithering")
+            elif dithering_method != 'none':
+                self.logger.warning(f"Unsupported dithering method: {dithering_method}. Skipping.")
+
+            # 5. Apply edge blending (optional)
+            if current_run_config.get('edge_blur_enabled', False):
+                self.profiler.start("edge_blending")
+                self.logger.info("Applying edge blending.")
+                # This method needs to be implemented or adapted
+                # For now, let's assume it modifies mapped_image in place or returns a new one
+                mapped_image = self._apply_edge_blending(mapped_image, target_image, palette, current_run_config)
+                self.profiler.stop("edge_blending")
+
+            # 6. Save the result
+            self.profiler.start("save_result")
+            mapped_image.save(output_path)
+            self.profiler.stop("save_result")
+            self.logger.info(f"Successfully processed and saved image to {output_path}")
+            
+            self.profiler.stop("process_images_full")
+            self.logger.debug(f"Profiling report for process_images:\n{self.profiler.get_report()}")
+            return True
+
+        except FileNotFoundError as e:
+            self.logger.error(f"File not found during processing: {e}", exc_info=True)
+            self.profiler.stop("process_images_full") # Ensure profiler stops on error
+            return False
+        except Exception as e:
+            self.logger.error(f"Error during process_images: {e}", exc_info=True)
+            self.profiler.stop("process_images_full") # Ensure profiler stops on error
+            return False
+
+    def _map_pixels_to_palette(self, image_array: np.ndarray, palette: list, config: dict) -> np.ndarray:
+        """Helper function to map image pixels to the closest color in the palette."""
+        self.profiler.start("_map_pixels_to_palette")
+        palette_np = np.array(palette)
+        pixels_flat = image_array.reshape(-1, 3)
+        mapped_pixels_flat = np.zeros_like(pixels_flat)
+
+        # Vectorized distance calculation
+        # (pixels_flat[:, np.newaxis, :] - palette_np[np.newaxis, :, :]) -> shape (num_pixels, num_palette_colors, 3)
+        # np.sum(..., axis=2) -> shape (num_pixels, num_palette_colors)
+        # np.argmin(..., axis=1) -> shape (num_pixels) -> indices of closest palette color for each pixel
+        distances = np.sum((pixels_flat[:, np.newaxis, :] - palette_np[np.newaxis, :, :])**2, axis=2)
+        closest_indices = np.argmin(distances, axis=1)
+        mapped_pixels_flat = palette_np[closest_indices]
+        
+        mapped_array = mapped_pixels_flat.reshape(image_array.shape)
+        self.profiler.stop("_map_pixels_to_palette")
+        return mapped_array
+
+    def _apply_floyd_steinberg_dithering(self, original_image: Image.Image, palette: list, config: dict) -> Image.Image:
+        """Applies Floyd-Steinberg dithering to the image using the given palette."""
+        self.profiler.start("_apply_floyd_steinberg_dithering")
+        img_arr = np.array(original_image.convert('RGB'), dtype=float) 
+        palette_np = np.array(palette)
+        height, width, _ = img_arr.shape
+
+        for y in tqdm(range(height), desc="Dithering", disable=not self.logger.is_debug_enabled()):
+            for x in range(width):
+                old_pixel = img_arr[y, x].copy()
+                # Find closest color in palette
+                distances = np.sum((palette_np - old_pixel)**2, axis=1)
+                closest_idx = np.argmin(distances)
+                new_pixel = palette_np[closest_idx]
+                img_arr[y, x] = new_pixel
+                quant_error = old_pixel - new_pixel
+
+                # Propagate error
+                if x + 1 < width:
+                    img_arr[y, x + 1] += quant_error * 7 / 16
+                if y + 1 < height:
+                    if x - 1 >= 0:
+                        img_arr[y + 1, x - 1] += quant_error * 3 / 16
+                    img_arr[y + 1, x] += quant_error * 5 / 16
+                    if x + 1 < width:
+                        img_arr[y + 1, x + 1] += quant_error * 1 / 16
+        
+        # Clip values to 0-255 and convert to uint8
+        dithered_arr = np.clip(img_arr, 0, 255).astype(np.uint8)
+        dithered_image = Image.fromarray(dithered_arr, 'RGB')
+        self.profiler.stop("_apply_floyd_steinberg_dithering")
+        return dithered_image
+
+    def _apply_edge_blending(self, mapped_image: Image.Image, original_target_image: Image.Image, palette: list, config: dict) -> Image.Image:
+        """
+        Applies edge blending to reduce harsh transitions after color mapping.
+        This is a placeholder and needs a more sophisticated implementation.
+        """
+        self.profiler.start("_apply_edge_blending")
+        self.logger.info("Edge blending called. Current implementation is a simple Gaussian blur.")
+        
+        # Basic implementation: apply a slight blur. 
+        # A more advanced version would detect edges based on color differences 
+        # in the mapped image and selectively blur them, or use the original image's
+        # gradients to guide the blending.
+        
+        blur_radius = config.get('edge_blur_radius', 1.5)
+        # blur_strength = config.get('edge_blur_strength', 0.3) # Not directly used in simple blur
+        
+        # For simplicity, applying a Gaussian blur to the whole image.
+        # A real implementation would be more targeted.
+        if blur_radius > 0:
+            blended_image = mapped_image.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+        else:
+            blended_image = mapped_image # No blur if radius is 0 or less
+
+        self.profiler.stop("_apply_edge_blending")
+        return blended_image
+
+        # --- Placeholder for a more advanced edge blending --- 
+        # Example idea: 
+        # 1. Detect edges in the 'mapped_image' (e.g., where color changes significantly)
+        #    - Create a mask of these edges.
+        # 2. Optionally, use 'original_target_image' to refine edge locations or intensity.
+        # 3. Apply blur (e.g., Gaussian, or a custom blending function) selectively to these edges.
+        #    - The 'edge_blur_strength' could control the opacity of the blur or mixing ratio.
+        #
+        # This requires image processing libraries like OpenCV or scikit-image for robust edge detection
+        # and masking.
+
+        # For now, returning the mapped image without changes if not a simple blur.
+        # return mapped_image 
+
         if num_colors is None:
             num_colors = self.config['num_colors']
         try:

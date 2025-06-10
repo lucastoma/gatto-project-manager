@@ -7,72 +7,61 @@ Provides web-based testing and debugging for algorithms.
 import os
 import json
 from datetime import datetime
-from flask import Blueprint, render_template, request, jsonify, current_app, send_file
+from flask import Blueprint, render_template, request, jsonify, current_app, send_from_directory
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
 
-# === ZMIANA: WPROWADZAMY JAWNĄ FLAGĘ DO KONTROLOWANIA DANYCH TESTOWYCH ===
-# Ustaw na 'False', gdy dodasz brakujące moduły 'core' i 'algorithms'
-USE_MOCK_DATA = False
+# --- UWAGA: Upewniamy się, że używamy prawdziwego algorytmu ---
 
-# === ZMIANA: Komentujemy importy, które powodują błąd ===
-# Zostaną one zastąpione przez logikę opartą na fladze USE_MOCK_DATA
-if not USE_MOCK_DATA:
-    try:
-        # Zamiast ImageProcessor, importujemy bezpośrednio algorytm
-        from ..algorithms.algorithm_01_palette.algorithm import PaletteMappingAlgorithm
-        # Poniższe importy mogą być potrzebne, jeśli inne części kodu ich używają
-        # from ..core.image_processor import ImageProcessor 
-        # from ..api.utils import validate_image, create_response
-    except ImportError as e:
-        raise ImportError(f"Nie udało się zaimportować modułów. Upewnij się, że istnieją. Błąd: {e}")
-else:
-    # Definiujemy puste zmienne, gdy używamy danych testowych
-    PaletteMappingAlgorithm = None
-    # ImageProcessor = None # Jeśli nie jest używany gdzie indziej, można usunąć
-    # process_palette = None # Zastąpione przez PaletteMappingAlgorithm
+# Zakładamy, że reszta aplikacji jest poprawnie skonfigurowana.
 
+try:
+    from ..algorithms.algorithm_01_palette.algorithm import PaletteMappingAlgorithm
+except ImportError as e: # W przypadku błędu importu, rzucamy wyjątek, aby wyraźnie pokazać problem
+    raise ImportError(f"CRITICAL: Failed to import PaletteMappingAlgorithm. Ensure the module exists and is correct. Error: {e}")
 
 # Create Blueprint
-webview_bp = Blueprint('webview', __name__, 
-                      template_folder='templates',
-                      static_folder='static',
-                      url_prefix='/webview')
+webview_bp = Blueprint('webview', __name__,
+                       template_folder='templates',
+                       static_folder='static',
+                       url_prefix='/webview')
 
-# Configuration
-MAX_FILE_SIZE = 10 * 1024 * 1024  # 10MB
-ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg'}
-UPLOAD_FOLDER = 'temp_uploads'
+# --- NOWA KONFIGURACJA ZGODNA Z PROŚBĄ ---
+
+# Zwiększony limit rozmiaru pliku (np. do 100MB)
+MAX_FILE_SIZE = 100 * 1024 * 1024
+
+# Dodane rozszerzenia TIF/TIFF i usunięte limity
+ALLOWED_EXTENSIONS = {'png', 'jpg', 'jpeg', 'tif', 'tiff'}
+
+# Używamy podkatalogu w 'static', aby pliki były publicznie dostępne przez URL
+RESULTS_FOLDER = os.path.join(os.path.dirname(__file__), 'static', 'results')
+
+# Używamy osobnego folderu na tymczasowe pliki
+UPLOADS_FOLDER = os.path.join(os.path.dirname(__file__), 'temp_uploads')
 
 def allowed_file(filename):
-    """Check if file extension is allowed."""
-    return '.' in filename and \
-           filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
+    """Sprawdza, czy rozszerzenie pliku jest dozwolone."""
+    return '.' in filename and filename.rsplit('.', 1)[1].lower() in ALLOWED_EXTENSIONS
 
-def ensure_upload_folder():
-    """Ensure upload folder exists."""
-    if not os.path.exists(UPLOAD_FOLDER):
-        os.makedirs(UPLOAD_FOLDER)
+def ensure_folders():
+    """Upewnia się, że foldery na upload i wyniki istnieją."""
+    os.makedirs(UPLOADS_FOLDER, exist_ok=True)
+    os.makedirs(RESULTS_FOLDER, exist_ok=True)
 
 def log_activity(action, details=None, level='info'):
-    """Log WebView activity."""
+    """Prosta funkcja do logowania aktywności WebView."""
     timestamp = datetime.now().isoformat()
-    log_entry = {
-        'timestamp': timestamp,
-        'action': action,
-        'details': details or {},
-        'level': level
-    }
-    
+    log_message = f"WebView: {action} - {json.dumps(details) if details else ''}"
     if hasattr(current_app, 'logger'):
         if level == 'error':
-            current_app.logger.error(f"WebView: {action} - {details}")
-        elif level == 'warning':
-            current_app.logger.warning(f"WebView: {action} - {details}")
+            current_app.logger.error(log_message)
         else:
-            current_app.logger.info(f"WebView: {action} - {details}")
-    
-    return log_entry
+            current_app.logger.info(log_message)
+    else:
+        print(f"[{level.upper()}] {log_message}")
+
+# --- Istniejące trasy ---
 
 @webview_bp.route('/')
 def index():
@@ -81,23 +70,44 @@ def index():
     return render_template('index.html')
 
 @webview_bp.route('/algorithm_01')
-def algorithm_01():
-    """Algorithm 01 - Palette testing page."""
-    log_activity('page_view', {'page': 'algorithm_01'})
-    return render_template('algorithm_01.html')
+def algorithm_01_palette_extraction(): # Zmieniona nazwa funkcji i szablonu
+    """Strona testowania ekstrakcji palety (istniejąca)."""
+    log_activity('page_view', {'page': 'algorithm_01_palette_extraction'})
+    return render_template('algorithm_01_palette_extraction.html') # Zmieniony szablon
+
+# --- NOWA TRASA DO TESTOWANIA TRANSFERU PALETY ---
+
+@webview_bp.route('/algorithm_01/transfer')
+def algorithm_01_palette_transfer():
+    """Strona testowania transferu palety (nowa)."""
+    log_activity('page_view', {'page': 'algorithm_01_palette_transfer'})
+    return render_template('algorithm_01_transfer.html')
+
+@webview_bp.route('/results/<filename>')
+def get_result_file(filename):
+    """Serwuje przetworzony obraz z folderu wyników."""
+    return send_from_directory(RESULTS_FOLDER, filename)
+
 
 @webview_bp.route('/api/health')
 def health_check():
     """Health check endpoint for WebView."""
-    services_available = not USE_MOCK_DATA
+    # Uproszczone, ponieważ USE_MOCK_DATA zostało usunięte
+    palette_algorithm_available = False
+    try:
+        # Sprawdź, czy PaletteMappingAlgorithm jest dostępne
+        if PaletteMappingAlgorithm:
+            palette_algorithm_available = True
+    except NameError:
+        pass # PaletteMappingAlgorithm nie jest zdefiniowane
+        
     return jsonify({
         'status': 'healthy',
         'timestamp': datetime.now().isoformat(),
         'webview_version': '1.0.0',
-        'mode': 'MOCK_DATA' if USE_MOCK_DATA else 'LIVE',
+        'mode': 'LIVE',
         'services': {
-            'image_processor': services_available and (ImageProcessor is not None),
-            'algorithm_01': services_available and (process_palette is not None)
+            'algorithm_01_palette': palette_algorithm_available
         }
     })
 
@@ -124,16 +134,16 @@ def process_algorithm():
         
         log_activity('process_start', {'algorithm': algorithm, 'filename': file.filename, 'params': params})
         
-        ensure_upload_folder()
+        ensure_folders() # Zmieniono na ensure_folders
         filename = secure_filename(file.filename)
         timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
         temp_filename = f"{timestamp}_{filename}"
-        temp_path = os.path.join(UPLOAD_FOLDER, temp_filename)
+        temp_path = os.path.join(UPLOADS_FOLDER, temp_filename) # Zmieniono na UPLOADS_FOLDER
         file.save(temp_path)
         
         try:
-            if algorithm == 'algorithm_01':
-                result = process_algorithm_01(temp_path, params)
+            if algorithm == 'algorithm_01': # To jest dla ekstrakcji palety
+                result = process_algorithm_01_extraction(temp_path, params) # Zmieniono nazwę funkcji
             else:
                 raise ValueError(f"Nieznany algorytm: {algorithm}")
             
@@ -141,8 +151,10 @@ def process_algorithm():
             return jsonify({'success': True, 'result': result, 'algorithm': algorithm, 'timestamp': datetime.now().isoformat()})
             
         finally:
-            if os.path.exists(temp_path):
-                os.remove(temp_path)
+            # Nie usuwamy pliku od razu, jeśli chcemy go użyć np. w process_images
+            # Rozważ logikę czyszczenia później lub jeśli plik nie jest już potrzebny
+            if os.path.exists(temp_path) and algorithm == 'algorithm_01': # Usuń tylko jeśli to była ekstrakcja i nie transfer
+                 os.remove(temp_path)
     
     except RequestEntityTooLarge:
         log_activity('process_error', {'error': 'File too large'}, 'error')
@@ -153,8 +165,8 @@ def process_algorithm():
         current_app.logger.error(f"WebView processing error: {e}")
         return jsonify({'success': False, 'error': 'Wystąpił błąd podczas przetwarzania obrazu'}), 500
 
-# === ZMIANA: Logika funkcji process_algorithm_01 jest teraz kontrolowana przez flagę ===
-def process_algorithm_01(image_path, params):
+# Zmieniona nazwa funkcji, aby odróżnić od transferu
+def process_algorithm_01_extraction(image_path, params):
     """Process Algorithm 01 - Palette extraction using the actual algorithm."""
     # Ta funkcja jest teraz wywoływana tylko, gdy USE_MOCK_DATA = False
     try:
@@ -176,16 +188,7 @@ def process_algorithm_01(image_path, params):
         colors = []
         for r, g, b in palette_rgb:
             hex_color = f"#{r:02x}{g:02x}{b:02x}"
-            # Zakładamy, że rgb_to_hsl jest zdefiniowane gdzieś globalnie lub w utils
-            # Jeśli nie, trzeba będzie je dodać lub zaimportować
-            try:
-                hsl_color = rgb_to_hsl(r, g, b) # Załóżmy, że ta funkcja istnieje
-            except NameError: # Jeśli rgb_to_hsl nie jest zdefiniowane
-                hsl_color = [0,0,0] # Placeholder
-                if hasattr(current_app, 'logger'):
-                    current_app.logger.warning("rgb_to_hsl function not found, using placeholder HSL values.")
-                else:
-                    print("Warning: rgb_to_hsl function not found, using placeholder HSL values.")
+            hsl_color = global_rgb_to_hsl(r, g, b) # Używamy globalnej funkcji
             
             colors.append({
                 'hex': hex_color,
@@ -211,72 +214,8 @@ def process_algorithm_01(image_path, params):
             print(f"Algorithm 01 real processing error: {e}")
         raise ValueError(f"Błąd przetwarzania algorytmu: {str(e)}")
 
-# Funkcja pomocnicza do konwersji RGB na HSL (jeśli nie istnieje globalnie)
-# Można ją przenieść do app/webview/utils/color_converter.py lub podobnego miejsca
-def rgb_to_hsl(r, g, b):
-    r /= 255.0
-    g /= 255.0
-    b /= 255.0
-    max_val = max(r, g, b)
-    min_val = min(r, g, b)
-    h, s, l = 0, 0, (max_val + min_val) / 2
-
-    if max_val == min_val:
-        h = s = 0  # achromatic
-    else:
-        d = max_val - min_val
-        s = d / (2 - max_val - min_val) if l > 0.5 else d / (max_val + min_val)
-        if max_val == r:
-            h = (g - b) / d + (6 if g < b else 0)
-        elif max_val == g:
-            h = (b - r) / d + 2
-        elif max_val == b:
-            h = (r - g) / d + 4
-        h /= 6
-    return [round(h * 360), round(s * 100), round(l * 100)]
-
-def create_mock_palette_result(params, image_path):
-    """Create mock result for testing. Ulepszona wersja, aby dane wyglądały bardziej sensownie."""
-    import random
-    from PIL import Image
-
-    # Spróbujmy wygenerować kolory, które mają sens w kontekście obrazka
-    try:
-        with Image.open(image_path) as img:
-            img.thumbnail((100, 100)) # Zmniejsz obrazek do szybkiej analizy
-            img_colors = img.getcolors(img.size[0] * img.size[1])
-            # Posortuj kolory wg występowania i weź najczęstsze
-            dominant_colors = sorted(img_colors, key=lambda x: x[0], reverse=True)
-            base_colors = [c[1] for c in dominant_colors[:params['num_colors']]]
-    except:
-        # Jeśli się nie uda, generuj losowe, jak wcześniej
-        base_colors = [[random.randint(0, 255) for _ in range(3)] for _ in range(params['num_colors'])]
-
-    colors = []
-    for r, g, b in base_colors:
-        # Dodajmy lekką losowość, aby nie były to zawsze te same kolory z getcolors
-        r = min(255, max(0, r + random.randint(-10, 10)))
-        g = min(255, max(0, g + random.randint(-10, 10)))
-        b = min(255, max(0, b + random.randint(-10, 10)))
-        hex_color = f"#{r:02x}{g:02x}{b:02x}"
-        colors.append({
-            'hex': hex_color,
-            'rgb': [r, g, b],
-            'hsl': rgb_to_hsl(r, g, b),
-            'percentage': random.uniform(5, 25)
-        })
-    
-    return {
-        'palette': colors,
-        'algorithm': 'algorithm_01',
-        'method': params['method'],
-        'num_colors': params['num_colors'],
-        'quality': params['quality'],
-        'processing_time': random.uniform(0.1, 0.5),
-        'mock': True
-    }
-
-def rgb_to_hsl(r, g, b):
+# global_rgb_to_hsl, aby uniknąć konfliktu nazw, jeśli lokalna była używana gdzie indziej
+def global_rgb_to_hsl(r, g, b):
     """Convert RGB to HSL."""
     r, g, b = r/255.0, g/255.0, b/255.0
     max_val, min_val = max(r, g, b), min(r, g, b)
@@ -303,21 +242,149 @@ def get_image_metadata(image_path):
 # Reszta pliku bez zmian (list_algorithms, get_logs, errorhandlers, etc.)
 # ... (pozostała część pliku pozostaje bez zmian)
 
+# --- NOWA TRASA API DO OBSŁUGI TRANSFERU PALETY ---
+
+@webview_bp.route('/api/algorithm_01/transfer', methods=['POST'])
+def handle_palette_transfer():
+    """
+    Przyjmuje obraz master, target i parametry, przetwarza je i zwraca
+    ścieżkę do obrazu wynikowego.
+    """
+    ensure_folders()
+    log_activity('transfer_request_start')
+
+    try:
+        # Sprawdzenie plików
+        if 'master_image' not in request.files or 'target_image' not in request.files:
+            log_activity('transfer_error', {'error': 'Missing master or target image'}, 'error')
+            return jsonify({'success': False, 'error': 'Brak pliku master_image lub target_image'}), 400
+
+        master_file = request.files['master_image']
+        target_file = request.files['target_image']
+
+        if master_file.filename == '' or target_file.filename == '':
+            log_activity('transfer_error', {'error': 'Empty filename for master or target'}, 'error')
+            return jsonify({'success': False, 'error': 'Nie wybrano plików'}), 400
+
+        if not allowed_file(master_file.filename) or not allowed_file(target_file.filename):
+            log_activity('transfer_error', {'error': f'Invalid file type. Master: {master_file.filename}, Target: {target_file.filename}'}, 'error')
+            return jsonify({'success': False, 'error': f'Niedozwolony typ pliku. Dozwolone: {", ".join(ALLOWED_EXTENSIONS)}'}), 400
+
+        # Zapisanie plików tymczasowych
+        timestamp = datetime.now().strftime('%Y%m%d_%H%M%S')
+        master_filename_secure = secure_filename(master_file.filename)
+        target_filename_secure = secure_filename(target_file.filename)
+        
+        master_filename = f"{timestamp}_master_{master_filename_secure}"
+        target_filename = f"{timestamp}_target_{target_filename_secure}"
+        master_path = os.path.join(UPLOADS_FOLDER, master_filename)
+        target_path = os.path.join(UPLOADS_FOLDER, target_filename)
+        master_file.save(master_path)
+        target_file.save(target_path)
+        log_activity('files_saved', {'master': master_path, 'target': target_path})
+
+        # Zebranie parametrów z formularza
+        params = {
+            'num_colors': int(request.form.get('num_colors', 16)),
+            'dithering_method': request.form.get('dithering_method', 'none'),
+            'inject_extremes': request.form.get('inject_extremes') == 'on',
+            'preserve_extremes': request.form.get('preserve_extremes') == 'on',
+            'extremes_threshold': int(request.form.get('extremes_threshold', 10)),
+            'edge_blur_enabled': request.form.get('edge_blur_enabled') == 'on',
+            'edge_detection_threshold': float(request.form.get('edge_detection_threshold', 25)),
+            'edge_blur_radius': float(request.form.get('edge_blur_radius', 1.5)),
+            'edge_blur_strength': float(request.form.get('edge_blur_strength', 0.3)),
+            'quality': int(request.form.get('quality', 5)), # Parametr z p1.md
+            'distance_metric': request.form.get('distance_metric', 'weighted_rgb') # Parametr z p1.md
+        }
+        log_activity('parameters_collected', params)
+
+        # Przetwarzanie
+        algorithm = PaletteMappingAlgorithm()
+        # Używamy oryginalnej nazwy pliku docelowego dla wyniku, aby było bardziej czytelne
+        output_filename = f"result_{timestamp}_{target_filename_secure}"
+        output_path = os.path.join(RESULTS_FOLDER, output_filename)
+
+        log_activity('processing_start', {'output_path': output_path, 'params': params})
+        
+        # Zakładamy, że metoda process_images istnieje w PaletteMappingAlgorithm
+        # i przyjmuje te parametry.
+        # To może wymagać aktualizacji pliku algorithm.py
+        success = algorithm.process_images(
+            master_path=master_path,
+            target_path=target_path,
+            output_path=output_path,
+            **params
+        )
+        log_activity('processing_end', {'success': success})
+
+        if not success:
+            # Dodatkowe logowanie, jeśli algorytm zwrócił False
+            log_activity('algorithm_processing_failed', {'master': master_path, 'target': target_path, 'params': params}, 'error')
+            raise RuntimeError("Algorithm processing failed. Check server logs for details.")
+
+        # Zwrócenie ścieżki do pliku wynikowego
+        result_url = f"/webview/results/{output_filename}" # Poprawiony URL, aby pasował do definicji trasy
+        log_activity('transfer_request_success', {'result_url': result_url})
+
+        return jsonify({
+            'success': True,
+            'result_url': result_url,
+            'message': 'Obraz przetworzony pomyślnie!'
+        })
+
+    except RequestEntityTooLarge:
+        log_activity('transfer_error', {'error': 'File too large'}, 'error')
+        return jsonify({'success': False, 'error': f'Plik zbyt duży. Maksymalny rozmiar: {MAX_FILE_SIZE // (1024*1024)}MB'}), 413
+    except Exception as e:
+        log_activity('transfer_error', {'error': str(e)}, 'error')
+        if hasattr(current_app, 'logger'):
+            current_app.logger.exception("An error occurred during palette transfer.")
+        return jsonify({'success': False, 'error': f'Wystąpił wewnętrzny błąd serwera: {str(e)}'}), 500
+    finally:
+        # Czyszczenie plików tymczasowych po przetworzeniu
+        if 'master_path' in locals() and os.path.exists(master_path):
+            os.remove(master_path)
+        if 'target_path' in locals() and os.path.exists(target_path):
+            os.remove(target_path)
+        log_activity('temp_files_cleaned', {'master_path': locals().get('master_path'), 'target_path': locals().get('target_path')})
+
 @webview_bp.route('/api/algorithms')
 def list_algorithms():
     """List available algorithms."""
     algorithms = [
         {
-            'id': 'algorithm_01',
+            'id': 'algorithm_01_extraction',
             'name': 'Palette Extraction',
-            'description': 'Ekstrakcja palety kolorów z obrazu',
-            'status': 'mock' if USE_MOCK_DATA else 'available',
+            'description': 'Ekstrakcja palety kolorów z obrazu.',
+            'status': 'available', # Usunięto zależność od USE_MOCK_DATA
             'parameters': {
                 'num_colors': {'type': 'int', 'min': 1, 'max': 20, 'default': 5},
                 'method': {'type': 'select', 'options': ['kmeans', 'median_cut'], 'default': 'kmeans'},
                 'quality': {'type': 'int', 'min': 1, 'max': 10, 'default': 5},
-                'include_metadata': {'type': 'bool', 'default': True}
-            }
+                # 'include_metadata': {'type': 'bool', 'default': True} # Usunięto, jeśli nie jest używane
+            },
+            'endpoint': '/api/process' # Wskazuje na istniejący endpoint dla ekstrakcji
+        },
+        {
+            'id': 'algorithm_01_transfer',
+            'name': 'Palette Transfer',
+            'description': 'Transfer palety kolorów między obrazami.',
+            'status': 'available',
+            'parameters': {
+                'num_colors': {'type': 'int', 'min': 1, 'max': 64, 'default': 16},
+                'dithering_method': {'type': 'select', 'options': ['none', 'floyd_steinberg'], 'default': 'none'},
+                'inject_extremes': {'type': 'bool', 'default': False},
+                'preserve_extremes': {'type': 'bool', 'default': False},
+                'extremes_threshold': {'type': 'int', 'min':0, 'max': 100, 'default': 10},
+                'edge_blur_enabled': {'type': 'bool', 'default': False},
+                'edge_detection_threshold': {'type': 'float', 'min':0, 'max': 255, 'default': 25},
+                'edge_blur_radius': {'type': 'float', 'min':0.1, 'max': 10, 'default': 1.5},
+                'edge_blur_strength': {'type': 'float', 'min':0, 'max': 1, 'default': 0.3},
+                'quality': {'type': 'int', 'min': 1, 'max': 10, 'default': 5},
+                'distance_metric': {'type': 'select', 'options': ['rgb', 'lab', 'weighted_rgb'], 'default': 'weighted_rgb'}
+            },
+            'endpoint': '/api/algorithm_01/transfer'
         }
     ]
     return jsonify({'algorithms': algorithms, 'count': len(algorithms)})
