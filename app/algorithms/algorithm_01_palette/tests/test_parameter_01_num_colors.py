@@ -2,8 +2,8 @@ import unittest
 import numpy as np
 from PIL import Image
 import os
-from tests.base_test_case import BaseAlgorithmTestCase
-from app.algorithms.algorithm_01_palette.algorithm import PaletteMappingAlgorithm
+from .base_test_case import BaseAlgorithmTestCase
+from ..algorithm import PaletteMappingAlgorithm
 import logging
 
 # Ustawienie logowania, aby widzieć komunikaty z testu

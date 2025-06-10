@@ -14,15 +14,15 @@ from PIL import Image
 
 sys.path.insert(0, os.path.dirname(os.path.dirname(os.path.dirname(os.path.dirname(__file__)))))
 
-from tests.base_test_case import BaseAlgorithmTestCase
-from app.algorithms.algorithm_01_palette.algorithm import create_palette_mapping_algorithm
+from .base_test_case import BaseAlgorithmTestCase
+from ..algorithm import PaletteMappingAlgorithm
 from app.core.development_logger import get_logger
 
 class TestEdgeBlurMethod(BaseAlgorithmTestCase):
 
     def setUp(self):
         super().setUp()
-        self.algorithm = create_palette_mapping_algorithm()
+        self.algorithm = PaletteMappingAlgorithm()
         self.logger = get_logger()
 
         # A checkerboard image is ideal for visually and numerically comparing blur patterns.

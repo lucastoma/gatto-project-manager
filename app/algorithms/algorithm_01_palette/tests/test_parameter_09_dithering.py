@@ -31,8 +31,8 @@ import numpy as np
 # Dodaj ścieżkę do głównego katalogu projektu
 sys.path.append('.')
 
-from tests.base_test_case import BaseAlgorithmTestCase
-from app.algorithms.algorithm_01_palette.algorithm import create_palette_mapping_algorithm
+from .base_test_case import BaseAlgorithmTestCase
+from ..algorithm import PaletteMappingAlgorithm
 from app.core.development_logger import get_logger
 
 
@@ -44,7 +44,7 @@ class ParameterEffectTests(BaseAlgorithmTestCase):
     def setUp(self):
         """Przygotowanie środowiska testowego"""
         super().setUp()
-        self.algorithm = create_palette_mapping_algorithm()
+        self.algorithm = PaletteMappingAlgorithm()
         self.logger = get_logger()
 
     def run_test_case(self, master_path, target_path, **kwargs):

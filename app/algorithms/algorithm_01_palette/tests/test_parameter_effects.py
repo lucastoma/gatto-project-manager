@@ -4,8 +4,8 @@ from PIL import Image, ImageFilter # Import ImageFilter
 import os
 from skimage import color
 import time # Import the time module
-from tests.base_test_case import BaseAlgorithmTestCase
-from app.algorithms.algorithm_01_palette.algorithm import PaletteMappingAlgorithm
+from .base_test_case import BaseAlgorithmTestCase
+from ..algorithm import PaletteMappingAlgorithm
 
 class ParameterEffectTests(BaseAlgorithmTestCase):
     def setUp(self):
