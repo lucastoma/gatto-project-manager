@@ -4,8 +4,8 @@ import time
 import os
 from tqdm import tqdm
 import json
-from skimage import color # For LAB color space conversion
-from sklearn.cluster import KMeans # For K-means clustering
+from skimage import color  # For LAB color space conversion
+from sklearn.cluster import KMeans  # For K-means clustering
 from typing import TYPE_CHECKING, Any
 
 try:
@@ -16,27 +16,39 @@ except ImportError:
 try:
     from ...core.development_logger import get_logger
     from ...core.performance_profiler import get_profiler
+
     if TYPE_CHECKING:
         from ...core.development_logger import DevelopmentLogger
         from ...core.performance_profiler import PerformanceProfiler
 except ImportError:
     import logging
+
     def get_logger() -> Any:
-        logging.basicConfig(level=logging.INFO, format='%(asctime)s - %(levelname)s - %(message)s')
+        logging.basicConfig(
+            level=logging.INFO, format="%(asctime)s - %(levelname)s - %(message)s"
+        )
         return logging.getLogger(__name__)
+
     class DummyProfiler:
-        def start(self, name): pass
-        def stop(self, name): pass
-        def get_report(self): return "Profiler not available."
+        def start(self, name):
+            pass
+
+        def stop(self, name):
+            pass
+
+        def get_report(self):
+            return "Profiler not available."
+
     def get_profiler() -> Any:
         return DummyProfiler()
+
 
 class PaletteMappingAlgorithm:
     def __init__(self, config_path=None, algorithm_id: str = "algorithm_01_palette"):
         self.algorithm_id = algorithm_id
         if TYPE_CHECKING:
-            self.logger: 'DevelopmentLogger' = get_logger()
-            self.profiler: 'PerformanceProfiler' = get_profiler()
+            self.logger: "DevelopmentLogger" = get_logger()
+            self.profiler: "PerformanceProfiler" = get_profiler()
         else:
             self.logger = get_logger()
             self.profiler = get_profiler()
@@ -44,89 +56,100 @@ class PaletteMappingAlgorithm:
         self.name = "Simple Palette Mapping"
         ## >> NEW: Zwiększamy wersję po dodaniu nowych funkcji
         self.version = "1.3"
-        self.config = self.load_config(config_path) if config_path else self.default_config()
+        self.config = (
+            self.load_config(config_path) if config_path else self.default_config()
+        )
         self.distance_cache = {}
-        
+
     def default_config(self):
         """Zwraca domyślną konfigurację z nowymi opcjami."""
         return {
-            'num_colors': 16,
-            'distance_metric': 'weighted_rgb',
-            'use_cache': True,
-            'preprocess': False,
-            'thumbnail_size': (100, 100),
-            'use_vectorized': True,
-            'cache_max_size': 10000,
-            'exclude_colors': [],
-            'preview_mode': False,
-            'preview_thumbnail_size': (500, 500),
-              ## >> NEW: Nowe parametry zaawansowane
-            'inject_extremes': False,           # Czy dodawać czarny i biały do palety
-            'preserve_extremes': False,         # Czy chronić cienie i światła w obrazie docelowym
-            'extremes_threshold': 10,           # Próg dla cieni i świateł (0-255)
-            'dithering_method': 'none',         # Metoda ditheringu: 'none' lub 'floyd_steinberg'
-            
+            "num_colors": 16,
+            "distance_metric": "weighted_rgb",
+            "use_cache": True,
+            "preprocess": False,
+            "thumbnail_size": (100, 100),
+            "use_vectorized": True,
+            "cache_max_size": 10000,
+            "exclude_colors": [],
+            "preview_mode": False,
+            "preview_thumbnail_size": (500, 500),
+            ## >> NEW: Nowe parametry zaawansowane
+            "inject_extremes": False,  # Czy dodawać czarny i biały do palety
+            "preserve_extremes": False,  # Czy chronić cienie i światła w obrazie docelowym
+            "extremes_threshold": 10,  # Próg dla cieni i świateł (0-255)
+            "dithering_method": "none",  # Metoda ditheringu: 'none' lub 'floyd_steinberg'
             ## >> NEW: Edge Blending Parameters
-            'edge_blur_enabled': False,         # Włącz/wyłącz rozmycie krawędzi
-            'edge_blur_radius': 1.5,            # Promień rozmycia (px)
-            'edge_blur_strength': 0.3,          # Siła rozmycia (0.0-1.0)
-            'edge_detection_threshold': 25,     # Próg detekcji krawędzi między kolorami
-            'edge_blur_method': 'gaussian'      # 'gaussian' | 'motion' | 'selective'
+            "edge_blur_enabled": False,  # Włącz/wyłącz rozmycie krawędzi
+            "edge_blur_radius": 1.5,  # Promień rozmycia (px)
+            "edge_blur_strength": 0.3,  # Siła rozmycia (0.0-1.0)
+            "edge_detection_threshold": 25,  # Próg detekcji krawędzi między kolorami
+            "edge_blur_method": "gaussian",  # 'gaussian' | 'motion' | 'selective'
         }
-    
+
     def load_config(self, config_path):
         """Ładuje konfigurację z pliku JSON."""
         try:
-            with open(config_path, 'r') as f:
+            with open(config_path, "r") as f:
                 return json.load(f)
         except Exception as e:
             self.logger.error(f"Error loading configuration: {e}, using default.")
             return self.default_config()
-    
+
     def clear_cache(self):
         self.distance_cache.clear()
-        
+
     def validate_palette(self, palette):
         if not palette or len(palette) == 0:
             raise ValueError("Palette cannot be empty")
         for i, color_val in enumerate(palette):
             if len(color_val) != 3:
-                raise ValueError(f"Color {i} must have 3 RGB components, has {len(color_val)}")
+                raise ValueError(
+                    f"Color {i} must have 3 RGB components, has {len(color_val)}"
+                )
             if not all(0 <= c <= 255 for c in color_val):
-                raise ValueError(f"Color {i} has values outside the 0-255 range: {color_val}")
-                
-    def extract_palette(self, image_path, num_colors=None, method='kmeans'):
+                raise ValueError(
+                    f"Color {i} has values outside the 0-255 range: {color_val}"
+                )
+
+    def extract_palette(self, image_path, num_colors=None, method="kmeans"):
         """
         Extracts a color palette from an image using either K-means or Median Cut.
         """
         if num_colors is None:
-            num_colors = self.config['num_colors']
+            num_colors = self.config["num_colors"]
 
         try:
             image = Image.open(image_path)
-            if image.mode == 'RGBA':
-                background = Image.new('RGB', image.size, (255, 255, 255))
+            if image.mode == "RGBA":
+                background = Image.new("RGB", image.size, (255, 255, 255))
                 background.paste(image, mask=image.split()[-1])
                 image = background
-            elif image.mode != 'RGB':
-                image = image.convert('RGB')
+            elif image.mode != "RGB":
+                image = image.convert("RGB")
 
             original_size = image.size
-            quality = self.config.get('quality', 5)
+            quality = self.config.get("quality", 5)
             base_size = 100
             max_size = 1000
-            thumbnail_size_val = int(base_size + (max_size - base_size) * (quality - 1) / 9.0)
+            thumbnail_size_val = int(
+                base_size + (max_size - base_size) * (quality - 1) / 9.0
+            )
 
-            self.logger.info(f"Analyzing with quality {quality}/10 (thumbnail: {thumbnail_size_val}px) using '{method}' method.")
+            self.logger.info(
+                f"Analyzing with quality {quality}/10 (thumbnail: {thumbnail_size_val}px) using '{method}' method."
+            )
 
             # --- NOWA LOGIKA WYBORU METODY ---
-            if method == 'median_cut':
+            if method == "median_cut":
                 # Użyj Pillow's quantize dla deterministycznego Median Cut
                 temp_image = image.copy()
                 temp_image.thumbnail((thumbnail_size_val, thumbnail_size_val))
 
                 # Quantize do N kolorów
-                quantized_image = temp_image.quantize(colors=num_colors, method=Image.MEDIANCUT, dither=Image.NONE)
+                quantized_image = temp_image.quantize(
+                    colors=num_colors, method=Image.MEDIANCUT, dither=Image.NONE
+                )
 
                 # Wyciągnij paletę z obrazka po kwantyzacji
                 palette_raw = quantized_image.getpalette()
@@ -134,19 +157,26 @@ class PaletteMappingAlgorithm:
                 # Upewnij się, że paleta nie jest None i ma wystarczająco dużo danych
                 if palette_raw is not None:
                     for i in range(min(num_colors, len(palette_raw) // 3)):
-                        r = palette_raw[i*3]
-                        g = palette_raw[i*3+1]
-                        b = palette_raw[i*3+2]
+                        r = palette_raw[i * 3]
+                        g = palette_raw[i * 3 + 1]
+                        b = palette_raw[i * 3 + 2]
                         palette.append([r, g, b])
                 else:
-                    self.logger.warning(f"Median Cut returned empty palette for {image_path}. Falling back to default.")
+                    self.logger.warning(
+                        f"Median Cut returned empty palette for {image_path}. Falling back to default."
+                    )
                     # Fallback jeśli paleta jest pusta
-                    palette = [[j* (255//(num_colors-1)) if num_colors > 1 else 0 for _ in range(3)] for j in range(num_colors)]
-                    if not palette: # Jeśli num_colors było 0 lub 1 i paleta jest pusta
-                        palette = [[0,0,0], [255,255,255], [128,128,128]]
+                    palette = [
+                        [
+                            j * (255 // (num_colors - 1)) if num_colors > 1 else 0
+                            for _ in range(3)
+                        ]
+                        for j in range(num_colors)
+                    ]
+                    if not palette:  # Jeśli num_colors było 0 lub 1 i paleta jest pusta
+                        palette = [[0, 0, 0], [255, 255, 255], [128, 128, 128]]
 
-
-            else: # Domyślnie użyj K-Means
+            else:  # Domyślnie użyj K-Means
                 image.thumbnail((thumbnail_size_val, thumbnail_size_val))
                 img_array = np.array(image)
                 pixels = img_array.reshape(-1, 3)
@@ -158,22 +188,32 @@ class PaletteMappingAlgorithm:
 
             # --- KONIEC NOWEJ LOGIKI ---
 
-            palette = [[max(0, min(255, c)) for c in color_val] for color_val in palette]
+            palette = [
+                [max(0, min(255, c)) for c in color_val] for color_val in palette
+            ]
 
-            if self.config.get('inject_extremes', False):
+            if self.config.get("inject_extremes", False):
                 self.logger.info("Injecting pure black and white into the palette.")
-                if [0, 0, 0] not in palette: palette.insert(0, [0, 0, 0])
-                if [255, 255, 255] not in palette: palette.insert(0, [255, 255, 255])
+                if [0, 0, 0] not in palette:
+                    palette.insert(0, [0, 0, 0])
+                if [255, 255, 255] not in palette:
+                    palette.insert(0, [255, 255, 255])
 
             self.validate_palette(palette)
-            self.logger.info(f"Extracted {len(palette)} colors from image {original_size} -> {image.size if hasattr(image, 'size') else 'N/A'}")
+            self.logger.info(
+                f"Extracted {len(palette)} colors from image {original_size} -> {image.size if hasattr(image, 'size') else 'N/A'}"
+            )
             return palette
 
         except Exception as e:
-            self.logger.error(f"Error extracting palette from {image_path}: {e}", exc_info=True)
-            return [[0,0,0], [255,255,255], [128,128,128]]
+            self.logger.error(
+                f"Error extracting palette from {image_path}: {e}", exc_info=True
+            )
+            return [[0, 0, 0], [255, 255, 255], [128, 128, 128]]
 
-    def process_images(self, master_path: str, target_path: str, output_path: str, **kwargs) -> bool:
+    def process_images(
+        self, master_path: str, target_path: str, output_path: str, **kwargs
+    ) -> bool:
         """
         Processes master and target images to transfer color palette.
         Applies various effects like dithering and edge blending based on kwargs.
@@ -181,7 +221,9 @@ class PaletteMappingAlgorithm:
         Returns True on success, False on failure.
         """
         self.profiler.start("process_images_full")
-        self.logger.info(f"Starting palette transfer from '{master_path}' to '{target_path}'. Output: '{output_path}'")
+        self.logger.info(
+            f"Starting palette transfer from '{master_path}' to '{target_path}'. Output: '{output_path}'"
+        )
         self.logger.info(f"Processing parameters: {kwargs}")
 
         try:
@@ -192,49 +234,69 @@ class PaletteMappingAlgorithm:
 
             # 1. Load images
             self.profiler.start("load_images")
-            master_image = Image.open(master_path).convert('RGB')
-            target_image = Image.open(target_path).convert('RGB')
+            master_image = Image.open(master_path).convert("RGB")
+            target_image = Image.open(target_path).convert("RGB")
             self.profiler.stop("load_images")
-            self.logger.info(f"Master: {master_image.size}, Target: {target_image.size}")
+            self.logger.info(
+                f"Master: {master_image.size}, Target: {target_image.size}"
+            )
 
             # 2. Extract palette from master image
             self.profiler.start("extract_palette_master")
-            num_colors_palette = current_run_config.get('num_colors', self.config['num_colors'])
+            num_colors_palette = current_run_config.get(
+                "num_colors", self.config["num_colors"]
+            )
             # Use 'kmeans' or 'median_cut' based on what's available or preferred for transfer
-            palette_extraction_method = current_run_config.get('palette_method', 'kmeans') 
-            palette = self.extract_palette(master_path, num_colors=num_colors_palette, method=palette_extraction_method)
+            palette_extraction_method = current_run_config.get(
+                "palette_method", "kmeans"
+            )
+            palette = self.extract_palette(
+                master_path,
+                num_colors=num_colors_palette,
+                method=palette_extraction_method,
+            )
             if not palette:
                 self.logger.error("Failed to extract palette from master image.")
                 return False
             self.profiler.stop("extract_palette_master")
-            self.logger.info(f"Extracted palette with {len(palette)} colors using '{palette_extraction_method}'.")
+            self.logger.info(
+                f"Extracted palette with {len(palette)} colors using '{palette_extraction_method}'."
+            )
 
             # 3. Map target image to the extracted palette
             self.profiler.start("map_colors")
             # Ensure target_image is an RGB numpy array for processing
-            target_array = np.array(target_image.convert('RGB'))
-            mapped_array = self._map_pixels_to_palette(target_array, palette, current_run_config)
-            mapped_image = Image.fromarray(mapped_array.astype(np.uint8), 'RGB')
+            target_array = np.array(target_image.convert("RGB"))
+            mapped_array = self._map_pixels_to_palette(
+                target_array, palette, current_run_config
+            )
+            mapped_image = Image.fromarray(mapped_array.astype(np.uint8), "RGB")
             self.profiler.stop("map_colors")
             self.logger.info("Color mapping complete.")
 
             # 4. Apply dithering (optional)
-            dithering_method = current_run_config.get('dithering_method', 'none')
-            if dithering_method == 'floyd_steinberg':
+            dithering_method = current_run_config.get("dithering_method", "none")
+            if dithering_method == "floyd_steinberg":
                 self.profiler.start("dithering")
                 self.logger.info("Applying Floyd-Steinberg dithering.")
-                mapped_image = self._apply_floyd_steinberg_dithering(target_image, palette, current_run_config)
+                mapped_image = self._apply_floyd_steinberg_dithering(
+                    target_image, palette, current_run_config
+                )
                 self.profiler.stop("dithering")
-            elif dithering_method != 'none':
-                self.logger.warning(f"Unsupported dithering method: {dithering_method}. Skipping.")
+            elif dithering_method != "none":
+                self.logger.warning(
+                    f"Unsupported dithering method: {dithering_method}. Skipping."
+                )
 
             # 5. Apply edge blending (optional)
-            if current_run_config.get('edge_blur_enabled', False):
+            if current_run_config.get("edge_blur_enabled", False):
                 self.profiler.start("edge_blending")
                 self.logger.info("Applying edge blending.")
                 # This method needs to be implemented or adapted
                 # For now, let's assume it modifies mapped_image in place or returns a new one
-                mapped_image = self._apply_edge_blending(mapped_image, target_image, palette, current_run_config)
+                mapped_image = self._apply_edge_blending(
+                    mapped_image, target_image, palette, current_run_config
+                )
                 self.profiler.stop("edge_blending")
 
             # 6. Save the result
@@ -242,21 +304,25 @@ class PaletteMappingAlgorithm:
             mapped_image.save(output_path)
             self.profiler.stop("save_result")
             self.logger.info(f"Successfully processed and saved image to {output_path}")
-            
+
             self.profiler.stop("process_images_full")
-            self.logger.debug(f"Profiling report for process_images:\n{self.profiler.get_report()}")
+            self.logger.debug(
+                f"Profiling report for process_images:\n{self.profiler.get_report()}"
+            )
             return True
 
         except FileNotFoundError as e:
             self.logger.error(f"File not found during processing: {e}", exc_info=True)
-            self.profiler.stop("process_images_full") # Ensure profiler stops on error
+            self.profiler.stop("process_images_full")  # Ensure profiler stops on error
             return False
         except Exception as e:
             self.logger.error(f"Error during process_images: {e}", exc_info=True)
-            self.profiler.stop("process_images_full") # Ensure profiler stops on error
+            self.profiler.stop("process_images_full")  # Ensure profiler stops on error
             return False
 
-    def _map_pixels_to_palette(self, image_array: np.ndarray, palette: list, config: dict) -> np.ndarray:
+    def _map_pixels_to_palette(
+        self, image_array: np.ndarray, palette: list, config: dict
+    ) -> np.ndarray:
         """Helper function to map image pixels to the closest color in the palette."""
         self.profiler.start("_map_pixels_to_palette")
         palette_np = np.array(palette)
@@ -267,26 +333,32 @@ class PaletteMappingAlgorithm:
         # (pixels_flat[:, np.newaxis, :] - palette_np[np.newaxis, :, :]) -> shape (num_pixels, num_palette_colors, 3)
         # np.sum(..., axis=2) -> shape (num_pixels, num_palette_colors)
         # np.argmin(..., axis=1) -> shape (num_pixels) -> indices of closest palette color for each pixel
-        distances = np.sum((pixels_flat[:, np.newaxis, :] - palette_np[np.newaxis, :, :])**2, axis=2)
+        distances = np.sum(
+            (pixels_flat[:, np.newaxis, :] - palette_np[np.newaxis, :, :]) ** 2, axis=2
+        )
         closest_indices = np.argmin(distances, axis=1)
         mapped_pixels_flat = palette_np[closest_indices]
-        
+
         mapped_array = mapped_pixels_flat.reshape(image_array.shape)
         self.profiler.stop("_map_pixels_to_palette")
         return mapped_array
 
-    def _apply_floyd_steinberg_dithering(self, original_image: Image.Image, palette: list, config: dict) -> Image.Image:
+    def _apply_floyd_steinberg_dithering(
+        self, original_image: Image.Image, palette: list, config: dict
+    ) -> Image.Image:
         """Applies Floyd-Steinberg dithering to the image using the given palette."""
         self.profiler.start("_apply_floyd_steinberg_dithering")
-        img_arr = np.array(original_image.convert('RGB'), dtype=float) 
+        img_arr = np.array(original_image.convert("RGB"), dtype=float)
         palette_np = np.array(palette)
         height, width, _ = img_arr.shape
 
-        for y in tqdm(range(height), desc="Dithering", disable=not self.logger.is_debug_enabled()):
+        for y in tqdm(
+            range(height), desc="Dithering", disable=not self.logger.is_debug_enabled()
+        ):
             for x in range(width):
                 old_pixel = img_arr[y, x].copy()
                 # Find closest color in palette
-                distances = np.sum((palette_np - old_pixel)**2, axis=1)
+                distances = np.sum((palette_np - old_pixel) ** 2, axis=1)
                 closest_idx = np.argmin(distances)
                 new_pixel = palette_np[closest_idx]
                 img_arr[y, x] = new_pixel
@@ -301,41 +373,51 @@ class PaletteMappingAlgorithm:
                     img_arr[y + 1, x] += quant_error * 5 / 16
                     if x + 1 < width:
                         img_arr[y + 1, x + 1] += quant_error * 1 / 16
-        
+
         # Clip values to 0-255 and convert to uint8
         dithered_arr = np.clip(img_arr, 0, 255).astype(np.uint8)
-        dithered_image = Image.fromarray(dithered_arr, 'RGB')
+        dithered_image = Image.fromarray(dithered_arr, "RGB")
         self.profiler.stop("_apply_floyd_steinberg_dithering")
         return dithered_image
 
-    def _apply_edge_blending(self, mapped_image: Image.Image, original_target_image: Image.Image, palette: list, config: dict) -> Image.Image:
+    def _apply_edge_blending(
+        self,
+        mapped_image: Image.Image,
+        original_target_image: Image.Image,
+        palette: list,
+        config: dict,
+    ) -> Image.Image:
         """
         Applies edge blending to reduce harsh transitions after color mapping.
         This is a placeholder and needs a more sophisticated implementation.
         """
         self.profiler.start("_apply_edge_blending")
-        self.logger.info("Edge blending called. Current implementation is a simple Gaussian blur.")
-        
-        # Basic implementation: apply a slight blur. 
-        # A more advanced version would detect edges based on color differences 
+        self.logger.info(
+            "Edge blending called. Current implementation is a simple Gaussian blur."
+        )
+
+        # Basic implementation: apply a slight blur.
+        # A more advanced version would detect edges based on color differences
         # in the mapped image and selectively blur them, or use the original image's
         # gradients to guide the blending.
-        
-        blur_radius = config.get('edge_blur_radius', 1.5)
+
+        blur_radius = config.get("edge_blur_radius", 1.5)
         # blur_strength = config.get('edge_blur_strength', 0.3) # Not directly used in simple blur
-        
+
         # For simplicity, applying a Gaussian blur to the whole image.
         # A real implementation would be more targeted.
         if blur_radius > 0:
-            blended_image = mapped_image.filter(ImageFilter.GaussianBlur(radius=blur_radius))
+            blended_image = mapped_image.filter(
+                ImageFilter.GaussianBlur(radius=blur_radius)
+            )
         else:
-            blended_image = mapped_image # No blur if radius is 0 or less
+            blended_image = mapped_image  # No blur if radius is 0 or less
 
         self.profiler.stop("_apply_edge_blending")
         return blended_image
 
-        # --- Placeholder for a more advanced edge blending --- 
-        # Example idea: 
+        # --- Placeholder for a more advanced edge blending ---
+        # Example idea:
         # 1. Detect edges in the 'mapped_image' (e.g., where color changes significantly)
         #    - Create a mask of these edges.
         # 2. Optionally, use 'original_target_image' to refine edge locations or intensity.
@@ -346,45 +428,51 @@ class PaletteMappingAlgorithm:
         # and masking.
 
         # For now, returning the mapped image without changes if not a simple blur.
-        # return mapped_image 
+        # return mapped_image
 
         if num_colors is None:
-            num_colors = self.config['num_colors']
+            num_colors = self.config["num_colors"]
         try:
             image = Image.open(image_path)
-            if image.mode == 'RGBA':
-                background = Image.new('RGB', image.size, (255, 255, 255))
+            if image.mode == "RGBA":
+                background = Image.new("RGB", image.size, (255, 255, 255))
                 background.paste(image, mask=image.split()[-1])
                 image = background
-            elif image.mode != 'RGB':
-                image = image.convert('RGB')
-            
+            elif image.mode != "RGB":
+                image = image.convert("RGB")
+
             original_size = image.size
-            image.thumbnail(self.config['thumbnail_size']) # Still use thumbnail for performance
-            
+            image.thumbnail(
+                self.config["thumbnail_size"]
+            )  # Still use thumbnail for performance
+
             # Convert image to numpy array for K-means
-            img_array = np.array(image.convert('RGB'))
-            
+            img_array = np.array(image.convert("RGB"))
+
             # Reshape the image to be a list of pixels
             pixels = img_array.reshape(-1, 3)
-            
+
             # Apply K-means clustering to find dominant colors
             # Ensure n_init is set to 'auto' or an integer for KMeans
-            kmeans = KMeans(n_clusters=num_colors, random_state=0, n_init='auto') 
+            kmeans = KMeans(n_clusters=num_colors, random_state=0, n_init="auto")
             kmeans.fit(pixels)
-            
+
             # Get the cluster centers (the dominant colors)
             palette = kmeans.cluster_centers_.astype(int).tolist()
-            
+
             # Ensure colors are within 0-255 range after conversion
-            palette = [[max(0, min(255, c)) for c in color_val] for color_val in palette]
-            
-            if self.config['exclude_colors']:
-                excluded_set = set(tuple(c) for c in self.config['exclude_colors'])
-                palette = [color for color in palette if tuple(color) not in excluded_set]
+            palette = [
+                [max(0, min(255, c)) for c in color_val] for color_val in palette
+            ]
+
+            if self.config["exclude_colors"]:
+                excluded_set = set(tuple(c) for c in self.config["exclude_colors"])
+                palette = [
+                    color for color in palette if tuple(color) not in excluded_set
+                ]
 
             ## >> NEW: Logika wstrzykiwania ekstremów
-            if self.config.get('inject_extremes', False):
+            if self.config.get("inject_extremes", False):
                 self.logger.info("Injecting pure black and white into the palette.")
                 pure_black, pure_white = [0, 0, 0], [255, 255, 255]
                 # Sprawdź czy już istnieją, aby uniknąć duplikatów
@@ -396,57 +484,82 @@ class PaletteMappingAlgorithm:
                     palette.insert(0, pure_white)
 
             self.validate_palette(palette)
-            self.logger.info(f"Extracted {len(palette)} colors from image {original_size} -> {image.size}")
+            self.logger.info(
+                f"Extracted {len(palette)} colors from image {original_size} -> {image.size}"
+            )
             return palette
         except Exception as e:
             self.logger.error(f"Error extracting palette from {image_path}: {e}")
-            return [[0,0,0], [255,255,255], [128,128,128]]
+            return [[0, 0, 0], [255, 255, 255], [128, 128, 128]]
 
     def calculate_rgb_distance(self, c1, c2):
         key = None
-        if self.config['use_cache']:
+        if self.config["use_cache"]:
             key = (tuple(c1), tuple(c2))
-            if key in self.distance_cache: return self.distance_cache[key]
-        if self.config['distance_metric'] == 'lab':
+            if key in self.distance_cache:
+                return self.distance_cache[key]
+        if self.config["distance_metric"] == "lab":
             dist = self.calculate_lab_distance(c1, c2)
-        else: # 'rgb' or 'weighted_rgb'
-            dr, dg, db = float(c1[0]) - float(c2[0]), float(c1[1]) - float(c2[1]), float(c1[2]) - float(c2[2])
-            if self.config['distance_metric'] == 'weighted_rgb':
-                dist = np.sqrt((dr*0.2126)**2 + (dg*0.7152)**2 + (db*0.0722)**2)
+        else:  # 'rgb' or 'weighted_rgb'
+            dr, dg, db = (
+                float(c1[0]) - float(c2[0]),
+                float(c1[1]) - float(c2[1]),
+                float(c1[2]) - float(c2[2]),
+            )
+            if self.config["distance_metric"] == "weighted_rgb":
+                dist = np.sqrt(
+                    (dr * 0.2126) ** 2 + (dg * 0.7152) ** 2 + (db * 0.0722) ** 2
+                )
             else:
-                dist = np.sqrt(dr*dr + dg*dg + db*db)
-        if self.config['use_cache'] and key is not None:
+                dist = np.sqrt(dr * dr + dg * dg + db * db)
+        if self.config["use_cache"] and key is not None:
             self.distance_cache[key] = dist
         return dist
+
     def calculate_lab_distance(self, c1, c2):
         lab1 = color.rgb2lab(np.array([[c1]], dtype=np.uint8) / 255.0)[0][0]
         lab2 = color.rgb2lab(np.array([[c2]], dtype=np.uint8) / 255.0)[0][0]
-        return np.sqrt(np.sum((lab1 - lab2)**2))
+        return np.sqrt(np.sum((lab1 - lab2) ** 2))
+
     def find_closest_color(self, target_color, master_palette):
-        return min(master_palette, key=lambda color: self.calculate_rgb_distance(target_color, color))
+        return min(
+            master_palette,
+            key=lambda color: self.calculate_rgb_distance(target_color, color),
+        )
 
     def apply_mapping(self, target_image_path, master_palette):
         start_time = time.time()
         try:
             target_image = Image.open(target_image_path)
-            if target_image.mode != 'RGB':
-                target_image = target_image.convert('RGB')
-            if self.config['preprocess']:
+            if target_image.mode != "RGB":
+                target_image = target_image.convert("RGB")
+            if self.config["preprocess"]:
                 target_image = target_image.filter(ImageFilter.SMOOTH_MORE)
-            if self.config['use_cache']: self.clear_cache()
+            if self.config["use_cache"]:
+                self.clear_cache()
 
             ## >> NEW: Wybór metody mapowania (Dithering vs Wektoryzacja)
-            dithering_method = self.config.get('dithering_method', 'none')
-            if dithering_method == 'floyd_steinberg':
-                self.logger.info("Applying mapping with Floyd-Steinberg dithering (slower, high quality).")
-                result_image = self.apply_mapping_dithered(target_image, master_palette, start_time)
-            elif self.config['use_vectorized']:
+            dithering_method = self.config.get("dithering_method", "none")
+            if dithering_method == "floyd_steinberg":
+                self.logger.info(
+                    "Applying mapping with Floyd-Steinberg dithering (slower, high quality)."
+                )
+                result_image = self.apply_mapping_dithered(
+                    target_image, master_palette, start_time
+                )
+            elif self.config["use_vectorized"]:
                 self.logger.info("Applying mapping with Numpy vectorization (fast).")
-                result_image = self.apply_mapping_vectorized(target_image, master_palette, start_time)
+                result_image = self.apply_mapping_vectorized(
+                    target_image, master_palette, start_time
+                )
             else:
-                self.logger.info("Applying mapping with naive pixel-by-pixel method (slow).")
-                result_image = self.apply_mapping_naive(target_image, master_palette, start_time)
-            
+                self.logger.info(
+                    "Applying mapping with naive pixel-by-pixel method (slow)."
+                )
+                result_image = self.apply_mapping_naive(
+                    target_image, master_palette, start_time
+                )
+
             # Apply preservation of extremes after mapping
             result_array = np.array(result_image)
             result_array = self._apply_extremes_preservation(result_array, target_image)
@@ -457,9 +570,11 @@ class PaletteMappingAlgorithm:
 
             return result_image
         except Exception as e:
-            self.logger.error(f"Error during image mapping for {target_image_path}: {e}")
+            self.logger.error(
+                f"Error during image mapping for {target_image_path}: {e}"
+            )
             return None
-    
+
     ## >> NEW: Nowa funkcja do obsługi ditheringu
     def apply_mapping_dithered(self, target_image, master_palette, start_time):
         img_array = np.array(target_image, dtype=np.float64)
@@ -470,9 +585,9 @@ class PaletteMappingAlgorithm:
                 old_pixel = img_array[y, x].copy()
                 new_pixel = np.array(self.find_closest_color(old_pixel, master_palette))
                 img_array[y, x] = new_pixel
-                
+
                 quant_error = old_pixel - new_pixel
-                
+
                 # Rozpraszanie błędu na sąsiednie piksele
                 if x + 1 < width:
                     img_array[y, x + 1] += quant_error * 7 / 16
@@ -482,135 +597,158 @@ class PaletteMappingAlgorithm:
                     img_array[y + 1, x] += quant_error * 5 / 16
                     if x + 1 < width:
                         img_array[y + 1, x + 1] += quant_error * 1 / 16
-        
+
         # Przytnij wartości do prawidłowego zakresu i konwertuj na obraz
         result_array = np.clip(img_array, 0, 255).astype(np.uint8)
         result_image = Image.fromarray(result_array)
-        
+
         processing_time = time.time() - start_time
-        self.logger.info(f"Dithered processing finished in {processing_time:.2f} seconds")
+        self.logger.info(
+            f"Dithered processing finished in {processing_time:.2f} seconds"
+        )
         return result_image
 
     def apply_mapping_vectorized(self, target_image, master_palette, start_time):
         target_array = np.array(target_image)
         pixels = target_array.reshape(-1, 3).astype(np.float64)
         palette_array = np.array(master_palette).astype(np.float64)
-        
-        self.logger.info(f"Calculating distances vectorized for {len(pixels)} pixels and {len(palette_array)} palette colors...")
-        
-        distances = np.sqrt(np.sum((pixels[:, np.newaxis] - palette_array)**2, axis=2))
+
+        self.logger.info(
+            f"Calculating distances vectorized for {len(pixels)} pixels and {len(palette_array)} palette colors..."
+        )
+
+        distances = np.sqrt(
+            np.sum((pixels[:, np.newaxis] - palette_array) ** 2, axis=2)
+        )
         closest_indices = np.argmin(distances, axis=1)
         result_pixels = palette_array[closest_indices]
-        
+
         result_array = result_pixels.reshape(target_array.shape)
 
         result_image = Image.fromarray(result_array.astype(np.uint8))
-        
+
         processing_time = time.time() - start_time
-        self.logger.info(f"Vectorized processing finished in {processing_time:.2f} seconds")
+        self.logger.info(
+            f"Vectorized processing finished in {processing_time:.2f} seconds"
+        )
         return result_image
-    
+
     def apply_mapping_naive(self, target_image, master_palette, start_time):
-        width, height = target_image.size; target_array = np.array(target_image); result_array = np.zeros_like(target_array)
+        width, height = target_image.size
+        target_array = np.array(target_image)
+        result_array = np.zeros_like(target_array)
         self.logger.info(f"Naive mapping for image {width}x{height}...")
         for y in tqdm(range(height), desc="Mapping colors", unit="row"):
             for x in range(width):
-                result_array[y, x] = self.find_closest_color(target_array[y, x], master_palette)
+                result_array[y, x] = self.find_closest_color(
+                    target_array[y, x], master_palette
+                )
         result_image = Image.fromarray(result_array.astype(np.uint8))
-        self.logger.info(f"Naive processing finished in {time.time() - start_time:.2f} seconds")
+        self.logger.info(
+            f"Naive processing finished in {time.time() - start_time:.2f} seconds"
+        )
         return result_image
 
     ## >> NEW: Logika ochrony cieni i świateł - przeniesiona do apply_mapping
     def _apply_extremes_preservation(self, result_array, original_target_image):
-        if self.config.get('preserve_extremes', False):
+        if self.config.get("preserve_extremes", False):
             self.logger.info("Preserving extreme light and shadow areas.")
-            threshold = self.config.get('extremes_threshold', 10)
+            threshold = self.config.get("extremes_threshold", 10)
             # Użyj prostej luminancji do znalezienia masek
             original_target_array = np.array(original_target_image)
-            luminance = np.dot(original_target_array[...,:3], [0.2989, 0.5870, 0.1140])
+            luminance = np.dot(original_target_array[..., :3], [0.2989, 0.5870, 0.1140])
             black_mask = luminance <= threshold
             white_mask = luminance >= (255 - threshold)
-            
+
             # Zastosuj maski, aby przywrócić oryginalne piksele (lub ustawić czysty czarny/biały)
             result_array[black_mask] = [0, 0, 0]
             result_array[white_mask] = [255, 255, 255]
         return result_array
-    
+
     ## >> NEW: Edge Blending Methods
     def apply_edge_blending(self, result_image, original_target_image):
         """Rozmycie krawędzi między obszarami palety kolorów"""
-        if not self.config.get('edge_blur_enabled', False):
+        if not self.config.get("edge_blur_enabled", False):
             return result_image
-            
+
         self.logger.info("Applying edge blending to palette boundaries...")
-        
+
         # Convert to numpy arrays for processing
         result_array = np.array(result_image, dtype=np.float64)
         original_array = np.array(original_target_image, dtype=np.float64)
-        
+
         # 1. Detect edges between different palette colors
         edge_mask = self._detect_palette_edges(result_array)
-        
+
         # 2. Apply selective blur based on configuration
-        blurred_result = self._apply_selective_blur(result_array, edge_mask, original_array)
-        
+        blurred_result = self._apply_selective_blur(
+            result_array, edge_mask, original_array
+        )
+
         # Convert back to PIL Image
         return Image.fromarray(np.clip(blurred_result, 0, 255).astype(np.uint8))
-    
+
     def _detect_palette_edges(self, image_array):
         """Wykrywa krawędzie między obszarami różnych kolorów palety"""
         from scipy import ndimage
-        
+
         # Convert to grayscale for edge detection
-        gray = np.dot(image_array[...,:3], [0.2989, 0.5870, 0.1140])
-        
+        gray = np.dot(image_array[..., :3], [0.2989, 0.5870, 0.1140])
+
         # Detect edges using gradient
         grad_x = ndimage.sobel(gray, axis=1)
         grad_y = ndimage.sobel(gray, axis=0)
         magnitude = np.sqrt(grad_x**2 + grad_y**2)
-        
+
         # Threshold to create edge mask
-        threshold = self.config.get('edge_detection_threshold', 25)
+        threshold = self.config.get("edge_detection_threshold", 25)
         edge_mask = magnitude > threshold
-        
+
         # Dilate the mask to include surrounding pixels
-        radius = int(self.config.get('edge_blur_radius', 1.5))
+        radius = int(self.config.get("edge_blur_radius", 1.5))
         if radius > 0:
             from scipy.ndimage import binary_dilation
+
             edge_mask = binary_dilation(edge_mask, iterations=radius)
-        
+
         return edge_mask
-    
+
     def _apply_selective_blur(self, image_array, edge_mask, original_array):
         """Zastosuj rozmycie tylko w obszarach określonych przez maskę"""
-        blur_method = self.config.get('edge_blur_method', 'gaussian')
-        blur_radius = self.config.get('edge_blur_radius', 1.5)
-        blur_strength = self.config.get('edge_blur_strength', 0.3)
-        
+        blur_method = self.config.get("edge_blur_method", "gaussian")
+        blur_radius = self.config.get("edge_blur_radius", 1.5)
+        blur_strength = self.config.get("edge_blur_strength", 0.3)
+
         # Create blurred version
-        if blur_method == 'gaussian':
+        if blur_method == "gaussian":
             from scipy.ndimage import gaussian_filter
+
             blurred = np.zeros_like(image_array)
             for channel in range(3):
-                blurred[:,:,channel] = gaussian_filter(image_array[:,:,channel], sigma=blur_radius)
+                blurred[:, :, channel] = gaussian_filter(
+                    image_array[:, :, channel], sigma=blur_radius
+                )
         else:
             # Default to simple averaging for unsupported methods
             from scipy.ndimage import uniform_filter
+
             blurred = np.zeros_like(image_array)
             for channel in range(3):
-                blurred[:,:,channel] = uniform_filter(image_array[:,:,channel], size=int(blur_radius*2+1))
-        
+                blurred[:, :, channel] = uniform_filter(
+                    image_array[:, :, channel], size=int(blur_radius * 2 + 1)
+                )
+
         # Blend original and blurred based on edge mask and strength
         result = image_array.copy()
-        
+
         # Apply blending only where edges are detected
         for channel in range(3):
             blend_factor = edge_mask * blur_strength
-            result[:,:,channel] = (
-                image_array[:,:,channel] * (1 - blend_factor) + 
-                blurred[:,:,channel] * blend_factor
+            result[:, :, channel] = (
+                image_array[:, :, channel] * (1 - blend_factor)
+                + blurred[:, :, channel] * blend_factor
             )
-        
+
         return result
 
     def process_images(self, master_path, target_path, output_path, **kwargs):
@@ -618,29 +756,31 @@ class PaletteMappingAlgorithm:
         for key, value in kwargs.items():
             if key in current_config:
                 ## >> NEW: Konwersja stringów 'true'/'false' na boolean dla parametrów z JSX
-                if isinstance(value, str) and value.lower() in ['true', 'false']:
-                    current_config[key] = value.lower() == 'true'
+                if isinstance(value, str) and value.lower() in ["true", "false"]:
+                    current_config[key] = value.lower() == "true"
                 else:
                     current_config[key] = value
-        
+
         # Przypisz zaktualizowaną konfigurację do instancji na czas tego uruchomienia
         self.config = current_config
-        
+
         self.logger.info(f"Starting {self.name} v{self.version}")
         self.logger.info(f"Master (palette): {os.path.basename(master_path)}")
         self.logger.info(f"Target (destination): {os.path.basename(target_path)}")
-        
+
         try:
             self.logger.info("Extracting color palette from MASTER image...")
-            master_palette = self.extract_palette(master_path) 
-            self.logger.info(f"Extracted {len(master_palette)} colors from the master palette")
-            
+            master_palette = self.extract_palette(master_path)
+            self.logger.info(
+                f"Extracted {len(master_palette)} colors from the master palette"
+            )
+
             self.logger.info("Applying color mapping to TARGET image...")
             result = self.apply_mapping(target_path, master_palette)
-            
+
             if result:
                 try:
-                    result.save(output_path, compression='none')
+                    result.save(output_path, compression="none")
                     self.logger.info(f"Result saved: {output_path}")
                     return True
                 except Exception as e:
@@ -655,19 +795,30 @@ class PaletteMappingAlgorithm:
 
     def analyze_mapping_quality(self, original_path, mapped_image):
         try:
-            original = Image.open(original_path).convert('RGB')
-            if not isinstance(mapped_image, Image.Image): raise TypeError("mapped_image must be a PIL Image object")
-            original_array = np.array(original); mapped_array = np.array(mapped_image.convert('RGB'))
+            original = Image.open(original_path).convert("RGB")
+            if not isinstance(mapped_image, Image.Image):
+                raise TypeError("mapped_image must be a PIL Image object")
+            original_array = np.array(original)
+            mapped_array = np.array(mapped_image.convert("RGB"))
             stats = {
-                'unique_colors_before': len(np.unique(original_array.reshape(-1, 3), axis=0)),
-                'unique_colors_after': len(np.unique(mapped_array.reshape(-1, 3), axis=0)),
-                'mean_rgb_difference': np.mean(np.abs(original_array.astype(float) - mapped_array.astype(float))),
-                'max_rgb_difference': np.max(np.abs(original_array.astype(float) - mapped_array.astype(float)))
+                "unique_colors_before": len(
+                    np.unique(original_array.reshape(-1, 3), axis=0)
+                ),
+                "unique_colors_after": len(
+                    np.unique(mapped_array.reshape(-1, 3), axis=0)
+                ),
+                "mean_rgb_difference": np.mean(
+                    np.abs(original_array.astype(float) - mapped_array.astype(float))
+                ),
+                "max_rgb_difference": np.max(
+                    np.abs(original_array.astype(float) - mapped_array.astype(float))
+                ),
             }
             return stats
         except Exception as e:
             self.logger.error(f"Quality analysis error: {e}")
             return None
+
 
 def create_palette_mapping_algorithm():
     return PaletteMappingAlgorithm()
