@@ -1,4 +1,4 @@
-// GattoNero Color Matcher - v1.5 (Final Build with Surgical Logging)
+// GattoNero Color Matcher - v1.6
 #target photoshop
 
 function writeToLog(message) {
@@ -127,6 +127,38 @@ function showConfigurationDialog() {
         thresholdInput.enabled = this.value;
     };
     
+    // === NOWE PARAMETRY EDGE BLENDING ===
+    var edgeBlendingPanel = dialog.add("panel", undefined, "5. Wygładzanie Krawędzi (Edge Blending)");
+    edgeBlendingPanel.orientation = "column";
+    edgeBlendingPanel.alignChildren = "left";
+    
+    var enableEdgeBlendingCheckbox = edgeBlendingPanel.add("checkbox", undefined, "Włącz wygładzanie krawędzi");
+    enableEdgeBlendingCheckbox.value = false;
+    
+    var edgeDetectionGroup = edgeBlendingPanel.add('group');
+    edgeDetectionGroup.add("statictext", undefined, "Próg detekcji krawędzi (0-100):");
+    var edgeDetectionThresholdInput = edgeDetectionGroup.add("edittext", undefined, "25");
+    edgeDetectionThresholdInput.characters = 3;
+    edgeDetectionThresholdInput.enabled = false;
+    
+    var blurRadiusGroup = edgeBlendingPanel.add('group');
+    blurRadiusGroup.add("statictext", undefined, "Promień rozmycia (0.5-5.0):");
+    var edgeBlurRadiusInput = blurRadiusGroup.add("edittext", undefined, "1.0");
+    edgeBlurRadiusInput.characters = 4;
+    edgeBlurRadiusInput.enabled = false;
+    
+    var blurStrengthGroup = edgeBlendingPanel.add('group');
+    blurStrengthGroup.add("statictext", undefined, "Siła rozmycia (0.0-1.0):");
+    var edgeBlurStrengthInput = blurStrengthGroup.add("edittext", undefined, "0.5");
+    edgeBlurStrengthInput.characters = 4;
+    edgeBlurStrengthInput.enabled = false;
+    
+    enableEdgeBlendingCheckbox.onClick = function() {
+        edgeDetectionThresholdInput.enabled = this.value;
+        edgeBlurRadiusInput.enabled = this.value;
+        edgeBlurStrengthInput.enabled = this.value;
+    };
+    
     var buttonGroup = dialog.add("group");
     buttonGroup.orientation = "row";
     buttonGroup.alignChildren = ["fill", "center"];
@@ -168,6 +200,41 @@ function showConfigurationDialog() {
                 writeToLog("DEBUG: Preserve extremes is NOT checked.");
             }
             
+            // === WALIDACJA PARAMETRÓW EDGE BLENDING ===
+            var edgeBlendingEnabled = enableEdgeBlendingCheckbox.value;
+            var edgeDetectionThreshold = 25;
+            var edgeBlurRadius = 1.0;
+            var edgeBlurStrength = 0.5;
+            
+            if (edgeBlendingEnabled) {
+                writeToLog("DEBUG: Edge blending is enabled. Validating parameters.");
+                
+                edgeDetectionThreshold = parseFloat(edgeDetectionThresholdInput.text);
+                if (isNaN(edgeDetectionThreshold) || edgeDetectionThreshold < 0 || edgeDetectionThreshold > 100) {
+                    alert("Próg detekcji krawędzi musi być w zakresie 0-100.");
+                    writeToLog("DEBUG: Validation FAILED. Invalid edge detection threshold: " + edgeDetectionThresholdInput.text);
+                    return;
+                }
+                
+                edgeBlurRadius = parseFloat(edgeBlurRadiusInput.text);
+                if (isNaN(edgeBlurRadius) || edgeBlurRadius < 0.5 || edgeBlurRadius > 5.0) {
+                    alert("Promień rozmycia musi być w zakresie 0.5-5.0.");
+                    writeToLog("DEBUG: Validation FAILED. Invalid edge blur radius: " + edgeBlurRadiusInput.text);
+                    return;
+                }
+                
+                edgeBlurStrength = parseFloat(edgeBlurStrengthInput.text);
+                if (isNaN(edgeBlurStrength) || edgeBlurStrength < 0.0 || edgeBlurStrength > 1.0) {
+                    alert("Siła rozmycia musi być w zakresie 0.0-1.0.");
+                    writeToLog("DEBUG: Validation FAILED. Invalid edge blur strength: " + edgeBlurStrengthInput.text);
+                    return;
+                }
+                
+                writeToLog("DEBUG: Edge blending parameters validated successfully.");
+            } else {
+                writeToLog("DEBUG: Edge blending is NOT enabled.");
+            }
+            
             writeToLog("DEBUG: All validation passed. Creating result object.");
 
             result = {
@@ -179,6 +246,11 @@ function showConfigurationDialog() {
                 injectExtremes: injectExtremesCheckbox.value,
                 preserveExtremes: preserveExtremesCheckbox.value,
                 extremesThreshold: thresholdValue,
+                // === NOWE PARAMETRY EDGE BLENDING ===
+                enableEdgeBlending: edgeBlendingEnabled,
+                edgeDetectionThreshold: edgeDetectionThreshold,
+                edgeBlurRadius: edgeBlurRadius,
+                edgeBlurStrength: edgeBlurStrength,
                 projectRoot: new File($.fileName).parent.parent.parent,
                 is_preview: false // Ta opcja nie jest już używana w UI, ale może być w przyszłości
             };
@@ -219,6 +291,10 @@ function executeCurl(masterFile, targetFile, config) {
                   '-F "inject_extremes=' + config.injectExtremes + '" ' +
                   '-F "preserve_extremes=' + config.preserveExtremes + '" ' +
                   '-F "extremes_threshold=' + config.extremesThreshold + '" ' +
+                  '-F "enable_edge_blending=' + config.enableEdgeBlending + '" ' +
+                  '-F "edge_detection_threshold=' + config.edgeDetectionThreshold + '" ' +
+                  '-F "edge_blur_radius=' + config.edgeBlurRadius + '" ' +
+                  '-F "edge_blur_strength=' + config.edgeBlurStrength + '" ' +
                   url;
 
     writeToLog("Executing command: " + command);

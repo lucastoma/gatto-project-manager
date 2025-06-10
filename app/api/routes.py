@@ -42,6 +42,18 @@ def colormatch_endpoint():
         params['distance_metric'] = request.form.get('distance_metric', 'weighted_rgb') # default weighted_rgb
         params['use_dithering'] = request.form.get('use_dithering', 'false').lower() == 'true'
         params['preserve_luminance'] = request.form.get('preserve_luminance', 'false').lower() == 'true'
+        
+        # Parametry dithering i extremes (istniejące)
+        params['dithering_method'] = request.form.get('dithering_method', 'none')
+        params['inject_extremes'] = request.form.get('inject_extremes', 'false').lower() == 'true'
+        params['preserve_extremes'] = request.form.get('preserve_extremes', 'false').lower() == 'true'
+        params['extremes_threshold'] = int(request.form.get('extremes_threshold', 10))
+        
+        # === NOWE PARAMETRY EDGE BLENDING ===
+        params['edge_blur_enabled'] = request.form.get('enable_edge_blending', 'false').lower() == 'true'
+        params['edge_detection_threshold'] = float(request.form.get('edge_detection_threshold', 25))
+        params['edge_blur_radius'] = float(request.form.get('edge_blur_radius', 1.5))
+        params['edge_blur_strength'] = float(request.form.get('edge_blur_strength', 0.3))
         # exclude_colors and palette_source_area will be handled in Phase 2b
 
     logger.info(f"Przetwarzanie przez algorytm: {algorithm_id} z parametrami: {params}")
@@ -104,6 +116,18 @@ def colormatch_preview_endpoint():
         params['distance_metric'] = request.form.get('distance_metric', 'weighted_rgb')
         params['use_dithering'] = request.form.get('use_dithering', 'false').lower() == 'true'
         params['preserve_luminance'] = request.form.get('preserve_luminance', 'false').lower() == 'true'
+        
+        # Parametry dithering i extremes (istniejące)
+        params['dithering_method'] = request.form.get('dithering_method', 'none')
+        params['inject_extremes'] = request.form.get('inject_extremes', 'false').lower() == 'true'
+        params['preserve_extremes'] = request.form.get('preserve_extremes', 'false').lower() == 'true'
+        params['extremes_threshold'] = int(request.form.get('extremes_threshold', 10))
+        
+        # === NOWE PARAMETRY EDGE BLENDING ===
+        params['edge_blur_enabled'] = request.form.get('enable_edge_blending', 'false').lower() == 'true'
+        params['edge_detection_threshold'] = float(request.form.get('edge_detection_threshold', 25))
+        params['edge_blur_radius'] = float(request.form.get('edge_blur_radius', 1.5))
+        params['edge_blur_strength'] = float(request.form.get('edge_blur_strength', 0.3))
         # preview_thumbnail_size can be passed from JSX if needed, otherwise default from config
 
     logger.info(f"Przetwarzanie podglądu przez algorytm: {algorithm_id} z parametrami: {params}")
