@@ -1,6 +1,13 @@
 project_name: "Gatto PS AI Project"
-output_file: ".doc-gen/comb-scripts-output.md"
+# output_file: ".doc-gen/comb-scripts-output.md" # Removed
 gitignore_file: ".gitignore"
+
+repomix_global_options: # Added
+  compress: false
+  show_line_numbers: false
+  calculate_tokens: false
+  security_check: true
+  style: "xml" # Default style
 
 groups:
   - name: "Main Source Files"
@@ -8,6 +15,8 @@ groups:
     paths: ["app"]
     patterns: ["*.py"]
     exclude_patterns: ["*test*", "*__pycache__*"]
+    repomix_options: # Example of group-specific override
+      compress: true # Override global setting for this group
 
   - name: "Documentation"
     description: "Project documentation files"

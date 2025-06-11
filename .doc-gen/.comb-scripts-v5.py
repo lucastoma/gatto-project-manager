@@ -3,6 +3,10 @@ import yaml
 from pathlib import Path
 import fnmatch
 import re  # Dodajemy import dla wyrażeń regularnych
+import logging  # Added
+import tempfile  # Added
+import base64  # Added
+import xml.etree.ElementTree as ET  # Added
 from repomix import RepoProcessor  # Import RepoProcessor
 
 # =================================================================================
@@ -28,11 +32,13 @@ def load_config(config_file_path):
         with open(config_file_path, "r", encoding="utf-8") as f:
             return yaml.safe_load(f)
     except Exception as e:
-        print(f"BŁĄD Wczytywania konfiguracji: {e}")
+        logging.error(f"BŁĄD Wczytywania konfiguracji: {e}")
         return None
 
 
-def process_group_with_repomix(group, workspace_root, processed_files_set):
+def process_group_with_repomix(
+    group, workspace_root, processed_files_set, config
+):  # Added config
     """
     Przetwarza grupę plików używając Repomix, z uwzględnieniem deduplikacji.
     Zwraca listę ścieżek do unikalnych plików oraz ich zawartość.
@@ -42,10 +48,17 @@ def process_group_with_repomix(group, workspace_root, processed_files_set):
     exclude_patterns = group.get("exclude_patterns", [])
     paths = group.get("paths", [])
 
-    print(f"\nPrzetwarzanie grupy: {group_name}")
+    logging.info(f"\nPrzetwarzanie grupy: {group_name}")
 
     group_files_content = []
     unique_files_in_group = []
+
+    # Get repomix options from group, with global defaults
+    repomix_opts = config.get("repomix_global_options", {}).copy()
+    repomix_opts.update(group.get("repomix_options", {}))
+
+    # Ensure style is xml by default if not specified
+    repomix_opts.setdefault("style", "xml")
 
     for path_str in paths:
         target_path = (
@@ -55,7 +68,9 @@ def process_group_with_repomix(group, workspace_root, processed_files_set):
         )
 
         if not target_path.exists():
-            print(f"  UWAGA: Ścieżka '{path_str}' nie istnieje i została pominięta.")
+            logging.warning(
+                f"  UWAGA: Ścieżka '{path_str}' nie istnieje i została pominięta."
+            )
             continue
 
         # Przygotowanie parametrów dla RepoProcessor
@@ -64,130 +79,102 @@ def process_group_with_repomix(group, workspace_root, processed_files_set):
         # Dodajemy wzorce wykluczeń z konfiguracji grupy
         ignore_patterns_str = ",".join(exclude_patterns)
 
-        try:
-            processor = RepoProcessor(
-                directory=str(target_path),
-                include_patterns=include_patterns_str,
-                ignore_patterns=ignore_patterns_str,
-                output_file_path=TEMP_REPOMIX_OUTPUT_FILE,
-                style="markdown",  # Możesz zmienić na "xml" jeśli potrzebujesz strukturyzowanego wyjścia
-                # Dodatkowe parametry Repomix, jeśli są potrzebne z konfiguracji YAML
-                # np. compress=group.get('compress', False),
-                # show_line_numbers=group.get('show_line_numbers', False),
-                # calculate_tokens=group.get('calculate_tokens', False),
-                # security_check=group.get('security_check', True),
-            )
-
-            result = processor.process()
-
-            # Repomix generuje plik z całą strukturą i zawartością.
-            # Musimy teraz wyodrębnić poszczególne pliki i sprawdzić deduplikację.
-            with open(TEMP_REPOMIX_OUTPUT_FILE, "r", encoding="utf-8") as f:
-                repomix_output = f.read()
-            os.remove(TEMP_REPOMIX_OUTPUT_FILE)  # Usuwamy tymczasowy plik
-
-            # Parsowanie wyjścia Repomix, aby odzyskać poszczególne pliki
-            # To jest uproszczone parsowanie Markdown, może wymagać dostosowania
-            # w zależności od dokładnego formatu wyjścia Repomix.
-            # Lepszym rozwiązaniem byłoby użycie stylu "xml" i parsowanie XML.
-
-            # Szukamy nagłówków plików w wyjściu Repomix Markdown
-            # Format: ## File: ścieżka/do/pliku.py
-            file_sections = re.split(
-                r"## File: (.+?)\n```(?:python|text|json|yaml|bash|markdown)?\n",
-                repomix_output,
-            )
-
-            # Pierwszy element splitu to zazwyczaj nagłówek Repomix, ignorujemy go
-            for i in range(1, len(file_sections), 2):
-                file_path_in_repomix = file_sections[i].strip()
-                content_block = file_sections[i + 1]
-
-                # Usuwamy końcowe ```
-                if content_block.endswith("\n```\n"):
-                    content = content_block[:-5]
-                else:
-                    content = content_block
-
-                # Tworzymy obiekt Path dla ścieżki pliku
-                # Zakładamy, że ścieżka w Repomix jest względna do workspace_root
-                full_file_path = workspace_root / file_path_in_repomix
-
-                if full_file_path not in processed_files_set:
-                    processed_files_set.add(full_file_path)
-                    unique_files_in_group.append(full_file_path)
-                    group_files_content.append(
-                        f"#### {full_file_path.name} - ./{file_path_in_repomix}\n```\n{content}\n```\n"
+        # Integrate .gitignore if specified
+        if gitignore_file := config.get("gitignore_file"):
+            gitignore_path = workspace_root / gitignore_file
+            if gitignore_path.exists():
+                try:
+                    with open(gitignore_path, "r", encoding="utf-8") as f:
+                        gitignore_patterns = [
+                            line.strip()
+                            for line in f
+                            if line.strip() and not line.startswith("#")
+                        ]
+                    if gitignore_patterns:
+                        ignore_patterns_str = ",".join(
+                            filter(None, [ignore_patterns_str] + gitignore_patterns)
+                        )
+                except Exception as e:
+                    logging.warning(
+                        f"  Nie udało się wczytać pliku .gitignore '{gitignore_file}': {e}"
                     )
-                else:
-                    print(f"  Plik '{file_path_in_repomix}' już przetworzony, pomijam.")
+
+        try:
+            with tempfile.NamedTemporaryFile(
+                mode="w+", delete=False, suffix=".xml", encoding="utf-8"
+            ) as temp_output_file:
+                temp_output_path = temp_output_file.name
+
+                processor = RepoProcessor(
+                    directory=str(target_path),
+                    include_patterns=include_patterns_str,
+                    ignore_patterns=ignore_patterns_str,
+                    output_file_path=temp_output_path,
+                    **repomix_opts,  # Pass all options dynamically
+                )
+
+                result = processor.process()
+
+            # New XML parsing logic
+            if result and os.path.exists(
+                temp_output_path
+            ):  # Check temp_output_path directly
+                with open(temp_output_path, "r", encoding="utf-8") as f:
+                    xml_output = f.read()
+                os.remove(temp_output_path)  # Clean up temp file
+
+                root = ET.fromstring(xml_output)
+                for file_elem in root.findall(".//file"):
+                    file_path_in_repomix = file_elem.find("path").text
+                    encoded_content = file_elem.find("content").text
+
+                    if encoded_content:
+                        try:
+                            content = base64.b64decode(encoded_content).decode("utf-8")
+                        except Exception as decode_e:
+                            logging.warning(
+                                f"  BŁĄD dekodowania zawartości pliku '{file_path_in_repomix}': {decode_e}. Zawartość zostanie pusta."
+                            )
+                            content = ""
+                    else:
+                        content = ""
+
+                    full_file_path = workspace_root / file_path_in_repomix
+
+                    if full_file_path not in processed_files_set:
+                        processed_files_set.add(full_file_path)
+                        unique_files_in_group.append(full_file_path)
+                        group_files_content.append(
+                            {"path": file_path_in_repomix, "content": content}
+                        )
+                    else:
+                        logging.info(
+                            f"  Plik '{file_path_in_repomix}' już przetworzony, pomijam."
+                        )
+            else:
+                logging.warning(
+                    f"  Repomix nie zwrócił pliku wyjściowego dla grupy '{group_name}'."
+                )
 
         except Exception as e:
-            print(f"BŁĄD przetwarzania grupy '{group_name}' z Repomix: {e}")
+            logging.error(f"BŁĄD przetwarzania grupy '{group_name}' z Repomix: {e}")
             # W przypadku błędu, możemy wrócić do oryginalnej logiki lub pominąć grupę
             # Na potrzeby tego zadania, po prostu kontynuujemy
             continue
 
-    print(
+    logging.info(
         f"  Znaleziono {len(unique_files_in_group)} unikalnych plików w grupie '{group_name}'."
     )
-    return unique_files_in_group, "\n".join(group_files_content)
-
-
-def generate_output(config, workspace_root, all_groups_data):
-    """Generuje finalny plik Markdown."""
-    output = [
-        f"# {config.get('project_name', 'Unknown Project')}",
-        f"WORKSPACE ROOT: {workspace_root}",
-        "---\n## Spis Grup\n",
-    ]
-
-    total_unique_files = 0
-    for i, (group, files_list, _) in enumerate(all_groups_data, 1):
-        file_count = len(files_list)
-        total_unique_files += file_count
-        output.append(
-            f"{i}. **{group.get('name', f'Grupa {i}')}** ({file_count} plików)"
-        )
-        if desc := group.get("description"):
-            output.append(f"   - {desc}")
-        output.append("")
-
-    output.append(f"**Łącznie unikalnych plików: {total_unique_files}**\n\n---\n")
-
-    # Zawartość grup
-    for i, (group, files_list, group_content_str) in enumerate(all_groups_data, 1):
-        output.append(f"## Grupa {i}: {group.get('name', f'Grupa {i}')}\n")
-        if desc := group.get("description"):
-            output.append(f"*{desc}*\n")
-
-        if not files_list:
-            output.append("*Brak plików w tej grupie.*\n\n---\n")
-            continue
-
-        output.append(f"### Lista plików ({len(files_list)})\n")
-        for file in files_list:
-            try:
-                relative_path = file.relative_to(workspace_root).as_posix()
-                dir_path = str(file.relative_to(workspace_root).parent)
-                dir_path = "" if dir_path == "." else f"\\{dir_path}"
-                output.append(f"- {file.name} ({dir_path})")
-            except ValueError:
-                output.append(f"- {file.name} (poza workspace)")
-        output.append("")
-
-        output.append("### Zawartość plików\n")
-        output.append(
-            group_content_str
-        )  # Dodajemy już przetworzoną zawartość z Repomix
-        output.append("---\n")
-
-    return "\n".join(output)
+    return unique_files_in_group, group_files_content
 
 
 def main():
     """Główna funkcja skryptu."""
     import sys
+
+    logging.basicConfig(
+        level=logging.INFO, format="%(levelname)s: %(message)s"
+    )  # Added
 
     workspace_root = get_workspace_root()
 
@@ -197,18 +184,20 @@ def main():
         if not config_file_path.is_absolute():
             config_file_path = Path(__file__).parent / config_file_path
     else:
-        config_file_path = workspace_root / DEFAULT_CONFIG_FILE # Zmieniamy ścieżkę na workspace_root
+        config_file_path = (
+            workspace_root / DEFAULT_CONFIG_FILE
+        )  # Zmieniamy ścieżkę na workspace_root
 
-    print(f"Używam pliku konfiguracyjnego: {config_file_path}")
+    logging.info(f"Używam pliku konfiguracyjnego: {config_file_path}")
     config = load_config(config_file_path)
     if not config:
         return
 
     project_name = config.get("project_name", "Unknown Project")
-    output_file = config.get("output_file", ".doc-gen/comb-scripts.md")
+    # output_file = config.get("output_file", ".doc-gen/comb-scripts.md") # Removed
 
-    print(f"\nRozpoczynam agregację dla projektu: {project_name}")
-    print(f"Plik wyjściowy: {output_file}")
+    logging.info(f"\nRozpoczynam agregację dla projektu: {project_name}")
+    # logging.info(f"Plik wyjściowy: {output_file}")
 
     # Przetwórz każdą grupę z wykluczaniem duplikatów
     all_groups_data = []
@@ -216,22 +205,59 @@ def main():
 
     for i, group in enumerate(config.get("groups", [])):
         files_in_group, group_content_str = process_group_with_repomix(
-            group, workspace_root, processed_files_set
+            group, workspace_root, processed_files_set, config  # Added config
         )
         all_groups_data.append((group, files_in_group, group_content_str))
 
     # Generuj zawartość Markdown
-    markdown_content = generate_output(config, workspace_root, all_groups_data)
+    # markdown_content = generate_output(config, workspace_root, all_groups_data) # Removed
 
     # Zapisz plik
-    output_path = workspace_root / output_file
+    # output_path = workspace_root / output_file # Removed
 
-    try:
-        with open(output_path, "w", encoding="utf-8-sig") as f:
-            f.write(markdown_content)
-        print(f"\nGotowe! Plik '{output_path.name}' został utworzony w: {output_path}")
-    except Exception as e:
-        print(f"BŁĄD ZAPISU PLIKU: {e}")
+    # try:
+    #     with open(output_path, "w", encoding="utf-8-sig") as f:
+    #         f.write(markdown_content)
+    #     logging.info(
+    #         f"\nGotowe! Plik '{output_path.name}' został utworzony w: {output_path}"
+    #     )
+    # except Exception as e:
+    #     logging.error(f"BŁĄD ZAPISU PLIKU: {e}")
+
+    # Construct and print final XML output
+    root_elem = ET.Element("AggregatedCodebase")
+    project_elem = ET.SubElement(root_elem, "Project", name=project_name)
+    ET.SubElement(project_elem, "WorkspaceRoot").text = str(workspace_root)
+    ET.SubElement(project_elem, "TotalUniqueFiles").text = str(len(processed_files_set))
+
+    for i, (group, files_list, group_content_data) in enumerate(all_groups_data, 1):
+        group_elem = ET.SubElement(
+            project_elem, "Group", name=group.get("name", f"Group {i}")
+        )
+        if desc := group.get("description"):
+            ET.SubElement(group_elem, "Description").text = desc
+        ET.SubElement(group_elem, "FileCount").text = str(len(files_list))
+
+        files_list_elem = ET.SubElement(group_elem, "FilesList")
+        for file_path_obj in files_list:
+            file_elem = ET.SubElement(files_list_elem, "File")
+            ET.SubElement(file_elem, "Path").text = file_path_obj.relative_to(
+                workspace_root
+            ).as_posix()
+            ET.SubElement(file_elem, "Name").text = file_path_obj.name
+
+        content_elem = ET.SubElement(group_elem, "Content")
+        for file_data in group_content_data:
+            file_content_elem = ET.SubElement(content_elem, "FileContent")
+            ET.SubElement(file_content_elem, "Path").text = file_data["path"]
+            ET.SubElement(file_content_elem, "Content").text = file_data["content"]
+
+    # Print the final XML to stdout
+    final_xml_string = ET.tostring(
+        root_elem, encoding="utf-8", pretty_print=True
+    ).decode("utf-8")
+    print(final_xml_string)  # Print to stdout for AI consumption
+    logging.info("\nAggregated XML output generated and printed to stdout.")
 
 
 if __name__ == "__main__":
