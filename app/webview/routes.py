@@ -202,7 +202,7 @@ def handle_palette_transfer():
             "edge_blur_radius": float(request.form.get("edge_blur_radius", 1.5)),
             "edge_blur_strength": float(request.form.get("edge_blur_strength", 0.3)),
             "quality": int(request.form.get("quality", 5)),
-            "distance_metric": request.form.get("distance_metric", "weighted_rgb"),
+            "distance_metric": request.form.get("distance_metric", "weighted_hsv"),
         }
         # === COLOR FOCUS PARAMS ===
         params['use_color_focus'] = request.form.get('use_color_focus') == "on"
@@ -214,6 +214,21 @@ def handle_palette_transfer():
         except (json.JSONDecodeError, ValueError) as e:
             log_activity("transfer_error", {"error": f"Invalid focus_ranges format: {e}"}, "error")
             return jsonify({"success": False, "error": f"Nieprawidłowy format JSON w 'Color Focus Ranges': {e}"}), 400
+
+        # === DEBUG: Color Focus parameters ===
+        print(f"DEBUG WEBVIEW: use_color_focus = {params['use_color_focus']}")
+        print(f"DEBUG WEBVIEW: focus_ranges = {params['focus_ranges']}")
+        if params['use_color_focus']:
+            print(f"DEBUG WEBVIEW: Color Focus ENABLED with {len(params['focus_ranges'])} ranges")
+        else:
+            print("DEBUG WEBVIEW: Color Focus DISABLED")
+
+        # Also log to the application logger
+        log_activity("color_focus_debug", {
+            "use_color_focus": params['use_color_focus'],
+            "focus_ranges_count": len(params['focus_ranges']) if params['focus_ranges'] else 0,
+            "focus_ranges": params['focus_ranges']
+        })
 
         log_activity("parameters_collected", params)
 

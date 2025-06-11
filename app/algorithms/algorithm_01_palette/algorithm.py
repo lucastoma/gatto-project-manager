@@ -235,12 +235,18 @@ class PaletteMappingAlgorithm:
                     (pixels_hsv.shape[0], 3), [config.get("hue_weight", 3.0), 1.0, 1.0]
                 )
 
-                # Logika "Color Focus"
+                distances_sq = self._calculate_hsv_distance_sq(
+                    pixels_hsv, palette_hsv, weights
+                )                # POPRAWIONA LOGIKA "Color Focus"
+                self.logger.info(f"COLOR FOCUS DEBUG: use_color_focus = {config.get('use_color_focus', False)}")
+                self.logger.info(f"COLOR FOCUS DEBUG: focus_ranges = {config.get('focus_ranges', [])}")
                 if config.get("use_color_focus", False) and config.get("focus_ranges"):
                     self.logger.info(
                         f"Using Color Focus with {len(config['focus_ranges'])} range(s)."
                     )
-                    for focus in config["focus_ranges"]:
+
+                    # Dla każdego focus range
+                    for i, focus in enumerate(config["focus_ranges"]):
                         target_h = focus["target_hsv"][0] / 360.0
                         target_s = focus["target_hsv"][1] / 100.0
                         target_v = focus["target_hsv"][2] / 100.0
@@ -249,35 +255,42 @@ class PaletteMappingAlgorithm:
                         range_s = focus["range_s"] / 100.0
                         range_v = focus["range_v"] / 100.0
 
-                        # Tworzenie maski dla pikseli w zakresie (z obsługą cykliczności HUE)
-                        h_dist = np.abs(pixels_hsv[:, 0] - target_h)
-                        hue_mask = np.minimum(h_dist, 1.0 - h_dist) <= (range_h / 2.0)
-                        sat_mask = np.abs(pixels_hsv[:, 1] - target_s) <= (
+                        # Sprawdź które KOLORY Z PALETY pasują do focus range
+                        palette_h_dist = np.abs(palette_hsv[:, 0] - target_h)
+                        palette_hue_mask = np.minimum(
+                            palette_h_dist, 1.0 - palette_h_dist
+                        ) <= (range_h / 2.0)
+                        palette_sat_mask = np.abs(palette_hsv[:, 1] - target_s) <= (
                             range_s / 2.0
                         )
-                        val_mask = np.abs(pixels_hsv[:, 2] - target_v) <= (
+                        palette_val_mask = np.abs(palette_hsv[:, 2] - target_v) <= (
                             range_v / 2.0
                         )
 
-                        final_mask = hue_mask & sat_mask & val_mask
+                        palette_final_mask = (
+                            palette_hue_mask & palette_sat_mask & palette_val_mask
+                        )
 
-                        # Zastosowanie 'boost_factor' do wag dla pikseli w masce
-                        boost = focus.get("boost_factor", 1.0)
-                        weights[final_mask] = [boost, 1.0, 1.0]
+                        if np.sum(palette_final_mask) > 0:
+                            # APLIKUJ COLOR FOCUS: zmniejsz odległości do preferowanych kolorów palety
+                            boost = focus.get("boost_factor", 1.0)
+                            distances_sq[:, palette_final_mask] /= boost
+                            self.logger.info(
+                                f"Color Focus applied: boosted {np.sum(palette_final_mask)} palette colors by factor {boost}"
+                            )
+                        else:
+                            self.logger.warning(
+                                f"Color Focus range {i+1}: no palette colors matched the specified range"
+                            )
 
-                distances_sq = self._calculate_hsv_distance_sq(
-                    pixels_hsv, palette_hsv, weights
-                )
                 closest_indices = np.argmin(distances_sq, axis=1)
 
             elif metric == "lab" and SCIPY_AVAILABLE:
-                # ... (logika dla LAB bez zmian)
                 palette_lab = color.rgb2lab(palette_np / 255.0)
                 kdtree = KDTree(palette_lab)
                 pixels_lab = color.rgb2lab(pixels_flat / 255.0)
                 _, closest_indices = kdtree.query(pixels_lab)
             else:
-                # ... (logika dla RGB bez zmian)
                 if metric == "lab":
                     self.logger.warning(
                         "LAB metric used without Scipy. Falling back to slow calculation."
@@ -365,7 +378,6 @@ class PaletteMappingAlgorithm:
     def _preserve_extremes(
         self, mapped_array: np.ndarray, original_array: np.ndarray, threshold: int
     ) -> np.ndarray:
-        # ... (bez zmian)
         with self.profiler.profile_operation(
             "preserve_extremes", algorithm_id=self.algorithm_id
         ):
@@ -385,6 +397,7 @@ class PaletteMappingAlgorithm:
         ):
             run_config = self.default_config_values.copy()
             run_config.update(kwargs)
+
             self.logger.info(f"Processing with effective config: {run_config}")
 
             try:

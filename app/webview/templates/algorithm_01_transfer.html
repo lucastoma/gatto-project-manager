@@ -60,8 +60,11 @@
                         <div id="master-drop-area" class="upload-area p-6 text-center rounded-lg cursor-pointer">
                             <p class="text-gray-500">Upuść plik lub kliknij, aby wybrać</p>
                             <div id="master-preview" class="mt-4"></div>
+                            <canvas id="master-canvas" class="hidden mt-2 mx-auto rounded-md shadow-md border border-gray-300" style="max-width:100%; max-height:160px;"></canvas>
+                            <button type="button" id="pick-color-btn" class="mt-2 px-3 py-1 bg-blue-100 text-blue-700 rounded hover:bg-blue-200 text-sm hidden">Wybierz kolor z mastera</button>
+                            <div id="picked-color-info" class="mt-2 text-xs text-gray-600"></div>
                         </div>
-                        <input type="file" id="master_image" name="master_image" class="hidden" accept=".png,.jpg,.jpeg,.tif,.tiff" required>
+                        <input type="file" id="master_image" name="master_image" class="hidden" accept=".png,.jpg,.jpeg,.tif,.tiff">
                     </div>
 
                     <!-- TARGET IMAGE -->
@@ -71,7 +74,7 @@
                             <p class="text-gray-500">Upuść plik lub kliknij, aby wybrać</p>
                             <div id="target-preview" class="mt-4"></div>
                         </div>
-                        <input type="file" id="target_image" name="target_image" class="hidden" accept=".png,.jpg,.jpeg,.tif,.tiff" required>
+                        <input type="file" id="target_image" name="target_image" class="hidden" accept=".png,.jpg,.jpeg,.tif,.tiff">
                     </div>
                 </div>
 
@@ -258,15 +261,29 @@
                     reader.readAsDataURL(file);
                 };
 
-                dropArea.addEventListener('click', () => input.click());
+                // Zmienione: nie otwieraj inputa jeśli kliknięto na canvas lub pickColorBtn
+                dropArea.addEventListener('click', (e) => {
+                    if (
+                        e.target.id === 'master-canvas' ||
+                        e.target.id === 'pick-color-btn' ||
+                        e.target.closest('#master-canvas') ||
+                        e.target.closest('#pick-color-btn')
+                    ) {
+                        return;
+                    }
+                    input.click();
+                });
                 input.addEventListener('change', () => handleFiles(input.files));
                 dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.classList.add('border-blue-500'); });
-                dropArea.addEventListener('dragleave', () => dropArea.classList.remove('border-blue-500'));
-                dropArea.addEventListener('drop', (e) => {
+                dropArea.addEventListener('dragleave', () => dropArea.classList.remove('border-blue-500'));                dropArea.addEventListener('drop', (e) => {
                     e.preventDefault();
                     dropArea.classList.remove('border-blue-500');
-                    input.files = e.dataTransfer.files;
-                    handleFiles(input.files);
+                    const files = e.dataTransfer.files;
+                    // Symuluj wybór pliku przez input
+                    const dt = new DataTransfer();
+                    dt.items.add(files[0]);
+                    input.files = dt.files;
+                    handleFiles(files);
                 });
             }
 
@@ -277,9 +294,13 @@
             // --- Logika wysyłania formularza ---
             form.addEventListener('submit', async function(event) {
                 event.preventDefault();
+                  // Walidacja - sprawdź czy preview zawiera obrazy
+                const masterPreview = document.getElementById('master-preview');
+                const targetPreview = document.getElementById('target-preview');
+                const masterHasImage = masterPreview.querySelector('img') !== null;
+                const targetHasImage = targetPreview.querySelector('img') !== null;
                 
-                // Walidacja
-                if (!document.getElementById('master_image').files[0] || !document.getElementById('target_image').files[0]) {
+                if (!masterHasImage || !targetHasImage) {
                     alert('Proszę wybrać oba obrazy: Master i Target.');
                     return;
                 }
@@ -291,6 +312,13 @@
                 resultMessage.textContent = "Przetwarzanie...";
 
                 const formData = new FormData(form);
+
+                // DEBUG: Wyświetl zawartość FormData
+                console.log("=== DEBUG: FormData contents ===");
+                for (let [key, value] of formData.entries()) {
+                    console.log(`${key}: ${value}`);
+                }
+                console.log("=== End FormData contents ===");
 
                 try {
                     const response = await fetch('/webview/api/algorithm_01/transfer', {
@@ -317,6 +345,98 @@
                 } finally {
                     loader.classList.add('hidden');
                 }
+            });
+
+            // --- Color Picker na masterze ---
+            const masterInput = document.getElementById('master_image');
+            const masterPreview = document.getElementById('master-preview');
+            const masterCanvas = document.getElementById('master-canvas');
+            const pickColorBtn = document.getElementById('pick-color-btn');
+            const pickedColorInfo = document.getElementById('picked-color-info');
+            let masterImageObj = null;
+
+            function rgbToHsv(r, g, b) {
+                r /= 255; g /= 255; b /= 255;
+                let max = Math.max(r, g, b), min = Math.min(r, g, b);
+                let h, s, v = max;
+                let d = max - min;
+                s = max === 0 ? 0 : d / max;
+                if (max === min) {
+                    h = 0;
+                } else {
+                    switch (max) {
+                        case r: h = (g - b) / d + (g < b ? 6 : 0); break;
+                        case g: h = (b - r) / d + 2; break;
+                        case b: h = (r - g) / d + 4; break;
+                    }
+                    h /= 6;
+                }
+                return [Math.round(h * 360), Math.round(s * 100), Math.round(v * 100)];
+            }
+
+            function showMasterCanvas(imgSrc) {
+                const img = new window.Image();
+                img.onload = function() {
+                    masterCanvas.width = img.width;
+                    masterCanvas.height = img.height;
+                    const ctx = masterCanvas.getContext('2d');
+                    ctx.clearRect(0, 0, img.width, img.height);
+                    ctx.drawImage(img, 0, 0, img.width, img.height);
+                    masterCanvas.classList.remove('hidden');
+                    pickColorBtn.classList.remove('hidden');
+                    masterImageObj = img;
+                };
+                img.src = imgSrc;
+            }
+
+            // Po załadowaniu pliku master, pokaż canvas
+            masterInput.addEventListener('change', function() {
+                if (this.files && this.files[0]) {
+                    const reader = new FileReader();
+                    reader.onload = function(e) {
+                        showMasterCanvas(e.target.result);
+                    };
+                    reader.readAsDataURL(this.files[0]);
+                }
+            });
+
+            // Po kliknięciu przycisku, aktywuj tryb pobierania koloru
+            let colorPickActive = false;
+            pickColorBtn.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (!masterImageObj) return;
+                colorPickActive = true;
+                pickedColorInfo.textContent = 'Kliknij na wybrany kolor na obrazie.';
+                masterCanvas.style.cursor = 'crosshair';
+            });
+
+            masterCanvas.addEventListener('click', function(e) {
+                e.stopPropagation();
+                if (!colorPickActive) return;
+                const rect = masterCanvas.getBoundingClientRect();
+                const x = Math.round((e.clientX - rect.left) * (masterCanvas.width / rect.width));
+                const y = Math.round((e.clientY - rect.top) * (masterCanvas.height / rect.height));
+                const ctx = masterCanvas.getContext('2d');
+                const pixel = ctx.getImageData(x, y, 1, 1).data;
+                const [h, s, v] = rgbToHsv(pixel[0], pixel[1], pixel[2]);
+                pickedColorInfo.innerHTML = `Wybrany kolor: <span style="background:rgb(${pixel[0]},${pixel[1]},${pixel[2]});padding:0 10px;border-radius:3px;display:inline-block;"></span> <span class="ml-2">HSV: [${h}, ${s}, ${v}]</span>`;
+                // Dodaj do focus_ranges_json
+                let focusArr = [];
+                try {
+                    focusArr = JSON.parse(focusRangesTextarea.value || '[]');
+                    if (!Array.isArray(focusArr)) focusArr = [];
+                } catch { focusArr = []; }
+                focusArr.push({
+                    target_hsv: [h, s, v],
+                    range_h: 30,
+                    range_s: 50,
+                    range_v: 60,
+                    boost_factor: 5.0
+                });
+                focusRangesTextarea.value = JSON.stringify(focusArr, null, 2);
+                colorPickActive = false;
+                masterCanvas.style.cursor = 'pointer';
+                pickedColorInfo.textContent += ' (Dodano do Color Focus)';
             });
         });
     </script>
