@@ -1,0 +1,16 @@
+project_name: "Gatto PS AI Project"
+output_file: ".doc-gen/comb-scripts-output.md"
+gitignore_file: ".gitignore"
+
+groups:
+  - name: "Main Source Files"
+    description: "Primary application source code"
+    paths: ["app"]
+    patterns: ["*.py"]
+    exclude_patterns: ["*test*", "*__pycache__*"]
+
+  - name: "Documentation"
+    description: "Project documentation files"
+    paths: ["docs", "."]
+    patterns: ["*.md", "*.txt"]
+    exclude_patterns: ["*temp*", "*backup*"]

@@ -14,7 +14,9 @@
       "disabled": false,
       "alwaysAllow": [
         "d:/projects/gatto-ps-ai",
-        "pack_codebase"
+        "pack_codebase",
+        "grep_repomix_output",
+        "read_repomix_output"
       ],
       "defaultParams": {
         "compress": false,
