@@ -1,0 +1,26 @@
+{
+  "mcpServers": {
+    "repomix-docker": {
+      "command": "docker",
+      "args": [
+        "run",
+        "-i",
+        "--rm",
+        "-v",
+        "d:/projects/gatto-ps-ai:/workspace",
+        "gatto-repomix",
+        "--mcp"
+      ],
+      "disabled": false,
+      "alwaysAllow": [
+        "d:/projects/gatto-ps-ai",
+        "pack_codebase"
+      ],
+      "defaultParams": {
+        "compress": false,
+        "includePatterns": "app/**/*.py,*.json,*.md",
+        "ignorePatterns": ""
+      }
+    }
+  }
+}

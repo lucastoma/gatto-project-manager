@@ -24,3 +24,10 @@ reports/
 # Ignorowanie katalogu z plikami tymczasowymi JSX
 app/temp_jsx/
 logs/**/*
+
+.trae/**/*
+.kilo/**/*
+.doc-gen/**/*.md
+
+
+.doc/**/*

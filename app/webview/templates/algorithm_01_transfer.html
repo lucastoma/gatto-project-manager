@@ -1,0 +1,285 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Transferu Palety - Algorytm 01</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            transition: all 0.2s;
+        }
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .loader {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Panel Testowy Transferu Palety</h1>
+            <p class="text-lg text-gray-600 mt-2">Wizualne testowanie parametrów algorytmu `algorithm_01_palette`.</p>
+        </header>
+
+        <form id="transfer-form" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Lewa kolumna: Pliki i Główne Parametry -->
+            <div class="lg:col-span-1 flex flex-col gap-8">
+                <div class="card">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">1. Obrazy Wejściowe</h2>
+                    
+                    <!-- MASTER IMAGE -->
+                    <div class="mb-6">
+                        <label class="block text-lg font-medium mb-2" for="master_image">Obraz Master (Paleta)</label>
+                        <div id="master-drop-area" class="upload-area p-6 text-center rounded-lg cursor-pointer">
+                            <p class="text-gray-500">Upuść plik lub kliknij, aby wybrać</p>
+                            <div id="master-preview" class="mt-4"></div>
+                        </div>
+                        <input type="file" id="master_image" name="master_image" class="hidden" accept=".png,.jpg,.jpeg,.tif,.tiff" required>
+                    </div>
+
+                    <!-- TARGET IMAGE -->
+                    <div>
+                        <label class="block text-lg font-medium mb-2" for="target_image">Obraz Target (Cel)</label>
+                        <div id="target-drop-area" class="upload-area p-6 text-center rounded-lg cursor-pointer">
+                            <p class="text-gray-500">Upuść plik lub kliknij, aby wybrać</p>
+                            <div id="target-preview" class="mt-4"></div>
+                        </div>
+                        <input type="file" id="target_image" name="target_image" class="hidden" accept=".png,.jpg,.jpeg,.tif,.tiff" required>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">2. Parametry Główne</h2>
+                     <div class="space-y-4">
+                        <div>
+                            <label for="num_colors" class="block text-sm font-medium text-gray-700">Liczba kolorów w palecie (<span id="num_colors_value">16</span>)</label>
+                            <input type="range" id="num_colors" name="num_colors" min="2" max="64" value="16" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                         <div>
+                            <label for="quality" class="block text-sm font-medium text-gray-700">Jakość analizy palety (<span id="quality_value">5</span>)</label>
+                            <input type="range" id="quality" name="quality" min="1" max="10" value="5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                        <div>
+                           <label for="dithering_method" class="block text-sm font-medium text-gray-700">Metoda ditheringu</label>
+                           <select id="dithering_method" name="dithering_method" class="mt-1 block w-full pl-3 pr-10 py-2 text-base border-gray-300 focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm rounded-md">
+                               <option value="none">Brak (szybko, ostre krawędzie)</option>
+                               <option value="floyd_steinberg">Floyd-Steinberg (gładsze przejścia)</option>
+                           </select>
+                       </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Środkowa kolumna: Parametry Wizualne -->
+            <div class="lg:col-span-1 flex flex-col gap-8">
+                 <div class="card">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">3. Kontrola Ekstremów</h2>
+                    <div class="space-y-4">
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" id="inject_extremes" name="inject_extremes" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span>Dodaj czysty czarny/biały do palety</span>
+                        </label>
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" id="preserve_extremes" name="preserve_extremes" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span>Chroń cienie i światła w obrazie Target</span>
+                        </label>
+                         <div id="threshold-control" class="hidden">
+                            <label for="extremes_threshold" class="block text-sm font-medium text-gray-700">Próg ochrony (<span id="extremes_threshold_value">10</span>)</label>
+                            <input type="range" id="extremes_threshold" name="extremes_threshold" min="0" max="50" value="10" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                        </div>
+                    </div>
+                </div>
+                
+                <div class="card">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">4. Wygładzanie Krawędzi</h2>
+                    <div class="space-y-4">
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" id="edge_blur_enabled" name="edge_blur_enabled" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span>Włącz wygładzanie krawędzi</span>
+                        </label>
+                        <div id="edge-blur-controls" class="hidden space-y-4">
+                            <div>
+                               <label for="edge_detection_threshold" class="block text-sm font-medium text-gray-700">Czułość krawędzi (<span id="edge_detection_threshold_value">25</span>)</label>
+                               <input type="range" id="edge_detection_threshold" name="edge_detection_threshold" min="5" max="100" value="25" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                           </div>
+                           <div>
+                               <label for="edge_blur_radius" class="block text-sm font-medium text-gray-700">Promień wygładzenia (<span id="edge_blur_radius_value">1.5</span>)</label>
+                               <input type="range" id="edge_blur_radius" name="edge_blur_radius" min="0.5" max="5" step="0.1" value="1.5" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                           </div>
+                            <div>
+                               <label for="edge_blur_strength" class="block text-sm font-medium text-gray-700">Siła wygładzenia (<span id="edge_blur_strength_value">0.3</span>)</label>
+                               <input type="range" id="edge_blur_strength" name="edge_blur_strength" min="0" max="1" step="0.05" value="0.3" class="w-full h-2 bg-gray-200 rounded-lg appearance-none cursor-pointer">
+                           </div>
+                        </div>
+                    </div>
+                </div>
+
+                <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 text-xl">
+                    Przetwarzaj
+                </button>
+            </div>
+
+            <!-- Prawa kolumna: Wyniki -->
+            <div class="lg:col-span-1">
+                <div class="card h-full">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">5. Wynik</h2>
+                    <div id="result-container" class="flex flex-col items-center justify-center h-full text-gray-500">
+                        <div id="loader" class="loader hidden"></div>
+                        <div id="result-message" class="text-center">
+                            <p>Wynik pojawi się tutaj po przetworzeniu.</p>
+                        </div>
+                        <img id="result-image" class="max-w-full max-h-[70vh] rounded-lg shadow-lg hidden" alt="Wynikowy obraz">
+                        <a id="result-link" href="#" target="_blank" class="mt-4 text-blue-600 hover:underline hidden">Otwórz w nowej karcie</a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const form = document.getElementById('transfer-form');
+            const loader = document.getElementById('loader');
+            const resultImage = document.getElementById('result-image');
+            const resultLink = document.getElementById('result-link');
+            const resultMessage = document.getElementById('result-message');
+            
+            // --- Logika sliderów ---
+            const sliders = [
+                { id: 'num_colors', valueId: 'num_colors_value' },
+                { id: 'quality', valueId: 'quality_value' },
+                { id: 'extremes_threshold', valueId: 'extremes_threshold_value' },
+                { id: 'edge_detection_threshold', valueId: 'edge_detection_threshold_value' },
+                { id: 'edge_blur_radius', valueId: 'edge_blur_radius_value' },
+                { id: 'edge_blur_strength', valueId: 'edge_blur_strength_value' },
+            ];
+
+            sliders.forEach(sliderInfo => {
+                const slider = document.getElementById(sliderInfo.id);
+                const valueSpan = document.getElementById(sliderInfo.valueId);
+                if(slider && valueSpan) {
+                    slider.addEventListener('input', () => valueSpan.textContent = slider.value);
+                }
+            });
+
+            // --- Logika checkboxów i ukrywania kontrolek ---
+            const preserveExtremesCheckbox = document.getElementById('preserve_extremes');
+            const thresholdControl = document.getElementById('threshold-control');
+            preserveExtremesCheckbox.addEventListener('change', () => {
+                thresholdControl.classList.toggle('hidden', !preserveExtremesCheckbox.checked);
+            });
+            
+            const edgeBlurCheckbox = document.getElementById('edge_blur_enabled');
+            const edgeBlurControls = document.getElementById('edge-blur-controls');
+            edgeBlurCheckbox.addEventListener('change', () => {
+                edgeBlurControls.classList.toggle('hidden', !edgeBlurCheckbox.checked);
+            });
+
+            // --- Logika Drag & Drop i wyboru pliku ---
+            function setupUpload(inputId, dropAreaId, previewId) {
+                const input = document.getElementById(inputId);
+                const dropArea = document.getElementById(dropAreaId);
+                const preview = document.getElementById(previewId);
+
+                const handleFiles = (files) => {
+                    if (files.length === 0) return;
+                    const file = files[0];
+                    const reader = new FileReader();
+                    reader.onload = (e) => {
+                        preview.innerHTML = `<img src="${e.target.result}" class="max-w-full h-auto max-h-40 mx-auto rounded-md shadow-md">`;
+                    };
+                    reader.readAsDataURL(file);
+                };
+
+                dropArea.addEventListener('click', () => input.click());
+                input.addEventListener('change', () => handleFiles(input.files));
+                dropArea.addEventListener('dragover', (e) => { e.preventDefault(); dropArea.classList.add('border-blue-500'); });
+                dropArea.addEventListener('dragleave', () => dropArea.classList.remove('border-blue-500'));
+                dropArea.addEventListener('drop', (e) => {
+                    e.preventDefault();
+                    dropArea.classList.remove('border-blue-500');
+                    input.files = e.dataTransfer.files;
+                    handleFiles(input.files);
+                });
+            }
+
+            setupUpload('master_image', 'master-drop-area', 'master-preview');
+            setupUpload('target_image', 'target-drop-area', 'target-preview');
+
+
+            // --- Logika wysyłania formularza ---
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                
+                // Walidacja
+                if (!document.getElementById('master_image').files[0] || !document.getElementById('target_image').files[0]) {
+                    alert('Proszę wybrać oba obrazy: Master i Target.');
+                    return;
+                }
+
+                // UI update
+                loader.classList.remove('hidden');
+                resultImage.classList.add('hidden');
+                resultLink.classList.add('hidden');
+                resultMessage.textContent = "Przetwarzanie...";
+
+                const formData = new FormData(form);
+
+                try {
+                    const response = await fetch('/webview/api/algorithm_01/transfer', {
+                        method: 'POST',
+                        body: formData,
+                    });
+
+                    const data = await response.json();
+
+                    if (data.success) {
+                        resultImage.src = data.result_url + "?t=" + new Date().getTime(); // Zapobiega cache'owaniu
+                        resultLink.href = data.result_url;
+                        resultImage.classList.remove('hidden');
+                        resultLink.classList.remove('hidden');
+                        resultMessage.textContent = data.message;
+                    } else {
+                        throw new Error(data.error);
+                    }
+
+                } catch (error) {
+                    console.error('Error:', error);
+                    resultMessage.textContent = 'Błąd: ' + error.message;
+                    resultMessage.classList.add('text-red-500');
+                } finally {
+                    loader.classList.add('hidden');
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

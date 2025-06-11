@@ -1,0 +1,49 @@
+{
+	"output": {
+		"filePath": "gatto-ps-ai-summary.txt",
+		"style": "xml",
+		"headerText": "Gatto PS AI - Complete Codebase Summary\nGenerated for AI analysis and documentation\n",
+		"removeComments": true,
+		"removeEmptyLines": true,
+		"topFilesLength": 10,
+		"showLineNumbers": true,
+		"compress": true
+	},
+	"include": [
+		"**/*.py"              ,
+		"**/*.js"              ,
+		"**/*.ts"              ,
+		"**/*.jsx"             ,
+		"**/*.tsx"             ,
+		"**/*.json"            ,
+		"**/*.yaml"            ,
+		"**/*.yml"             ,
+		"**/*.html"            ,
+		"**/*.css"             ,
+		"**/*.vue"             ,
+		"**/*.svelte"          ,
+		"**/*.jinja2"          ,
+		"**/*.j2"              ,
+		"**/*.md"              ,
+		"**/*.txt"             ,
+		"**/*.sql"             ,
+		"**/Dockerfile"        ,
+		"**/docker-compose.yml",
+		"**/.env.example"
+	],
+	"ignore": {
+		"useGitignore": true,
+		"useDefaultPatterns": true,
+		"customPatterns": [
+			"node_modules/**" , "venv/**"         , "__pycache__/**"  ,
+			".git/**"         , "dist/**"         , "build/**"        ,
+			".pytest_cache/**", "*.pyc"           , "*.pyo"           ,
+			"*.log"           , "*.lock"          , ".env"            ,
+			".DS_Store"       , "thumbs.db"       , "*.tmp"           ,
+			"*.temp"          , "coverage/**"     , ".coverage"       ,
+			".nyc_output/**"
+		]
+	},
+	"security": {"enableSecurityCheck": true},
+	"experimental": {"webRewrite": false}
+}

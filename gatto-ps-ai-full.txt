@@ -1,0 +1,2031 @@
+This file is a merged representation of a subset of the codebase, containing specifically included files, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Only files matching these patterns are included: *.py, *.js, *.ts, *.jsx, *.tsx, *.json, *.yaml, *.yml, *.html, *.css, *.vue, *.svelte, *.jinja2, *.j2
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+.comb-doc.py
+.comb-scripts.py
+.server_info.json
+run_server.py
+server_config.json
+server_manager_enhanced.py
+test_algorithm_integration.py
+test_basic.py
+test_curl.py
+test_edge_blending_simple.py
+test_runner.py
+test_speed.py
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path=".comb-doc.py">
+import os
+from pathlib import Path
+
+# =================================================================================
+# SCRIPT FOR FILE AGGREGATION
+#
+# Wersja: 4.0 (Uniwersalna)
+# Opis: Skrypt wyszukuje pliki pasujące do podanych wzorców (np. *.md, *.py)
+#       w określonych katalogach, filtruje je na podstawie .gitignore,
+#       a następnie łączy ich zawartość w jeden zbiorczy plik .md.
+# =================================================================================
+
+# --- KONFIGURACJA ---
+# W tej sekcji możesz dostosować działanie skryptu do swoich potrzeb.
+
+# Nazwa projektu, która pojawi się w nagłówku pliku wyjściowego.
+PROJECT_NAME = "Gatto Nero Ai Manager (Dokumentacja)"
+
+# Nazwa pliku, do którego zostanie zapisany wynik.
+OUTPUT_FILE = ".comb-doc.md"
+
+# ---------------------------------------------------------------------------------
+# WZORCE PLIKÓW (FILE_PATTERNS)
+# ---------------------------------------------------------------------------------
+# Zdefiniuj, jakie pliki mają być wyszukiwane. Możesz podać jeden lub wiele wzorców.
+#
+# PRZYKŁADY:
+# - Tylko pliki Markdown:      FILE_PATTERNS = ['*.md']
+# - Pliki Python i JSX:        FILE_PATTERNS = ['*.py', '*.jsx']
+# - Tylko pliki tekstowe:      FILE_PATTERNS = ['*.txt']
+#
+FILE_PATTERNS = ['*.md']
+# ---------------------------------------------------------------------------------
+
+# ŚCIEŻKI DO PRZESZUKANIA ($includePaths)
+# Lista katalogów do przeszukania. Użyj ['all'] aby przeszukać wszystko.
+INCLUDE_PATHS = ['app/algorithms/algorithm_01_palette']
+
+# Nazwa pliku .gitignore, używanego do wykluczeń.
+GITIGNORE_FILE = ".gitignore"
+
+
+# =================================================================================
+# --- SILNIK SKRYPTU (zazwyczaj nie wymaga modyfikacji) ---
+# =================================================================================
+
+def load_gitignore_patterns(root_path):
+    """Wczytuje i przetwarza wzorce z pliku .gitignore."""
+    gitignore_path = root_path / GITIGNORE_FILE
+    patterns = []
+    if gitignore_path.exists():
+        print("Znaleziono plik .gitignore. Stosuję reguły wykluczeń.")
+        with open(gitignore_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                stripped_line = line.strip()
+                if stripped_line and not stripped_line.startswith('#'):
+                    patterns.append(stripped_line)
+    else:
+        print(".gitignore nie został znaleziony.")
+    return patterns
+
+def is_ignored(file_path, root_path, ignore_patterns):
+    """Sprawdza, czy dany plik powinien być zignorowany na podstawie wzorców."""
+    relative_path_str = str(file_path.relative_to(root_path).as_posix())
+    for pattern in ignore_patterns:
+        if pattern.endswith('/'):
+            if f"/{pattern[:-1]}/" in f"/{relative_path_str}":
+                return True
+        elif file_path.match(pattern):
+             return True
+    return False
+
+def find_files_to_process(root_path, ignore_patterns):
+    """Znajduje wszystkie pliki do przetworzenia zgodnie z konfiguracją."""
+    print(f"Wyszukiwanie plików pasujących do wzorców: {', '.join(FILE_PATTERNS)}...")
+    all_found_files = []
+
+    search_paths = []
+    if 'all' in INCLUDE_PATHS:
+        search_paths.append(root_path)
+    else:
+        for include_path in INCLUDE_PATHS:
+            full_search_path = root_path / include_path
+            if full_search_path.is_dir():
+                search_paths.append(full_search_path)
+            else:
+                print(f"UWAGA: Ścieżka '{include_path}' nie istnieje i została pominięta.")
+
+    for path in search_paths:
+        for pattern in FILE_PATTERNS:
+            # Używamy **/{pattern}, aby szukać rekursywnie
+            all_found_files.extend(path.glob(f'**/{pattern}'))
+    
+    files_to_process = []
+    for file in all_found_files:
+        if file.name == OUTPUT_FILE or is_ignored(file, root_path, ignore_patterns):
+            continue
+        files_to_process.append(file)
+            
+    unique_files = sorted(list(set(files_to_process)))
+    print(f"Znaleziono {len(unique_files)} unikalnych plików do przetworzenia.")
+    return unique_files
+
+def read_file_with_fallback_encoding(file_path):
+    """Probuje odczytac plik jako UTF-8, a jesli sie nie uda, jako windows-1250."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except UnicodeDecodeError:
+        print(f"  -> Plik '{file_path.name}' nie jest w UTF-8, próba odczytu jako windows-1250.")
+        try:
+            with open(file_path, 'r', encoding='windows-1250') as f:
+                return f.read()
+        except Exception as e:
+            return f"BŁĄD ODCZYTU PLIKU {file_path.name}: {e}"
+    except Exception as e:
+        return f"NIEOCZEKIWANY BŁĄD ODCZYTU PLIKU {file_path.name}: {e}"
+
+def main():
+    """Główna funkcja skryptu."""
+    root_path = Path.cwd()
+    print(f"Rozpoczynam agregację dla projektu: {PROJECT_NAME}")
+
+    ignore_patterns = load_gitignore_patterns(root_path)
+    files_to_process = find_files_to_process(root_path, ignore_patterns)
+    
+    markdown_content = []
+    markdown_content.append(f"# project name: {PROJECT_NAME}\n\nROOT: {root_path}\n\n---\n")
+    markdown_content.append("## file tree list\n")
+    if files_to_process:
+        markdown_content.append(f"### Found Files ({len(files_to_process)})")
+        for file in files_to_process:
+            dir_path = str(file.parent.relative_to(root_path))
+            dir_path = '' if dir_path == '.' else f"\\{dir_path}"
+            markdown_content.append(f"- {file.name} ({dir_path})")
+        markdown_content.append("")
+    markdown_content.append("---\n")
+
+    markdown_content.append("## file content\n")
+    for file in files_to_process:
+        relative_path = file.relative_to(root_path).as_posix()
+        markdown_content.append(f"### {file.name} - ./{relative_path}\n")
+        markdown_content.append('``````')
+        content = read_file_with_fallback_encoding(file)
+        markdown_content.append(content)
+        markdown_content.append('``````\n')
+
+    final_content = "\n".join(markdown_content)
+    try:
+        # Zapisujemy z 'utf-8-sig' dla najlepszej kompatybilnosci z programami na Windows
+        with open(root_path / OUTPUT_FILE, 'w', encoding='utf-8-sig') as f:
+            f.write(final_content)
+        print(f"Gotowe! Plik '{OUTPUT_FILE}' został utworzony.")
+    except Exception as e:
+        print(f"BŁĄD ZAPISU PLIKU: {e}")
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path=".comb-scripts.py">
+import os
+from pathlib import Path
+
+# =================================================================================
+# SCRIPT FOR FILE AGGREGATION
+#
+# Wersja: 4.0 (Uniwersalna)
+# Opis: Skrypt wyszukuje pliki pasujące do podanych wzorców (np. *.md, *.py)
+#       w określonych katalogach, filtruje je na podstawie .gitignore,
+#       a następnie łączy ich zawartość w jeden zbiorczy plik .md.
+# =================================================================================
+
+# --- KONFIGURACJA ---
+# W tej sekcji możesz dostosować działanie skryptu do swoich potrzeb.
+
+# Nazwa projektu, która pojawi się w nagłówku pliku wyjściowego.
+PROJECT_NAME = "Gatto Nero Ai Manager (PY+JSX)"
+
+# Nazwa pliku, do którego zostanie zapisany wynik.
+OUTPUT_FILE = ".comb-scripts.md"
+
+# ---------------------------------------------------------------------------------
+# WZORCE PLIKÓW (FILE_PATTERNS)
+# ---------------------------------------------------------------------------------
+# Zdefiniuj, jakie pliki mają być wyszukiwane. Możesz podać jeden lub wiele wzorców.
+#
+# PRZYKŁADY:
+# - Tylko pliki Markdown:      FILE_PATTERNS = ['*.md']
+# - Pliki Python i JSX:        FILE_PATTERNS = ['*.py', '*.jsx']
+# - Tylko pliki tekstowe:      FILE_PATTERNS = ['*.txt']
+#
+FILE_PATTERNS = ['*.py', '*.jsx']
+# ---------------------------------------------------------------------------------
+
+# ŚCIEŻKI DO PRZESZUKANIA ($includePaths)
+# Lista katalogów do przeszukania. Użyj ['all'] aby przeszukać wszystko.
+INCLUDE_PATHS = ['all']
+
+# Nazwa pliku .gitignore, używanego do wykluczeń.
+GITIGNORE_FILE = ".gitignore"
+
+
+# =================================================================================
+# --- SILNIK SKRYPTU (zazwyczaj nie wymaga modyfikacji) ---
+# =================================================================================
+
+def load_gitignore_patterns(root_path):
+    """Wczytuje i przetwarza wzorce z pliku .gitignore."""
+    gitignore_path = root_path / GITIGNORE_FILE
+    patterns = []
+    if gitignore_path.exists():
+        print("Znaleziono plik .gitignore. Stosuję reguły wykluczeń.")
+        with open(gitignore_path, 'r', encoding='utf-8') as f:
+            for line in f:
+                stripped_line = line.strip()
+                if stripped_line and not stripped_line.startswith('#'):
+                    patterns.append(stripped_line)
+    else:
+        print(".gitignore nie został znaleziony.")
+    return patterns
+
+def is_ignored(file_path, root_path, ignore_patterns):
+    """Sprawdza, czy dany plik powinien być zignorowany na podstawie wzorców."""
+    relative_path_str = str(file_path.relative_to(root_path).as_posix())
+    for pattern in ignore_patterns:
+        if pattern.endswith('/'):
+            if f"/{pattern[:-1]}/" in f"/{relative_path_str}":
+                return True
+        elif file_path.match(pattern):
+             return True
+    return False
+
+def find_files_to_process(root_path, ignore_patterns):
+    """Znajduje wszystkie pliki do przetworzenia zgodnie z konfiguracją."""
+    print(f"Wyszukiwanie plików pasujących do wzorców: {', '.join(FILE_PATTERNS)}...")
+    all_found_files = []
+
+    search_paths = []
+    if 'all' in INCLUDE_PATHS:
+        search_paths.append(root_path)
+    else:
+        for include_path in INCLUDE_PATHS:
+            full_search_path = root_path / include_path
+            if full_search_path.is_dir():
+                search_paths.append(full_search_path)
+            else:
+                print(f"UWAGA: Ścieżka '{include_path}' nie istnieje i została pominięta.")
+
+    for path in search_paths:
+        for pattern in FILE_PATTERNS:
+            # Używamy **/{pattern}, aby szukać rekursywnie
+            all_found_files.extend(path.glob(f'**/{pattern}'))
+    
+    files_to_process = []
+    for file in all_found_files:
+        if file.name == OUTPUT_FILE or is_ignored(file, root_path, ignore_patterns):
+            continue
+        files_to_process.append(file)
+            
+    unique_files = sorted(list(set(files_to_process)))
+    print(f"Znaleziono {len(unique_files)} unikalnych plików do przetworzenia.")
+    return unique_files
+
+def read_file_with_fallback_encoding(file_path):
+    """Probuje odczytac plik jako UTF-8, a jesli sie nie uda, jako windows-1250."""
+    try:
+        with open(file_path, 'r', encoding='utf-8') as f:
+            return f.read()
+    except UnicodeDecodeError:
+        print(f"  -> Plik '{file_path.name}' nie jest w UTF-8, próba odczytu jako windows-1250.")
+        try:
+            with open(file_path, 'r', encoding='windows-1250') as f:
+                return f.read()
+        except Exception as e:
+            return f"BŁĄD ODCZYTU PLIKU {file_path.name}: {e}"
+    except Exception as e:
+        return f"NIEOCZEKIWANY BŁĄD ODCZYTU PLIKU {file_path.name}: {e}"
+
+def main():
+    """Główna funkcja skryptu."""
+    root_path = Path.cwd()
+    print(f"Rozpoczynam agregację dla projektu: {PROJECT_NAME}")
+
+    ignore_patterns = load_gitignore_patterns(root_path)
+    files_to_process = find_files_to_process(root_path, ignore_patterns)
+    
+    markdown_content = []
+    markdown_content.append(f"# project name: {PROJECT_NAME}\n\nROOT: {root_path}\n\n---\n")
+    markdown_content.append("## file tree list\n")
+    if files_to_process:
+        markdown_content.append(f"### Found Files ({len(files_to_process)})")
+        for file in files_to_process:
+            dir_path = str(file.parent.relative_to(root_path))
+            dir_path = '' if dir_path == '.' else f"\\{dir_path}"
+            markdown_content.append(f"- {file.name} ({dir_path})")
+        markdown_content.append("")
+    markdown_content.append("---\n")
+
+    markdown_content.append("## file content\n")
+    for file in files_to_process:
+        relative_path = file.relative_to(root_path).as_posix()
+        markdown_content.append(f"### {file.name} - ./{relative_path}\n")
+        markdown_content.append('``````')
+        content = read_file_with_fallback_encoding(file)
+        markdown_content.append(content)
+        markdown_content.append('``````\n')
+
+    final_content = "\n".join(markdown_content)
+    try:
+        # Zapisujemy z 'utf-8-sig' dla najlepszej kompatybilnosci z programami na Windows
+        with open(root_path / OUTPUT_FILE, 'w', encoding='utf-8-sig') as f:
+            f.write(final_content)
+        print(f"Gotowe! Plik '{OUTPUT_FILE}' został utworzony.")
+    except Exception as e:
+        print(f"BŁĄD ZAPISU PLIKU: {e}")
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="run_server.py">
+# GattoNeroPhotoshop/run_server.py
+
+import socket
+import subprocess
+import time
+import sys
+from app.server import app
+
+def check_port_free(port):
+    """Sprawdza czy port jest wolny"""
+    with socket.socket(socket.AF_INET, socket.SOCK_STREAM) as s:
+        try:
+            s.bind(('127.0.0.1', port))
+            return True
+        except OSError:
+            return False
+
+def kill_process_on_port(port):
+    """Zabija proces na danym porcie (Windows)"""
+    try:
+        # Znajdź PID procesu na porcie
+        result = subprocess.run(
+            f'netstat -ano | findstr :{port}',
+            shell=True,
+            capture_output=True,
+            text=True
+        )
+
+        if result.stdout:
+            lines = result.stdout.strip().split('\n')
+            for line in lines:
+                if 'LISTENING' in line:
+                    parts = line.split()
+                    if len(parts) >= 5:
+                        pid = parts[-1]
+                        print(f"Zatrzymuje proces PID {pid} na porcie {port}...")
+                        subprocess.run(f'taskkill /F /PID {pid}', shell=True, capture_output=True)
+                        return True
+        return False
+    except Exception as e:
+        print(f"Blad podczas zabijania procesu: {e}")
+        return False
+
+def safe_start_server():
+    """Bezpiecznie uruchamia serwer z kontrola portu"""
+    port = 5000
+
+    print("Sprawdzam port 5000...")
+
+    if not check_port_free(port):
+        print("Port 5000 jest zajety! Probuje zatrzymac istniejacy proces...")
+
+        if kill_process_on_port(port):
+            print("Czekam 2 sekundy na zwolnienie portu...")
+            time.sleep(2)
+
+            if check_port_free(port):
+                print("Port zwolniony!")
+            else:
+                print("Nie udalo sie zwolnic portu. Sprawdz recznie procesy.")
+                sys.exit(1)
+        else:
+            print("Nie znaleziono procesu do zatrzymania, ale port jest zajety.")
+            print("Sprobuj recznie: netstat -ano | findstr :5000")
+            sys.exit(1)
+    else:
+        print("Port 5000 jest wolny!")
+
+    print("Uruchamiam serwer Flask...")
+    print("Serwer bedzie dostepny na: http://127.0.0.1:5000")
+    print("Aby zatrzymac serwer, nacisnij Ctrl+C")
+    print("-" * 50)
+
+    # Uruchamiamy serwer Flask (debug=False zeby uniknac konfliktow z kontrola portu)
+    app.run(host='127.0.0.1', port=port, debug=False)
+
+if __name__ == '__main__':
+    safe_start_server()
+</file>
+
+<file path="test_algorithm_integration.py">
+#!/usr/bin/env python3
+"""
+Algorithm Integration Test
+==========================
+
+Test integration of new modular algorithm system with the Enhanced Flask server.
+Verifies that:
+1. New algorithm_01_palette works correctly 
+2. API routing functions properly
+3. Performance monitoring is active
+4. Legacy algorithms (2,3) still work
+5. Results are generated correctly
+"""
+
+import requests
+import time
+import os
+import sys
+
+# Server configuration
+SERVER_URL = "http://127.0.0.1:5000"
+API_URL = f"{SERVER_URL}/api/colormatch"
+
+def test_algorithm_integration():
+    """Test integration of new modular algorithm system."""
+    print("🔬 ALGORITHM INTEGRATION TEST")
+    print("=" * 50)
+    
+    # Check if server is running
+    try:
+        response = requests.get(f"{SERVER_URL}/api/health", timeout=5)
+        if response.status_code != 200:
+            print("❌ Server not running. Start server first!")
+            return False
+    except:
+        print("❌ Server not responding. Start server first!")
+        return False
+    
+    print("✅ Server is running")
+    
+    # Test files
+    master_file = "test_image.png"
+    target_file = "test_simple.tif"
+    
+    if not os.path.exists(master_file) or not os.path.exists(target_file):
+        print(f"❌ Test files not found: {master_file}, {target_file}")
+        return False
+    
+    print(f"✅ Test files found: {master_file}, {target_file}")
+    
+    # Test each method
+    methods = [
+        ("1", "Enhanced Palette Mapping (New Modular)", True),
+        ("2", "Statistical Transfer (Legacy)", False),
+        ("3", "Histogram Matching (Legacy)", False)
+    ]
+    
+    results = []
+    
+    for method, description, is_new in methods:
+        print(f"\n🧪 Testing Method {method}: {description}")
+        print("-" * 60)
+        
+        # Prepare request
+        files = {
+            'master_image': open(master_file, 'rb'),
+            'target_image': open(target_file, 'rb')
+        }
+        data = {
+            'method': method,
+            'k': 8
+        }
+        
+        # Send request and measure time
+        start_time = time.time()
+        try:
+            response = requests.post(API_URL, files=files, data=data, timeout=30)
+            end_time = time.time()
+            duration = end_time - start_time
+            
+            # Close files
+            files['master_image'].close()
+            files['target_image'].close()
+            
+            if response.status_code == 200:
+                result_text = response.text.strip()
+                
+                if result_text.startswith("success"):
+                    parts = result_text.split(",")
+                    result_filename = parts[2] if len(parts) >= 3 else "unknown"
+                    
+                    # Check if result file exists
+                    result_path = f"results/{result_filename}"
+                    file_exists = os.path.exists(result_path)
+                    
+                    status = "✅ PASS" if file_exists else "⚠️ PARTIAL"
+                    print(f"   Status: {status}")
+                    print(f"   Duration: {duration:.2f}s")
+                    print(f"   Result: {result_filename}")
+                    print(f"   File exists: {'Yes' if file_exists else 'No'}")
+                    
+                    if is_new:
+                        print(f"   🆕 Using NEW modular algorithm!")
+                    else:
+                        print(f"   📦 Using legacy algorithm")
+                    
+                    results.append({
+                        'method': method,
+                        'status': 'PASS' if file_exists else 'PARTIAL',
+                        'duration': duration,
+                        'description': description,
+                        'is_new': is_new
+                    })
+                else:
+                    print(f"   ❌ FAIL: {result_text}")
+                    results.append({
+                        'method': method,
+                        'status': 'FAIL',
+                        'duration': duration,
+                        'description': description,
+                        'is_new': is_new,
+                        'error': result_text
+                    })
+            else:
+                print(f"   ❌ HTTP Error: {response.status_code}")
+                results.append({
+                    'method': method,
+                    'status': 'HTTP_ERROR',
+                    'duration': duration,
+                    'description': description,
+                    'is_new': is_new
+                })
+                
+        except Exception as e:
+            print(f"   ❌ Exception: {str(e)}")
+            results.append({
+                'method': method,
+                'status': 'EXCEPTION',
+                'description': description,
+                'is_new': is_new,
+                'error': str(e)
+            })
+    
+    # Print summary
+    print("\n" + "=" * 50)
+    print("📊 INTEGRATION TEST SUMMARY")
+    print("=" * 50)
+    
+    passed = 0
+    total = len(results)
+    
+    for result in results:
+        status_icon = {
+            'PASS': '✅',
+            'PARTIAL': '⚠️',
+            'FAIL': '❌',
+            'HTTP_ERROR': '🔥',
+            'EXCEPTION': '💥'
+        }.get(result['status'], '❓')
+        
+        new_indicator = '🆕' if result['is_new'] else '📦'
+        duration_str = f"{result.get('duration', 0):.2f}s" if 'duration' in result else 'N/A'
+        
+        print(f"Method {result['method']}: {status_icon} {result['status']} ({duration_str}) {new_indicator}")
+        
+        if result['status'] == 'PASS':
+            passed += 1
+    
+    print(f"\nResult: {passed}/{total} methods working")
+    
+    if passed == total:
+        print("🎉 ALL TESTS PASSED! Algorithm integration successful!")
+        return True
+    elif passed > 0:
+        print("⚠️ PARTIAL SUCCESS: Some algorithms working")
+        return True
+    else:
+        print("❌ ALL TESTS FAILED! Check server and algorithm setup")
+        return False
+
+if __name__ == "__main__":
+    success = test_algorithm_integration()
+    sys.exit(0 if success else 1)
+</file>
+
+<file path="test_curl.py">
+#!/usr/bin/env python3
+# Prosty test curl dla color matching
+
+import os
+import subprocess
+import sys
+
+def test_curl():
+    """Test curl command line dla color matching endpoint"""
+    
+    # Sprawdź czy są obrazy do testów
+    source_folder = "source"
+    if not os.path.exists(source_folder):
+        print(f"❌ Brak folderu: {source_folder}")
+        return
+    
+    # Znajdź obrazy
+    image_files = []
+    for ext in ['.jpg', '.jpeg', '.png', '.tif', '.tiff']:
+        image_files.extend([f for f in os.listdir(source_folder) if f.lower().endswith(ext)])
+    
+    if len(image_files) < 2:
+        print(f"❌ Potrzeba przynajmniej 2 obrazów w folderze {source_folder}")
+        return
+    
+    master_path = os.path.join(source_folder, image_files[0])
+    target_path = os.path.join(source_folder, image_files[1])
+    
+    print(f"🚀 CURL TEST")
+    print(f"Master: {master_path}")
+    print(f"Target: {target_path}")
+    print("-" * 40)
+    
+    # Stwórz curl command
+    curl_cmd = [
+        'curl', '-s', '-X', 'POST',
+        '-F', f'master_image=@{master_path}',
+        '-F', f'target_image=@{target_path}',
+        '-F', 'method=1',
+        '-F', 'k=6',
+        'http://127.0.0.1:5000/api/colormatch'
+    ]
+    
+    try:
+        print("📡 Wysyłam request...")
+        result = subprocess.run(curl_cmd, capture_output=True, text=True, timeout=60)
+        
+        print(f"Return code: {result.returncode}")
+        print(f"Response: {result.stdout}")
+        
+        if result.stderr:
+            print(f"Error: {result.stderr}")
+            
+        # Parsuj odpowiedź
+        if result.returncode == 0 and result.stdout:
+            parts = result.stdout.strip().split(',')
+            if len(parts) >= 3 and parts[0] == 'success':
+                print(f"✅ SUCCESS!")
+                print(f"Method: {parts[1]}")
+                print(f"Result: {parts[2]}")
+                
+                # Sprawdź czy plik wynikowy istnieje
+                result_path = f"results/{parts[2]}"
+                if os.path.exists(result_path):
+                    size_mb = os.path.getsize(result_path) / (1024*1024)
+                    print(f"✅ File created: {result_path} ({size_mb:.1f}MB)")
+                else:
+                    print(f"❌ File not found: {result_path}")
+            else:
+                print(f"❌ Invalid response format")
+        
+    except subprocess.TimeoutExpired:
+        print("❌ Request timeout (60s)")
+    except FileNotFoundError:
+        print("❌ curl command not found. Install curl.")
+    except Exception as e:
+        print(f"❌ Error: {e}")
+
+if __name__ == "__main__":
+    test_curl()
+</file>
+
+<file path="test_edge_blending_simple.py">
+#!/usr/bin/env python3
+"""
+Prosty test edge blending - sprawdzenie czy parametry działają
+"""
+
+import sys
+import os
+sys.path.append('.')
+
+print("=== EDGE BLENDING TEST ===")
+
+try:
+    from app.algorithms.algorithm_01_palette.algorithm import create_palette_mapping_algorithm
+    print("✅ Import algorytmu - OK")
+    
+    # Stwórz algorytm
+    algorithm = create_palette_mapping_algorithm()
+    print("✅ Tworzenie instancji - OK")
+    
+    # Sprawdź domyślną konfigurację
+    config = algorithm.default_config()
+    edge_params = {
+        'edge_blur_enabled': config.get('edge_blur_enabled', 'MISSING'),
+        'edge_blur_radius': config.get('edge_blur_radius', 'MISSING'),
+        'edge_blur_strength': config.get('edge_blur_strength', 'MISSING'),
+        'edge_detection_threshold': config.get('edge_detection_threshold', 'MISSING'),
+        'edge_blur_method': config.get('edge_blur_method', 'MISSING')
+    }
+    
+    print("🔍 Parametry edge blending w konfiguracji:")
+    for param, value in edge_params.items():
+        print(f"  {param}: {value}")
+    
+    # Sprawdź czy metody istnieją
+    methods = ['apply_edge_blending', '_detect_palette_edges', '_apply_selective_blur']
+    for method in methods:
+        if hasattr(algorithm, method):
+            print(f"✅ Metoda {method} - istnieje")
+        else:
+            print(f"❌ Metoda {method} - BRAK")
+    
+    print("\n=== TEST ZAKOŃCZONY ===")
+    
+except Exception as e:
+    print(f"❌ BŁĄD: {e}")
+    import traceback
+    traceback.print_exc()
+</file>
+
+<file path="test_runner.py">
+#!/usr/bin/env python3
+"""
+Test Runner - Automatyczne uruchamianie testów z zarządzaniem serwerem
+
+Użycie:
+    python test_runner.py              # Uruchom wszystkie testy
+    python test_runner.py --auto-start # Automatycznie uruchom serwer jeśli nie działa
+    python test_runner.py --stop-after # Zatrzymaj serwer po testach
+"""
+
+import sys
+import argparse
+import time
+from server_manager_enhanced import EnhancedServerManager
+
+def run_tests_with_management(auto_start=False, stop_after=False):
+    """Uruchom testy z zarządzaniem serwerem"""
+    manager = EnhancedServerManager()
+    server_was_running = manager.is_running()
+    
+    print("=== Test Runner ===")
+    print(f"Auto-start: {auto_start}")
+    print(f"Stop after: {stop_after}")
+    print()
+    
+    # Sprawdź status serwera
+    if server_was_running:
+        print("[INFO] Serwer już działa")
+    else:
+        print("[INFO] Serwer nie działa")
+        if auto_start:
+            print("[INFO] Uruchamiam serwer automatycznie...")
+            if not manager.start_server():
+                print("[ERROR] Nie udało się uruchomić serwera")
+                return False
+        else:
+            print("[ERROR] Serwer nie działa. Użyj --auto-start lub uruchom serwer ręcznie.")
+            print("[INFO] Komenda: python server_manager.py start")
+            return False
+    
+    print()
+    
+    # Uruchom testy
+    print("=== Uruchamiam testy ===")
+    success = manager.run_tests()
+    
+    # Zatrzymaj serwer jeśli trzeba
+    if stop_after and (auto_start or not server_was_running):
+        print("\n=== Zatrzymuję serwer ===")
+        manager.stop_server()
+    
+    return success
+
+def main():
+    parser = argparse.ArgumentParser(description='Test Runner z zarządzaniem serwerem')
+    parser.add_argument('--auto-start', action='store_true', 
+                       help='Automatycznie uruchom serwer jeśli nie działa')
+    parser.add_argument('--stop-after', action='store_true',
+                       help='Zatrzymaj serwer po testach')
+    
+    args = parser.parse_args()
+    
+    success = run_tests_with_management(
+        auto_start=args.auto_start,
+        stop_after=args.stop_after
+    )
+    
+    sys.exit(0 if success else 1)
+
+if __name__ == '__main__':
+    main()
+</file>
+
+<file path="test_speed.py">
+#!/usr/bin/env python3
+# Test script dla color matching endpoint
+
+import requests
+import os
+import sys
+import time
+
+# Dodaj ścieżkę do modułu app
+sys.path.append('.')
+
+from app.processing.color_matching import simple_palette_mapping
+
+def test_speed():
+    """Test speed z obrazami z folderu source"""
+    
+    # Sprawdź folder source
+    source_folder = "source"
+    if not os.path.exists(source_folder):
+        print(f"❌ Brak folderu: {source_folder}")
+        return
+    
+    # Znajdź obrazy w folderze source
+    image_files = []
+    for ext in ['.jpg', '.jpeg', '.png', '.tif', '.tiff']:
+        image_files.extend([f for f in os.listdir(source_folder) if f.lower().endswith(ext)])
+    
+    if len(image_files) < 2:
+        print(f"❌ Potrzeba przynajmniej 2 obrazów w folderze {source_folder}")
+        print(f"   Znalezione: {image_files}")
+        return
+    
+    # Wybierz pierwsze 2 obrazy
+    master_path = os.path.join(source_folder, image_files[0])
+    target_path = os.path.join(source_folder, image_files[1])
+    
+    print(f"🚀 SPEED TEST - METHOD 1 OPTIMIZED")
+    print(f"Master: {master_path}")
+    print(f"Target: {target_path}")
+    print(f"Colors: 8")
+    print("-" * 50)
+    
+    try:
+        # Test nowej optimized version
+        start_time = time.time()
+        result_path = simple_palette_mapping(master_path, target_path, k_colors=8)
+        total_time = time.time() - start_time
+        
+        print("-" * 50)
+        print(f"🎯 FINAL RESULT:")
+        print(f"   Total time: {total_time:.2f}s")
+        print(f"   Result file: {result_path}")
+        
+        if os.path.exists(result_path):
+            file_size = os.path.getsize(result_path) / (1024*1024)  # MB
+            print(f"   File size: {file_size:.1f}MB")
+            print("✅ SUCCESS! File created.")
+        else:
+            print("❌ File not created!")
+            
+    except Exception as e:
+        print(f"❌ ERROR: {e}")
+
+if __name__ == "__main__":
+    test_speed()
+</file>
+
+<file path="server_config.json">
+{
+	"server": {
+		"host": "127.0.0.1",
+		"port": 5000,
+		"environment": "development",
+		"python_executable": "venv\\Scripts\\python.exe",
+		"startup_command": ["venv\\Scripts\\python.exe", "run_server.py"],
+		"startup_timeout": 45,
+		"shutdown_timeout": 30,
+		"health_check_interval": 5,
+		"health_check_url": "/api/health"
+	},
+	"monitoring": {
+		"failure_threshold": 3,
+		"restart_delay": 5,
+		"exponential_backoff": true,
+		"max_backoff_delay": 60
+	},
+	"logging": {
+		"log_dir"          : "logs",
+		"server_log_file"  : "gattonero_server.log",
+		"server_error_file": "gattonero_server_errors.log",
+		"manager_log_file" : "server_manager.log"
+	},
+	"files": {"pid_file": ".server_info.json"}
+}
+</file>
+
+<file path="test_basic.py">
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+POZIOM 1: Podstawowy test trzech metod color matching
+Cel: <5 sekund na 1MP, wszystkie metody działają bez błędów
+"""
+
+import time
+import os
+import requests
+import shutil
+from pathlib import Path
+from PIL import Image # Added for dummy image creation
+
+# Konfiguracja
+SERVER_URL = "http://127.0.0.1:5000"
+TEST_IMAGES_DIR = "test_images"
+RESULTS_DIR = "test_results"
+
+def setup_test_environment():
+    """Prepare the test environment."""
+    # Create directories if they don't exist
+    Path(RESULTS_DIR).mkdir(exist_ok=True)
+    
+    # Create dummy test images if they don't exist
+    dummy_image_path_png = "test_image.png"
+    dummy_image_path_tif = "test_simple.tif"
+
+    if not os.path.exists(dummy_image_path_png):
+        img = Image.new('RGB', (100, 100), color = 'red')
+        img.save(dummy_image_path_png)
+        print(f"[INFO] Created dummy image: {dummy_image_path_png}")
+
+    if not os.path.exists(dummy_image_path_tif):
+        img = Image.new('RGB', (100, 100), color = 'blue')
+        img.save(dummy_image_path_tif)
+        print(f"[INFO] Created dummy image: {dummy_image_path_tif}")
+    
+    return [dummy_image_path_png, dummy_image_path_tif]
+
+def test_method(method_num, master_path, target_path, k_colors=16, distance_metric=None, use_dithering=False, preserve_luminance=False, is_preview=False):
+    """Test pojedynczej metody"""
+    print(f"\n[TEST] Testing Method {method_num}...")
+    
+    start_time = time.time()
+    
+    try:
+        # Prepare files
+        files = {
+            'master_image': open(master_path, 'rb'),
+            'target_image': open(target_path, 'rb')
+        }
+        
+        data = {
+            'method': str(method_num),
+            'k': k_colors,
+            'use_dithering': str(use_dithering).lower(),
+            'preserve_luminance': str(preserve_luminance).lower()
+        }
+        if distance_metric:
+            data['distance_metric'] = distance_metric
+
+        url = f"{SERVER_URL}/api/colormatch"
+        if is_preview:
+            url = f"{SERVER_URL}/api/colormatch/preview"
+            
+        # Send request
+        response = requests.post(url, files=files, data=data)
+            
+        end_time = time.time()
+        execution_time = end_time - start_time
+        
+        # Close file handles
+        files['master_image'].close()
+        files['target_image'].close()
+
+        # Check response
+        if response.status_code == 200:
+            result = response.text.strip()
+            if result.startswith("success"):
+                parts = result.split(",")
+                if len(parts) >= 3:
+                    result_filename = parts[2]
+                    print(f"[PASS] Method {method_num}: SUCCESS")
+                    print(f"   Time: {execution_time:.2f}s")
+                    print(f"   Result: {result_filename}")
+                    return True, execution_time
+                else:
+                    print(f"[FAIL] Method {method_num}: Invalid response format")
+            else:
+                print(f"[FAIL] Method {method_num}: {result}")
+        else:
+            print(f"[FAIL] Method {method_num}: HTTP {response.status_code} - {response.text}")
+            
+    except requests.exceptions.ConnectionError:
+        print(f"[FAIL] Method {method_num}: Cannot connect to server")
+        print("   Ensure the server is running: python run_server.py")
+    except Exception as e:
+        print(f"[FAIL] Method {method_num}: Error - {str(e)}")
+    
+    return False, 0
+
+def check_server():
+    """Check if the server is running"""
+    import socket
+    try:
+        # Check if port is open
+        sock = socket.socket(socket.AF_INET, socket.SOCK_STREAM)
+        sock.settimeout(2)
+        result = sock.connect_ex(('127.0.0.1', 5000))
+        sock.close()
+        
+        if result == 0:
+            print("[OK] Port 5000 is open")
+            return True
+        else:
+            print(f"[ERROR] Port 5000 is not responding (code: {result})")
+            return False
+    except Exception as e:
+        print(f"[ERROR] Error checking port: {e}")
+        return False
+
+def main():
+    """Main test function"""
+    print("LEVEL 1: Basic Color Matching Methods Test")
+    print("=" * 50)
+    
+    # Check server
+    if not check_server():
+        print("[ERROR] Server is not running!")
+        print("Start the server: python run_server.py")
+        return
+
+    print("[OK] Server is running")
+    
+    # Prepare environment
+    test_files = setup_test_environment()
+    if not test_files:
+        return
+
+    master_file, target_file = test_files
+    print(f"[INFO] Master: {master_file}")
+    print(f"[INFO] Target: {target_file}")
+    
+    # Test all methods
+    methods_to_test = [
+        (1, "Simple Palette Mapping (RGB K-means)", {}, False),
+        (2, "Basic Statistical Transfer (LAB)", {}, False),
+        (3, "Simple Histogram Matching (Luminance)", {}, False),
+        (1, "Palette Mapping (LAB, Dithering, Preserve Luminance)", {'distance_metric': 'lab', 'use_dithering': True, 'preserve_luminance': True}, False),
+        (1, "Palette Mapping Preview (LAB, Dithering)", {'distance_metric': 'lab', 'use_dithering': True}, True)
+    ]
+    
+    results = []
+    total_time = 0
+    
+    for method_num, method_name, params, is_preview in methods_to_test:
+        print(f"\n[INFO] {method_name}")
+        success, exec_time = test_method(method_num, master_file, target_file, **params, is_preview=is_preview)
+        results.append((method_num, method_name, success, exec_time))
+        total_time += exec_time
+
+    # Summary
+    print("\n" + "=" * 50)
+    print("TEST SUMMARY")
+    print("=" * 50)
+
+    successful_methods = 0
+    for method_num, method_name, success, exec_time in results:
+        status = "[PASS]" if success else "[FAIL]"
+        time_status = "[FAST]" if exec_time < 5.0 else "[SLOW]"
+        print(f"Method {method_num}: {method_name}: {status} ({exec_time:.2f}s) {time_status}")
+        if success:
+            successful_methods += 1
+    
+    print(f"\nTotal time: {total_time:.2f}s")
+    print(f"Success: {successful_methods}/{len(methods_to_test)} methods")
+    
+    # Success criteria
+    if successful_methods == len(methods_to_test):
+        print("\n[SUCCESS] LEVEL 1: PASSED!")
+        print("All methods work without errors")
+        if total_time < 25.0:  # Adjusted total time for more tests
+            print("[BONUS] Performance within limits!")
+    else:
+        print("\n[FAILED] LEVEL 1: FAILED")
+        print("Not all methods work correctly")
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="server_manager_enhanced.py">
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+Enhanced Server Manager v2.2.0 - Advanced Flask Server Management for GattoNero AI Assistant
+
+Features:
+- Unified watchdog system via 'watch' command
+- Configuration-driven setup from 'server_config.json'
+- Advanced auto-restart with exponential backoff
+- Graceful shutdown with '--force' option
+- Structured, TTY-aware logging with log file redirection
+- Production-ready deployment capabilities
+- Intelligent Python environment detection (VENV vs. SYSTEM)
+
+Usage:
+    python server_manager_enhanced.py start [--auto-restart] [--port PORT]
+    python server_manager_enhanced.py stop [--force]
+    python server_manager_enhanced.py status [--detailed]
+    python server_manager_enhanced.py restart [--auto-restart]
+    python server_manager_enhanced.py watch [--interval SECONDS]
+    python server_manager_enhanced.py logs [--tail LINES] [--file server|manager|errors]
+"""
+
+import sys
+import os
+import json
+import time
+import subprocess
+import requests
+import argparse
+import threading
+from datetime import datetime, timedelta
+from pathlib import Path
+from typing import Dict, Optional, Any, List
+
+# Próba importu psutil, jeśli jest dostępny
+try:
+    import psutil
+
+    PSUTIL_AVAILABLE = True
+except ImportError:
+    psutil = None
+    PSUTIL_AVAILABLE = False
+    print(
+        "[WARNING] psutil is not available. Some advanced features will be disabled. Run 'pip install psutil'"
+    )
+
+
+class ServerConfig:
+    """Zarządza konfiguracją serwera z pliku JSON z wartościami domyślnymi."""
+
+    def __init__(self, config_file: str = "server_config.json"):
+        self.config_file = Path(config_file)
+        self._config = self._load_config()
+
+    def _load_config(self) -> Dict[str, Any]:
+        """Ładuje konfigurację z pliku, łącząc ją z domyślnymi wartościami."""
+        defaults = {
+            "server": {
+                "host": "127.0.0.1",
+                "port": 5000,
+                "environment": "development",
+                "startup_command": [sys.executable, "run_server.py"],
+                "python_executable": "",  # Puste oznacza auto-detekcję
+                "startup_timeout": 15,
+                "shutdown_timeout": 20,
+                "health_check_interval": 5,
+                "health_check_url": "/api/health",  # Domyślny endpoint health-check
+            },
+            "monitoring": {
+                "failure_threshold": 3,
+                "restart_delay": 5,
+                "exponential_backoff": True,
+                "max_backoff_delay": 60,
+            },
+            "logging": {
+                "log_dir": "logs",
+                "server_log_file": "gattonero_server.log",
+                "server_error_file": "gattonero_server_errors.log",
+                "manager_log_file": "server_manager.log",
+            },
+            "files": {"pid_file": ".server_info.json"},
+        }
+
+        if self.config_file.exists():
+            try:
+                with open(self.config_file, "r", encoding="utf-8") as f:
+                    user_config = json.load(f)
+                return self._deep_merge(defaults, user_config)
+            except json.JSONDecodeError as e:
+                print(
+                    f"[ERROR] Invalid JSON in {self.config_file}: {e}. Using default configuration."
+                )
+            except Exception as e:
+                print(
+                    f"[WARNING] Failed to load {self.config_file}: {e}. Using defaults."
+                )
+        else:
+            print(
+                f"[INFO] Configuration file '{self.config_file}' not found. Creating with default values."
+            )
+            try:
+                with open(self.config_file, "w", encoding="utf-8") as f:
+                    json.dump(defaults, f, indent=4)
+            except Exception as e:
+                print(f"[ERROR] Could not create default config file: {e}")
+
+        return defaults
+
+    def _deep_merge(
+        self, base: Dict[str, Any], overlay: Dict[str, Any]
+    ) -> Dict[str, Any]:
+        """Rekursywnie łączy dwa słowniki."""
+        result = base.copy()
+        for key, value in overlay.items():
+            if (
+                key in result
+                and isinstance(result[key], dict)
+                and isinstance(value, dict)
+            ):
+                result[key] = self._deep_merge(result[key], value)
+            else:
+                result[key] = value
+        return result
+
+    def get(self, section: str, key: Optional[str] = None, default=None):
+        """Pobiera wartość konfiguracyjną z określonej sekcji."""
+        if key is None:
+            return self._config.get(section, default)
+        return self._config.get(section, {}).get(key, default)
+
+    def get_str(self, section: str, key: str, default: str = "") -> str:
+        """Pobiera wartość konfiguracyjną jako string."""
+        value = self.get(section, key, default)
+        return str(value) if value is not None else default
+
+    def get_int(self, section: str, key: str, default: int = 0) -> int:
+        """Pobiera wartość konfiguracyjną jako int."""
+        value = self.get(section, key, default)
+        try:
+            return int(value) if value is not None else default
+        except (ValueError, TypeError):
+            return default
+
+    def get_list(self, section: str, key: str, default: Optional[List] = None) -> List:
+        """Pobiera wartość konfiguracyjną jako listę."""
+        if default is None:
+            default = []
+        value = self.get(section, key, default)
+        return list(value) if isinstance(value, list) else default
+
+    def get_bool(self, section: str, key: str, default: bool = False) -> bool:
+        """Pobiera wartość konfiguracyjną jako boolean."""
+        value = self.get(section, key, default)
+        if isinstance(value, bool):
+            return value
+        if isinstance(value, str):
+            return value.lower() in ("true", "1", "yes", "on")
+        return bool(value) if value is not None else default
+
+    def get_health_check_url(self) -> str:
+        """Zwraca endpoint health-check z konfiguracji."""
+        return self.get_str("server", "health_check_url", "/api/health")
+
+
+class EnhancedServerManager:
+    """Zarządza cyklem życia serwera z monitoringiem, logowaniem i konfiguracją."""
+
+    def __init__(
+        self,
+        host: Optional[str] = None,
+        port: Optional[int] = None,
+        environment: Optional[str] = None,
+        config_file: str = "server_config.json",
+    ):
+        self.config = ServerConfig(config_file)
+
+        self.host = host or self.config.get_str("server", "host", "127.0.0.1")
+        self.port = port or self.config.get_int("server", "port", 5000)
+        self.environment = environment or self.config.get_str(
+            "server", "environment", "development"
+        )
+        self.base_url = f"http://{self.host}:{self.port}"
+        self.health_check_url = self.config.get_health_check_url()
+
+        self.log_dir = Path(self.config.get_str("logging", "log_dir", "logs"))
+        self.log_dir.mkdir(exist_ok=True)
+        self.pid_file = Path(
+            self.config.get_str("files", "pid_file", ".server_info.json")
+        )
+        self.server_log_file = self.log_dir / self.config.get_str(
+            "logging", "server_log_file", "gattonero_server.log"
+        )
+        self.server_error_file = self.log_dir / self.config.get_str(
+            "logging", "server_error_file", "gattonero_server_errors.log"
+        )
+        self.manager_log_file = self.log_dir / self.config.get_str(
+            "logging", "manager_log_file", "server_manager.log"
+        )
+
+        self.python_executable = self._detect_python_executable()
+
+        default_startup_command = [self.python_executable, "-m", "app.server"]
+        self.startup_command = self.config.get_list(
+            "server", "startup_command", default_startup_command
+        )
+        if self.startup_command == [sys.executable, "-m", "app.server"]:
+            self.startup_command = default_startup_command
+
+        self.startup_timeout = self.config.get_int("server", "startup_timeout", 15)
+        self.shutdown_timeout = self.config.get_int("server", "shutdown_timeout", 20)
+        self.health_check_interval = self.config.get_int(
+            "server", "health_check_interval", 5
+        )
+        self.failure_threshold = self.config.get_int(
+            "monitoring", "failure_threshold", 3
+        )
+        self.restart_delay = self.config.get_int("monitoring", "restart_delay", 5)
+
+        self.monitor_thread: Optional[threading.Thread] = None
+        self.monitor_running = threading.Event()
+
+    def _detect_python_executable(self) -> str:
+        """Wykrywa najlepszy interpreter Pythona (venv jeśli dostępny)."""
+        config_python = self.config.get_str("server", "python_executable", "")
+        if config_python and Path(config_python).exists():
+            self.log_event(
+                f"Using configured Python executable: {config_python}", "INFO"
+            )
+            return config_python
+
+        venv_paths = [Path("venv"), Path(".venv"), Path("env"), Path(".env")]
+        for venv_path in venv_paths:
+            if venv_path.exists() and venv_path.is_dir():
+                python_exe = (
+                    venv_path / "Scripts" / "python.exe"
+                    if os.name == "nt"
+                    else venv_path / "bin" / "python"
+                )
+                if python_exe.exists():
+                    self.log_event(
+                        f"Virtual environment detected: {venv_path}", "SUCCESS"
+                    )
+                    self.log_event(f"Using venv Python: {python_exe}", "INFO")
+                    return str(python_exe)
+
+        if hasattr(sys, "real_prefix") or (
+            hasattr(sys, "base_prefix") and sys.base_prefix != sys.prefix
+        ):
+            self.log_event(
+                "Already running in an activated virtual environment", "SUCCESS"
+            )
+            return sys.executable
+
+        self.log_event(
+            "No virtual environment detected, using system Python", "WARNING"
+        )
+        self.log_event("Consider creating a venv: python -m venv venv", "INFO")
+        return sys.executable
+
+    def _check_flask_install(self) -> bool:
+        """Sprawdza, czy Flask jest zainstalowany w wybranym środowisku."""
+        self.log_event(f"Checking for Flask in: {self.python_executable}", "INFO")
+        try:
+            command = [self.python_executable, "-c", "import flask"]
+            result = subprocess.run(command, capture_output=True, text=True, timeout=5)
+            if result.returncode == 0:
+                self.log_event("Flask is installed.", "SUCCESS")
+                return True
+            else:
+                self.log_event(
+                    "Flask is NOT installed in the selected environment.", "ERROR"
+                )
+                self.log_event(
+                    f"To install, run: '{self.python_executable} -m pip install flask'",
+                    "INFO",
+                )
+                return False
+        except Exception as e:
+            self.log_event(f"Could not check for Flask installation: {e}", "ERROR")
+            return False
+
+    def _verify_environment(self) -> bool:
+        """Weryfikuje, czy środowisko Python jest poprawnie skonfigurowane."""
+        python_path = Path(self.python_executable)
+        if not python_path.exists():
+            self.log_event(
+                f"Python executable not found: {self.python_executable}", "ERROR"
+            )
+            return False
+
+        try:
+            result = subprocess.run(
+                [self.python_executable, "--version"],
+                capture_output=True,
+                text=True,
+                timeout=5,
+            )
+            if result.returncode == 0:
+                self.log_event(f"Python version: {result.stdout.strip()}", "INFO")
+        except Exception as e:
+            self.log_event(f"Could not get Python version: {e}", "WARNING")
+
+        return self._check_flask_install()
+
+    def log_event(self, event: str, level: str = "INFO"):
+        """Loguje zdarzenie do konsoli (z kolorami) i do pliku."""
+        timestamp = datetime.now().strftime("%Y-%m-%d %H:%M:%S")
+        log_entry = {"timestamp": timestamp, "level": level, "event": event}
+
+        log_message = f"[{timestamp}] [{level}] {event}"
+
+        if sys.stdout.isatty():
+            colors = {
+                "INFO": "\033[94m",
+                "SUCCESS": "\033[92m",
+                "WARNING": "\033[93m",
+                "ERROR": "\033[91m",
+                "RESET": "\033[0m",
+            }
+            color = colors.get(level, "")
+            reset = colors["RESET"]
+            print(f"{color}{log_message}{reset}")
+        else:
+            print(log_message)
+
+        try:
+            with open(self.manager_log_file, "a", encoding="utf-8") as f:
+                f.write(f"{json.dumps(log_entry)}\n")
+        except Exception as e:
+            print(f"[ERROR] Could not write to manager log file: {e}")
+
+    def save_server_info(self, process_info: Dict[str, Any]):
+        """Zapisuje informacje o procesie serwera do pliku."""
+        try:
+            with open(self.pid_file, "w") as f:
+                json.dump(process_info, f, indent=4)
+        except Exception as e:
+            self.log_event(f"Failed to save server info: {e}", "ERROR")
+
+    def load_server_info(self) -> Optional[Dict[str, Any]]:
+        """Wczytuje informacje o procesie serwera z pliku."""
+        if not self.pid_file.exists():
+            return None
+        try:
+            with open(self.pid_file, "r") as f:
+                return json.load(f)
+        except (json.JSONDecodeError, FileNotFoundError):
+            return None
+
+    def clear_server_info(self):
+        """Usuwa plik z informacjami o serwerze."""
+        try:
+            self.pid_file.unlink(missing_ok=True)
+        except Exception:
+            pass
+
+    def is_process_running(self, pid: int) -> bool:
+        """Sprawdza, czy proces o danym PID działa."""
+        if not PSUTIL_AVAILABLE or psutil is None:
+            return False
+        try:
+            return psutil.pid_exists(pid)
+        except Exception:
+            return False
+
+    def is_port_in_use(self, port: int) -> bool:
+        """Sprawdza, czy port jest w użyciu."""
+        if not PSUTIL_AVAILABLE or psutil is None:
+            return False
+        try:
+            for conn in psutil.net_connections():
+                if conn.laddr and conn.laddr.port == port and conn.status == "LISTEN":
+                    return True
+        except Exception:
+            pass
+        return False
+
+    def is_server_responding(self) -> bool:
+        """Sprawdza, czy serwer odpowiada na żądania HTTP."""
+        try:
+            url = f"{self.base_url}{self.health_check_url}"
+            response = requests.get(url, timeout=2)
+            return response.status_code == 200
+        except requests.RequestException:
+            return False
+
+    def get_process_info(self, pid: int) -> Dict[str, Any]:
+        """Pobiera szczegółowe informacje o procesie."""
+        if not PSUTIL_AVAILABLE or psutil is None or not self.is_process_running(pid):
+            return {"status": "not_found"}
+        try:
+            process = psutil.Process(pid)
+            with process.oneshot():
+                return {
+                    "pid": pid,
+                    "status": process.status(),
+                    "cpu_percent": process.cpu_percent(interval=0.1),
+                    "memory_mb": round(process.memory_info().rss / 1024**2, 2),
+                    "uptime_seconds": time.time() - process.create_time(),
+                }
+        except (psutil.NoSuchProcess, psutil.AccessDenied):
+            return {"status": "error"}
+
+    def is_running(self) -> bool:
+        """Sprawdza, czy serwer działa i odpowiada."""
+        info = self.load_server_info()
+        if not info:
+            return False
+        pid = info.get("pid")
+        if not pid:
+            return False
+        return self.is_process_running(pid) and self.is_server_responding()
+
+    def start_server(self, auto_restart: bool = False, no_wait: bool = False) -> bool:
+        """Uruchamia proces serwera i opcjonalnie watchdog."""
+        if self.is_running():
+            self.log_event("Server is already running.", "WARNING")
+            return True
+
+        if not self._verify_environment():
+            self.log_event(
+                "Python environment verification failed. Cannot start server.", "ERROR"
+            )
+            return False
+
+        if self.is_port_in_use(self.port):
+            self.log_event(
+                f"Port {self.port} is already in use. Cannot start server.", "ERROR"
+            )
+            return False
+
+        self.log_event(f"Starting server... Command: {' '.join(self.startup_command)}")
+        env = os.environ.copy()
+        env["FLASK_ENV"] = self.environment
+
+        # --- FIX: Define OS-specific arguments to detach the process ---
+        kwargs = {}
+        if os.name == "nt":
+            # On Windows, DETACHED_PROCESS creates a new process
+            # without a console and independent of the parent.
+            kwargs["creationflags"] = subprocess.DETACHED_PROCESS
+        else:
+            # On Unix, os.setsid makes the process a session leader,
+            # detaching it from the controlling terminal.
+            kwargs["preexec_fn"] = os.setsid  # pylint: disable=no-member
+        # --- END FIX ---
+
+        try:
+            with open(self.server_log_file, "ab") as log_out, open(
+                self.server_error_file, "ab"
+            ) as log_err:
+                # Add the kwargs to the Popen call
+                process = subprocess.Popen(
+                    self.startup_command,
+                    stdout=log_out,
+                    stderr=log_err,
+                    env=env,
+                    **kwargs,
+                )
+
+            self.save_server_info(
+                {"pid": process.pid, "port": self.port, "started_at": time.time()}
+            )
+
+            if no_wait:
+                self.log_event(
+                    "Server starting in background. Check status or logs to confirm.",
+                    "INFO",
+                )
+                # A brief pause to allow the process to initialize or fail.
+                time.sleep(1.5)
+                # Quick check if process died instantly
+                if not self.is_process_running(process.pid):
+                    self.log_event(
+                        "Server process terminated immediately after start. Check error logs.",
+                        "ERROR",
+                    )
+                    self.log_event(
+                        f"Review logs: python server_manager_enhanced.py logs --file errors",
+                        "INFO",
+                    )
+                    self.clear_server_info()  # Clear info if process died
+                    return False
+                if auto_restart:
+                    self.start_watchdog()
+                return True
+
+            self.log_event(f"Waiting for server to respond (PID: {process.pid})...")
+            for _ in range(self.startup_timeout):
+                if self.is_server_responding():
+                    self.log_event("Server started successfully.", "SUCCESS")
+                    if auto_restart:
+                        self.start_watchdog()
+                    return True
+                time.sleep(1)
+
+            self.log_event("Server failed to start within timeout.", "ERROR")
+            # Attempt to stop the failed process before returning
+            current_pid_info = self.load_server_info()
+            if current_pid_info and current_pid_info.get("pid") == process.pid:
+                self.stop_server(force=True)  # This will also clear_server_info
+            else:  # If PID info was overwritten or process never registered properly
+                try:
+                    if PSUTIL_AVAILABLE and psutil and psutil.pid_exists(process.pid):
+                        psutil.Process(process.pid).kill()
+                except Exception:  # psutil.NoSuchProcess or other errors
+                    pass  # Process might already be gone
+                self.clear_server_info()  # Ensure info is cleared if stop_server wasn't effective for this PID
+            return False
+        except Exception as e:
+            self.log_event(f"Failed to start server: {e}", "ERROR")
+            # Ensure server info is cleared on any exception during startup
+            self.clear_server_info()
+            return False
+
+    def stop_server(self, force: bool = False) -> bool:
+        """Zatrzymuje serwer, z opcją wymuszenia."""
+        self.stop_watchdog()
+        info = self.load_server_info()
+        if not info or not self.is_process_running(info.get("pid", -1)):
+            self.log_event("Server is not running.", "INFO")
+            self.clear_server_info()
+            return True
+
+        pid = info["pid"]
+        self.log_event(f"Stopping server (PID: {pid})...")
+
+        if not force and PSUTIL_AVAILABLE and psutil:
+            try:
+                proc = psutil.Process(pid)
+                # Na Windows SIGTERM to to samo co terminate()
+                proc.terminate()
+                self.log_event(
+                    "Sent termination signal. Waiting for process to exit.", "INFO"
+                )
+                proc.wait(timeout=self.shutdown_timeout)
+                self.log_event("Server shut down gracefully.", "SUCCESS")
+                self.clear_server_info()
+                return True
+            except psutil.TimeoutExpired:
+                self.log_event(
+                    "Graceful shutdown timed out. Forcing termination.", "WARNING"
+                )
+            except psutil.NoSuchProcess:
+                self.log_event("Process already stopped.", "SUCCESS")
+                self.clear_server_info()
+                return True
+            except Exception as e:
+                self.log_event(
+                    f"Error during graceful shutdown: {e}. Forcing termination.",
+                    "WARNING",
+                )
+
+        # Force termination
+        if PSUTIL_AVAILABLE and psutil:
+            try:
+                proc = psutil.Process(pid)
+                proc.kill()
+                proc.wait(timeout=5)
+            except psutil.NoSuchProcess:
+                pass  # Already gone
+            except Exception as e:
+                self.log_event(f"Error during force kill: {e}", "ERROR")
+        else:  # Fallback dla systemów bez psutil
+            try:
+                os.kill(pid, 9)  # SIGKILL
+            except ProcessLookupError:
+                pass  # Already gone
+            except Exception as e:
+                self.log_event(f"Error during fallback kill: {e}", "ERROR")
+
+        time.sleep(1)  # Give OS a moment to update process table
+        if not self.is_process_running(pid):
+            self.log_event("Server stopped forcefully.", "SUCCESS")
+            self.clear_server_info()
+            return True
+        else:
+            self.log_event("Failed to stop the server.", "ERROR")
+            return False
+
+    def restart_server(self, auto_restart: bool = False) -> bool:
+        """Restartuje serwer."""
+        self.log_event("Restarting server...")
+        if self.stop_server():
+            time.sleep(2)  # Czas na zwolnienie portu
+            return self.start_server(auto_restart)
+        self.log_event("Failed to stop the server, restart aborted.", "ERROR")
+        return False
+
+    def run_tests(self) -> bool:
+        """Uruchom testy podstawowe."""
+        if not self.is_running():
+            self.log_event("Server not running. Cannot run tests.", "ERROR")
+            return False
+
+        self.log_event("Running tests...", "INFO")
+        try:
+            result = subprocess.run(
+                [sys.executable, "test_algorithm_integration.py"],
+                capture_output=True,
+                text=True,
+                cwd=os.getcwd(),
+            )
+
+            # Log the output
+            if result.stdout:
+                for line in result.stdout.strip().split("\n"):
+                    print(line)
+
+            if result.stderr:
+                self.log_event("STDERR output:", "WARNING")
+                for line in result.stderr.strip().split("\n"):
+                    self.log_event(line, "WARNING")
+
+            if result.returncode == 0:
+                self.log_event("Tests completed successfully.", "SUCCESS")
+                return True
+            else:
+                self.log_event(
+                    f"Tests failed with return code: {result.returncode}", "ERROR"
+                )
+                return False
+
+        except Exception as e:
+            self.log_event(f"Failed to run tests: {e}", "ERROR")
+            return False
+
+    def show_status(self, detailed: bool = False):
+        """Wyświetla aktualny status serwera."""
+        print("─" * 40)
+        print("🖥️  Server Status")
+        print("─" * 40)
+        info = self.load_server_info()
+
+        if not info or not self.is_process_running(info.get("pid", -1)):
+            self.log_event("Server is NOT RUNNING.", "WARNING")
+            self.clear_server_info()
+            return
+
+        pid = info["pid"]
+        is_responding = self.is_server_responding()
+        status_color = "SUCCESS" if is_responding else "ERROR"
+
+        self.log_event(f"Server process is RUNNING (PID: {pid}).", "SUCCESS")
+        self.log_event(
+            f"Server HTTP endpoint is {'RESPONDING' if is_responding else 'NOT RESPONDING'}.",
+            status_color,
+        )
+
+        if detailed and PSUTIL_AVAILABLE and psutil:
+            proc_info = self.get_process_info(pid)
+            if proc_info.get("status") != "not_found":
+                uptime = timedelta(seconds=int(proc_info.get("uptime_seconds", 0)))
+                print(f"  PID          : {proc_info.get('pid')}")
+                print(f"  Uptime       : {uptime}")
+                print(f"  Memory       : {proc_info.get('memory_mb', 'N/A')} MB")
+                print(f"  CPU          : {proc_info.get('cpu_percent', 'N/A')} %")
+        print("─" * 40)
+
+    def start_watchdog(self):
+        """Uruchamia wątek watchdog do monitorowania serwera."""
+        if self.monitor_running.is_set():
+            self.log_event("Watchdog is already running.", "INFO")
+            return
+        self.log_event("Starting watchdog monitor...", "INFO")
+        self.monitor_running.set()
+        self.monitor_thread = threading.Thread(target=self._watchdog_loop, daemon=True)
+        self.monitor_thread.start()
+
+    def stop_watchdog(self):
+        """Zatrzymuje wątek watchdog."""
+        if self.monitor_running.is_set():
+            self.log_event("Stopping watchdog monitor...", "INFO")
+            self.monitor_running.clear()
+            if self.monitor_thread and self.monitor_thread.is_alive():
+                self.monitor_thread.join(timeout=3)
+
+    def _watchdog_loop(self):
+        """Główna pętla wątku watchdog."""
+        failures = 0
+        while self.monitor_running.is_set():
+            if not self.is_server_responding():
+                failures += 1
+                self.log_event(
+                    f"Watchdog: Server health check failed ({failures}/{self.failure_threshold}).",
+                    "WARNING",
+                )
+                if failures >= self.failure_threshold:
+                    self.log_event(
+                        "Watchdog: Failure threshold reached. Attempting to restart server.",
+                        "ERROR",
+                    )
+                    if self.restart_server(auto_restart=True):
+                        failures = 0
+                    time.sleep(self.restart_delay)
+            else:
+                if failures > 0:
+                    self.log_event("Watchdog: Server has recovered.", "SUCCESS")
+                failures = 0
+
+            self.monitor_running.wait(self.health_check_interval)
+
+    def watch_server_foreground(self, interval: int):
+        """Uruchamia dashboard monitorujący na pierwszym planie."""
+        self.log_event(
+            f"Starting foreground watch (interval: {interval}s). Press Ctrl+C to stop.",
+            "INFO",
+        )
+        try:
+            while True:
+                if sys.stdout.isatty():
+                    os.system("cls" if os.name == "nt" else "clear")
+                self.show_status(detailed=True)
+                time.sleep(interval)
+        except KeyboardInterrupt:
+            print()
+            self.log_event("Foreground watch stopped by user.", "INFO")
+
+    def show_logs(self, tail_lines: int, log_type: str):
+        """Pokazuje ostatnie N linii określonego pliku logów."""
+        log_files = {
+            "manager": self.manager_log_file,
+            "server": self.server_log_file,
+            "errors": self.server_error_file,
+        }
+        log_file = log_files.get(log_type, self.manager_log_file)
+
+        print(f"📋 Displaying last {tail_lines} lines of '{log_file.name}'")
+        print("─" * 40)
+
+        if not log_file.exists():
+            self.log_event(f"Log file not found: {log_file}", "WARNING")
+            return
+        try:
+            with open(log_file, "r", encoding="utf-8", errors="ignore") as f:
+                lines = f.readlines()
+            for line in lines[-tail_lines:]:
+                print(line.strip())
+        except Exception as e:
+            self.log_event(f"Error reading log file: {e}", "ERROR")
+
+
+def create_parser() -> argparse.ArgumentParser:
+    """Tworzy parser argumentów linii poleceń."""
+    help_epilog = """
+-------------------------------------------------
+ GattoNero AI - Przewodnik Szybkiego Startu
+-------------------------------------------------
+1. Uruchom serwer w tle:
+   python server_manager_enhanced.py start
+
+2. Sprawdź, czy działa:
+   python server_manager_enhanced.py status
+   
+3. Uruchom testy lub pracuj z API/Photoshopem:
+   python test_basic.py
+   
+4. Zatrzymaj serwer po pracy:
+   python server_manager_enhanced.py stop
+-------------------------------------------------
+Użyj `[komenda] --help` aby zobaczyć opcje dla konkretnej komendy.
+"""
+
+    parser = argparse.ArgumentParser(
+        description=__doc__,
+        formatter_class=argparse.RawTextHelpFormatter,
+        epilog=help_epilog,
+    )
+    subparsers = parser.add_subparsers(dest="command", help="Dostępne komendy")
+    subparsers.required = False
+    subparsers.default = "help"
+
+    help_parser = subparsers.add_parser("help", help="Wyświetla tę wiadomość pomocy.")
+
+    start = subparsers.add_parser("start", help="Uruchamia serwer w tle.")
+    start.add_argument(
+        "--auto-restart",
+        action="store_true",
+        help="Włącza watchdog do auto-restartu przy awarii.",
+    )
+    start.add_argument("--port", type=int, help="Nadpisuje port serwera z configa.")
+    start.add_argument(
+        "--no-wait",
+        action="store_true",
+        help="Nie czeka na health-check, zwraca od razu.",
+    )
+
+    stop = subparsers.add_parser("stop", help="Zatrzymuje serwer.")
+    stop.add_argument(
+        "--force", action="store_true", help="Wymusza natychmiastowe zatrzymanie."
+    )
+
+    restart = subparsers.add_parser("restart", help="Restartuje serwer.")
+    restart.add_argument(
+        "--auto-restart", action="store_true", help="Włącza watchdog po restarcie."
+    )
+
+    status = subparsers.add_parser("status", help="Pokazuje status serwera.")
+    status.add_argument(
+        "--detailed",
+        action="store_true",
+        help="Pokazuje szczegółowe informacje o procesie.",
+    )
+
+    watch = subparsers.add_parser("watch", help="Monitoruje serwer na żywo.")
+    watch.add_argument(
+        "--interval", type=int, default=5, help="Interwał sprawdzania w sekundach."
+    )
+
+    logs = subparsers.add_parser("logs", help="Wyświetla ostatnie logi.")
+    logs.add_argument(
+        "--tail", type=int, default=20, help="Liczba linii do wyświetlenia."
+    )
+    logs.add_argument(
+        "--file",
+        choices=["manager", "server", "errors"],
+        default="server",
+        help="Który plik logu pokazać.",
+    )
+
+    return parser
+
+
+def main():
+    """Główna funkcja wykonawcza."""
+    parser = create_parser()
+    args = parser.parse_args()
+
+    # Jeśli komenda to 'help' lub nie podano żadnej, wyświetl pomoc i wyjdź
+    if args.command == "help":
+        parser.print_help()
+        sys.exit(0)
+
+    manager = EnhancedServerManager(port=getattr(args, "port", None))
+
+    try:
+        if args.command == "start":
+            sys.exit(
+                0
+                if manager.start_server(
+                    auto_restart=args.auto_restart,
+                    no_wait=getattr(args, "no_wait", False),
+                )
+                else 1
+            )
+        elif args.command == "stop":
+            sys.exit(0 if manager.stop_server(force=args.force) else 1)
+        elif args.command == "restart":
+            sys.exit(0 if manager.restart_server(auto_restart=args.auto_restart) else 1)
+        elif args.command == "status":
+            manager.show_status(detailed=args.detailed)
+        elif args.command == "watch":
+            manager.watch_server_foreground(args.interval)
+        elif args.command == "logs":
+            manager.show_logs(args.tail, args.file)
+        else:
+            parser.print_help()
+    except KeyboardInterrupt:
+        print()
+        manager.log_event("Operation interrupted by user.", "INFO")
+        manager.stop_watchdog()
+        sys.exit(1)
+    except Exception as e:
+        manager.log_event(f"An unexpected error occurred: {e}", "ERROR")
+        import traceback
+
+        traceback.print_exc()
+        sys.exit(1)
+
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path=".server_info.json">
+{
+    "pid": 26092,
+    "port": 5000,
+    "started_at": 1749606934.0751584
+}
+</file>
+
+</files>

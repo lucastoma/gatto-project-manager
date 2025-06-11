@@ -1,0 +1,1 @@
+docker run --rm -v "D:\projects\gatto-ps-ai:/workspace" repomix-local --style xml --include "*.py, *.jsx, *,yaml, *.js,*.ts,*.jsx,*.tsx,*.json" --ignore "node_modules,dist,build,.git" --output gatto-ps-ai-xml.txt

@@ -3,107 +3,62 @@
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>{% block title %}WebView - GattoNero{% endblock %}</title>
-    
-    <!-- CSS -->
-    <link rel="stylesheet" href="{{ url_for('static', filename='webview/css/main.css') }}">
-    {% block extra_css %}{% endblock %}
-    
-    <!-- Favicon -->
-    <link rel="icon" type="image/svg+xml" href="{{ url_for('static', filename='webview/images/favicon.svg') }}">
-</head>
-<body>
-    <!-- Header -->
-    <header class="header">
-        <div class="container">
-            <h1>
-                <a href="{{ url_for('webview.index') }}" style="text-decoration: none; color: inherit;">
-                    🐱 GattoNero WebView
-                </a>
-            </h1>
-            <nav class="nav">
-                <a href="{{ url_for('webview.index') }}" 
-                   class="{% if request.endpoint == 'webview.index' %}active{% endif %}">
-                    🏠 Strona Główna
-                </a>
-                <a href="{{ url_for('webview.algorithm_01_palette_extraction') }}" 
-                   class="{% if request.endpoint == 'webview.algorithm_01' %}active{% endif %}">
-                    🧮 Algorithm 01
-                </a>
-                <a href="#" 
-                   class="disabled">
-                    📊 Historia (Wkrótce)
-                </a>
-                <a href="#" 
-                   class="disabled">
-                    ❓ Pomoc (Wkrótce)
-                </a>
-            </nav>
-        </div>
-    </header>
-
-    <!-- Main Content -->
-    <main class="container">
-        <!-- Flash Messages -->
-        {% with messages = get_flashed_messages(with_categories=true) %}
-            {% if messages %}
-                {% for category, message in messages %}
-                    <div class="alert alert-{{ 'error' if category == 'error' else category }}">
-                        {{ message }}
-                    </div>
-                {% endfor %}
-            {% endif %}
-        {% endwith %}
-
-        <!-- Page Content -->
-        {% block content %}{% endblock %}
-    </main>
-
-    <!-- Footer -->
-    <footer class="footer" style="margin-top: 3rem; padding: 2rem 0; border-top: 1px solid var(--border-color); text-align: center; color: #6c757d;">
-        <div class="container">
-            <p>
-                GattoNero WebView v1.0 | 
-                <a href="https://github.com/your-repo" target="_blank" style="color: var(--secondary-color);">GitHub</a> | 
-                <a href="{{ url_for('webview.health_check') }}" style="color: var(--secondary-color);">Health Check</a>
-            </p>
-            <p style="font-size: 0.875rem; margin-top: 0.5rem;">
-                Status serwera: <span id="server-status" class="server-status">🔄 Sprawdzanie...</span>
-            </p>
-        </div>
-    </footer>
-
-    <!-- JavaScript -->
-    <script src="{{ url_for('static', filename='webview/js/main.js') }}"></script>
-    {% block extra_js %}{% endblock %}
-    
-    <!-- Server Status Check -->
-    <script>
-        // Sprawdź status serwera przy ładowaniu strony
-        document.addEventListener('DOMContentLoaded', function() {
-            checkServerStatus();
-            // Sprawdzaj status co 30 sekund
-            setInterval(checkServerStatus, 30000);
-        });
-        
-        function checkServerStatus() {
-            fetch('/api/health')
-                .then(response => {
-                    const statusElement = document.getElementById('server-status');
-                    if (response.ok) {
-                        statusElement.innerHTML = '✅ Online';
-                        statusElement.style.color = 'var(--success-color)';
-                    } else {
-                        statusElement.innerHTML = '⚠️ Problemy';
-                        statusElement.style.color = 'var(--warning-color)';
-                    }
-                })
-                .catch(error => {
-                    const statusElement = document.getElementById('server-status');
-                    statusElement.innerHTML = '❌ Offline';
-                    statusElement.style.color = 'var(--error-color)';
-                });
+    <title>{% block title %}GattoNero WebView{% endblock %}</title>
+    <!-- Tailwind CSS -->
+    <script src="https://cdn.tailwindcss.com"></script>
+    <!-- Google Fonts: Inter -->
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <!-- Custom Styles -->
+    <style>
+        body { 
+            font-family: 'Inter', sans-serif; 
+            background-color: #f8fafc; /* Lżejszy szary */
         }
-    </script>
+        .nav-link {
+            @apply px-3 py-2 rounded-md text-sm font-medium text-gray-500 hover:text-gray-900 hover:bg-gray-100 transition-colors;
+        }
+        .nav-link.active {
+            @apply bg-blue-50 text-blue-700;
+        }
+    </style>
+</head>
+<body class="text-gray-800">
+    <div id="app" class="flex flex-col min-h-screen">
+        <header class="bg-white/80 backdrop-blur-md border-b border-gray-200 sticky top-0 z-10">
+            <nav class="container mx-auto px-4 sm:px-6 lg:px-8">
+                <div class="flex items-center justify-between h-16">
+                    <div class="flex items-center">
+                        <a href="{{ url_for('webview.index') }}" class="text-xl font-bold text-gray-800 hover:text-blue-600">
+                           <span>&#128049;</span> GattoNero WebView
+                        </a>
+                    </div>
+                    <div class="hidden md:block">
+                        <div class="ml-10 flex items-baseline space-x-4">
+                            <!-- POPRAWKA: Poniższe linki zostały naprawione, aby wskazywały na prawidłowe endpointy -->
+                            <a href="{{ url_for('webview.index') }}" class="nav-link {% if request.endpoint == 'webview.index' %}active{% endif %}">Strona Główna</a>
+                            <a href="{{ url_for('webview.algorithm_01') }}" class="nav-link {% if request.endpoint == 'webview.algorithm_01' %}active{% endif %}">Ekstrakcja Palety</a>
+                            <a href="{{ url_for('webview.algorithm_01_palette_transfer') }}" class="nav-link {% if request.endpoint == 'webview.algorithm_01_palette_transfer' %}active{% endif %}">Transfer Palety</a>
+                        </div>
+                    </div>
+                </div>
+            </nav>
+        </header>
+
+        <main class="flex-grow container mx-auto px-4 sm:px-6 lg:px-8 py-8">
+            {% block content %}{% endblock %}
+        </main>
+
+        <footer class="bg-white mt-8 py-4 border-t border-gray-200">
+            <div class="container mx-auto text-center text-sm text-gray-500">
+                <p>&copy; {% if now %}{{ now.year }}{% else %}2025{% endif %} GattoNero AI. Wersja WebView: 1.1.0</p>
+            </div>
+        </footer>
+    </div>
+    <!-- Główny skrypt JS, jeśli istnieje -->
+    <script src="{{ url_for('webview.static', filename='js/main.js') }}" defer></script>
+    <!-- Blok na dodatkowe skrypty dla podstron -->
+    {% block scripts %}{% endblock %}
 </body>
 </html>

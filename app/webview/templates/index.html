@@ -1,460 +1,66 @@
 {% extends "base.html" %}
 
-{% block title %}WebView - Testowanie Algorytmów{% endblock %}
+{% block title %}Panel Główny - GattoNero WebView{% endblock %}
 
 {% block content %}
-<div class="hero-section">
-    <h1>🎨 WebView - Testowanie Algorytmów</h1>
-    <p class="lead">Interfejs do testowania i debugowania algorytmów przed integracją z Photoshop JSX</p>
+<div class="text-center">
+    <h1 class="text-4xl font-extrabold text-gray-900 sm:text-5xl md:text-6xl">
+        Panel Testowy Algorytmów
+    </h1>
+    <p class="mt-3 max-w-md mx-auto text-base text-gray-500 sm:text-lg md:mt-5 md:text-xl md:max-w-3xl">
+        Witaj w WebView. Tutaj możesz wizualnie testować i debugować algorytmy przed integracją z Photoshopem.
+    </p>
 </div>
 
-<div class="algorithm-grid">
-    <!-- Algorithm 01 - Palette -->
-    <div class="card algorithm-card">
-        <div class="card-header">
-            <h3>🎯 Algorithm 01 - Palette</h3>
-            <span class="status-badge status-ready">Gotowy do testów</span>
-        </div>
-        
-        <div class="card-body">
-            <p>Ekstrakcja palety kolorów z obrazu z możliwością konfiguracji liczby kolorów i metody grupowania.</p>
-            
-            <div class="algorithm-stats">
-                <div class="stat">
-                    <span class="stat-label">Status:</span>
-                    <span class="stat-value">Zaimplementowany</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Ostatni test:</span>
-                    <span class="stat-value">Nigdy</span>
-                </div>
-                <div class="stat">
-                    <span class="stat-label">Sukces:</span>
-                    <span class="stat-value">-</span>
-                </div>
-            </div>
-            
-            <div class="button-group">
-                <a href="{{ url_for('webview.algorithm_01_palette_extraction') }}" class="btn btn-primary">
-                    🧪 Testuj Algorytm
+<div class="mt-12 max-w-lg mx-auto grid gap-5 lg:grid-cols-2 lg:max-w-none">
+    
+    <!-- Karta: Ekstrakcja Palety -->
+    <div class="flex flex-col rounded-lg shadow-lg overflow-hidden">
+        <div class="flex-1 bg-white p-6 flex flex-col justify-between">
+            <div class="flex-1">
+                <p class="text-sm font-medium text-blue-600">
+                    Narzędzie Podstawowe
+                </p>
+                <a href="{{ url_for('webview.algorithm_01') }}" class="block mt-2">
+                    <p class="text-xl font-semibold text-gray-900">
+                        Ekstrakcja Palety Kolorów
+                    </p>
+                    <p class="mt-3 text-base text-gray-500">
+                        Wyodrębnij dominujące kolory z dowolnego obrazu. Użyj metod K-Means lub Median Cut, aby stworzyć paletę.
+                    </p>
                 </a>
-                <a href="#" class="btn btn-secondary" onclick="showAlgorithmInfo('algorithm_01')">
-                    📋 Dokumentacja
+            </div>
+            <div class="mt-6 flex items-center">
+                <a href="{{ url_for('webview.algorithm_01') }}" class="w-full text-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-blue-600 hover:bg-blue-700">
+                    Uruchom Test
                 </a>
             </div>
         </div>
     </div>
-    
-    <!-- Algorithm 02 - Placeholder -->
-    <div class="card algorithm-card disabled">
-        <div class="card-header">
-            <h3>🔄 Algorithm 02</h3>
-            <span class="status-badge status-planned">Planowany</span>
-        </div>
-        
-        <div class="card-body">
-            <p>Kolejny algorytm do implementacji. Szczegóły będą dostępne po dodaniu.</p>
-            
-            <div class="algorithm-stats">
-                <div class="stat">
-                    <span class="stat-label">Status:</span>
-                    <span class="stat-value">Nie zaimplementowany</span>
-                </div>
+
+    <!-- Karta: Transfer Palety -->
+    <div class="flex flex-col rounded-lg shadow-lg overflow-hidden">
+        <div class="flex-1 bg-white p-6 flex flex-col justify-between">
+            <div class="flex-1">
+                <p class="text-sm font-medium text-green-600">
+                    Narzędzie Zaawansowane
+                </p>
+                <a href="{{ url_for('webview.algorithm_01_palette_transfer') }}" class="block mt-2">
+                    <p class="text-xl font-semibold text-gray-900">
+                        Transfer Palety (Nowy Panel)
+                    </p>
+                    <p class="mt-3 text-base text-gray-500">
+                        Przenieś nastrój kolorystyczny z jednego obrazu (Master) na drugi (Target), korzystając z zaawansowanych opcji, takich jak dithering i wygładzanie krawędzi.
+                    </p>
+                </a>
             </div>
-            
-            <div class="button-group">
-                <button class="btn btn-secondary" disabled>
-                    🚧 W przygotowaniu
-                </button>
-            </div>
-        </div>
-    </div>
-    
-    <!-- Algorithm 03 - Placeholder -->
-    <div class="card algorithm-card disabled">
-        <div class="card-header">
-            <h3>⚡ Algorithm 03</h3>
-            <span class="status-badge status-planned">Planowany</span>
-        </div>
-        
-        <div class="card-body">
-            <p>Kolejny algorytm do implementacji. Szczegóły będą dostępne po dodaniu.</p>
-            
-            <div class="algorithm-stats">
-                <div class="stat">
-                    <span class="stat-label">Status:</span>
-                    <span class="stat-value">Nie zaimplementowany</span>
-                </div>
-            </div>
-            
-            <div class="button-group">
-                <button class="btn btn-secondary" disabled>
-                    🚧 W przygotowaniu
-                </button>
+            <div class="mt-6 flex items-center">
+                 <a href="{{ url_for('webview.algorithm_01_palette_transfer') }}" class="w-full text-center px-4 py-2 border border-transparent text-sm font-medium rounded-md shadow-sm text-white bg-green-600 hover:bg-green-700">
+                    Przejdź do Transferu
+                </a>
             </div>
         </div>
     </div>
+
 </div>
-
-<!-- Quick Stats Panel -->
-<div class="panel stats-panel">
-    <h3>📊 Statystyki Szybkie</h3>
-    <div class="stats-grid">
-        <div class="stat-item">
-            <div class="stat-number">1</div>
-            <div class="stat-label">Algorytmy dostępne</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-number">0</div>
-            <div class="stat-label">Testy wykonane</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-number">0</div>
-            <div class="stat-label">Błędy wykryte</div>
-        </div>
-        <div class="stat-item">
-            <div class="stat-number">100%</div>
-            <div class="stat-label">Gotowość systemu</div>
-        </div>
-    </div>
-</div>
-
-<!-- Recent Activity -->
-<div class="panel activity-panel">
-    <h3>📝 Ostatnia Aktywność</h3>
-    <div class="activity-list">
-        <div class="activity-item">
-            <div class="activity-icon">🚀</div>
-            <div class="activity-content">
-                <div class="activity-title">WebView został zainicjalizowany</div>
-                <div class="activity-time">Właśnie teraz</div>
-            </div>
-        </div>
-        <div class="activity-item">
-            <div class="activity-icon">📁</div>
-            <div class="activity-content">
-                <div class="activity-title">Struktura katalogów została utworzona</div>
-                <div class="activity-time">Właśnie teraz</div>
-            </div>
-        </div>
-        <div class="activity-item">
-            <div class="activity-icon">📋</div>
-            <div class="activity-content">
-                <div class="activity-title">Dokumentacja została przygotowana</div>
-                <div class="activity-time">Właśnie teraz</div>
-            </div>
-        </div>
-    </div>
-</div>
-
-<!-- Algorithm Info Modal -->
-<div id="algorithmInfoModal" class="modal" style="display: none;">
-    <div class="modal-content">
-        <div class="modal-header">
-            <h3 id="modalTitle">Informacje o Algorytmie</h3>
-            <button class="modal-close" onclick="closeModal()">&times;</button>
-        </div>
-        <div class="modal-body" id="modalBody">
-            <!-- Content will be loaded dynamically -->
-        </div>
-    </div>
-</div>
-
-<style>
-/* Additional styles for index page */
-.hero-section {
-    text-align: center;
-    padding: 2rem 0;
-    margin-bottom: 2rem;
-    background: linear-gradient(135deg, var(--primary-color), var(--secondary-color));
-    color: white;
-    border-radius: var(--border-radius);
-}
-
-.hero-section h1 {
-    margin: 0 0 0.5rem 0;
-    font-size: 2.5rem;
-}
-
-.lead {
-    font-size: 1.2rem;
-    opacity: 0.9;
-    margin: 0;
-}
-
-.algorithm-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(350px, 1fr));
-    gap: 1.5rem;
-    margin-bottom: 2rem;
-}
-
-.algorithm-card {
-    transition: transform 0.2s ease, box-shadow 0.2s ease;
-}
-
-.algorithm-card:hover:not(.disabled) {
-    transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.15);
-}
-
-.algorithm-card.disabled {
-    opacity: 0.6;
-    cursor: not-allowed;
-}
-
-.card-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    margin-bottom: 1rem;
-}
-
-.card-header h3 {
-    margin: 0;
-    color: var(--text-color);
-}
-
-.status-badge {
-    padding: 0.25rem 0.75rem;
-    border-radius: 1rem;
-    font-size: 0.875rem;
-    font-weight: 500;
-}
-
-.status-ready {
-    background-color: var(--success-color);
-    color: white;
-}
-
-.status-planned {
-    background-color: var(--warning-color);
-    color: white;
-}
-
-.algorithm-stats {
-    margin: 1rem 0;
-    padding: 1rem;
-    background-color: var(--background-light);
-    border-radius: var(--border-radius);
-}
-
-.stat {
-    display: flex;
-    justify-content: space-between;
-    margin-bottom: 0.5rem;
-}
-
-.stat:last-child {
-    margin-bottom: 0;
-}
-
-.stat-label {
-    font-weight: 500;
-    color: var(--text-muted);
-}
-
-.stat-value {
-    color: var(--text-color);
-}
-
-.button-group {
-    display: flex;
-    gap: 0.5rem;
-    margin-top: 1rem;
-}
-
-.stats-panel {
-    margin-bottom: 2rem;
-}
-
-.stats-grid {
-    display: grid;
-    grid-template-columns: repeat(auto-fit, minmax(150px, 1fr));
-    gap: 1rem;
-    margin-top: 1rem;
-}
-
-.stat-item {
-    text-align: center;
-    padding: 1rem;
-    background-color: var(--background-light);
-    border-radius: var(--border-radius);
-}
-
-.stat-number {
-    font-size: 2rem;
-    font-weight: bold;
-    color: var(--primary-color);
-    margin-bottom: 0.5rem;
-}
-
-.activity-list {
-    margin-top: 1rem;
-}
-
-.activity-item {
-    display: flex;
-    align-items: center;
-    padding: 0.75rem 0;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.activity-item:last-child {
-    border-bottom: none;
-}
-
-.activity-icon {
-    font-size: 1.5rem;
-    margin-right: 1rem;
-}
-
-.activity-content {
-    flex: 1;
-}
-
-.activity-title {
-    font-weight: 500;
-    color: var(--text-color);
-}
-
-.activity-time {
-    font-size: 0.875rem;
-    color: var(--text-muted);
-    margin-top: 0.25rem;
-}
-
-.modal {
-    position: fixed;
-    top: 0;
-    left: 0;
-    width: 100%;
-    height: 100%;
-    background-color: rgba(0, 0, 0, 0.5);
-    z-index: 1000;
-    display: flex;
-    align-items: center;
-    justify-content: center;
-}
-
-.modal-content {
-    background: white;
-    border-radius: var(--border-radius);
-    max-width: 600px;
-    width: 90%;
-    max-height: 80vh;
-    overflow-y: auto;
-}
-
-.modal-header {
-    display: flex;
-    justify-content: space-between;
-    align-items: center;
-    padding: 1rem 1.5rem;
-    border-bottom: 1px solid var(--border-color);
-}
-
-.modal-header h3 {
-    margin: 0;
-}
-
-.modal-close {
-    background: none;
-    border: none;
-    font-size: 1.5rem;
-    cursor: pointer;
-    color: var(--text-muted);
-}
-
-.modal-close:hover {
-    color: var(--text-color);
-}
-
-.modal-body {
-    padding: 1.5rem;
-}
-
-@media (max-width: 768px) {
-    .hero-section h1 {
-        font-size: 2rem;
-    }
-    
-    .algorithm-grid {
-        grid-template-columns: 1fr;
-    }
-    
-    .button-group {
-        flex-direction: column;
-    }
-    
-    .stats-grid {
-        grid-template-columns: repeat(2, 1fr);
-    }
-}
-</style>
-
-<script>
-function showAlgorithmInfo(algorithmId) {
-    const modal = document.getElementById('algorithmInfoModal');
-    const title = document.getElementById('modalTitle');
-    const body = document.getElementById('modalBody');
-    
-    // Algorithm info data
-    const algorithmInfo = {
-        algorithm_01: {
-            title: '🎯 Algorithm 01 - Palette',
-            content: `
-                <h4>Opis</h4>
-                <p>Algorytm do ekstrakcji palety kolorów z obrazu. Wykorzystuje zaawansowane techniki grupowania kolorów.</p>
-                
-                <h4>Parametry</h4>
-                <ul>
-                    <li><strong>num_colors:</strong> Liczba kolorów w palecie (1-20, domyślnie 5)</li>
-                    <li><strong>method:</strong> Metoda grupowania (kmeans, median_cut)</li>
-                    <li><strong>quality:</strong> Jakość analizy (1-10, domyślnie 5)</li>
-                </ul>
-                
-                <h4>Wejście</h4>
-                <p>Obraz w formacie JPEG lub PNG (maksymalnie 10MB)</p>
-                
-                <h4>Wyjście</h4>
-                <p>Paleta kolorów w formacie JSON z kodami HEX i RGB</p>
-                
-                <h4>Przykład użycia</h4>
-                <pre><code>{
-  "num_colors": 5,
-  "method": "kmeans",
-  "quality": 7
-}</code></pre>
-            `
-        }
-    };
-    
-    const info = algorithmInfo[algorithmId];
-    if (info) {
-        title.textContent = info.title;
-        body.innerHTML = info.content;
-        modal.style.display = 'flex';
-    }
-}
-
-function closeModal() {
-    const modal = document.getElementById('algorithmInfoModal');
-    modal.style.display = 'none';
-}
-
-// Close modal when clicking outside
-document.getElementById('algorithmInfoModal').addEventListener('click', function(e) {
-    if (e.target === this) {
-        closeModal();
-    }
-});
-
-// Close modal with Escape key
-document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape') {
-        closeModal();
-    }
-});
-</script>
 {% endblock %}
