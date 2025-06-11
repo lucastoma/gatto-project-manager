@@ -77,9 +77,9 @@ def display_config_list(config_files):
     print("\n" + "="*80)
 
 def run_script_with_config(config_file):
-    """Uruchamia skrypt .comb-scripts-v3.py z wybraną konfiguracją."""
+    """Uruchamia skrypt .comb-scripts-v5.py z wybraną konfiguracją."""
     script_dir = Path(__file__).parent
-    main_script = script_dir / '.comb-scripts-v3.py'
+    main_script = script_dir / '.comb-scripts-v5.py'
     export_dir = script_dir / 'export'
     
     if not main_script.exists():
@@ -132,7 +132,8 @@ def main():
         # Opcje wyboru
         print("\n🎯 OPCJE:")
         for i in range(1, len(config_files) + 1):
-            print(f"  {i} - Uruchom z konfiguracją [{i}]")
+            config_info = load_config_info(config_files[i-1])
+            print(f"  {i} - {config_info['project_name']}")
         print(f"  0 - Wyjście")
         print(f"  r - Odśwież listę")
         

@@ -26,8 +26,8 @@ app/temp_jsx/
 logs/**/*
 
 .trae/**/*
-.kilo/**/*
+.kilocode/**/*
 .doc-gen/**/*.md
-
+.doc-gen/**/*
 
 .doc/**/*

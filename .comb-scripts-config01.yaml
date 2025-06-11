@@ -1,5 +1,5 @@
 project_name: "Gatto PS AI Project"
-# output_file: ".doc-gen/comb-scripts-output.md" # Removed
+output_file: ".doc-gen/comb-scripts-output.xml" # Re-enabled, changed to .xml
 gitignore_file: ".gitignore"
 
 repomix_global_options: # Added
