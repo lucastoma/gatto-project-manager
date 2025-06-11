@@ -54,7 +54,17 @@ def colormatch_endpoint():
         params['edge_detection_threshold'] = float(request.form.get('edge_detection_threshold', 25))
         params['edge_blur_radius'] = float(request.form.get('edge_blur_radius', 1.5))
         params['edge_blur_strength'] = float(request.form.get('edge_blur_strength', 0.3))
-        # exclude_colors and palette_source_area will be handled in Phase 2b
+        # === COLOR FOCUS PARAMS ===
+        import json
+        params['use_color_focus'] = request.form.get('use_color_focus', 'false').lower() == 'true'
+        focus_ranges_str = request.form.get('focus_ranges', '[]')
+        try:
+            params['focus_ranges'] = json.loads(focus_ranges_str)
+            if not isinstance(params['focus_ranges'], list):
+                raise ValueError("focus_ranges musi być tablicą JSON.")
+        except (json.JSONDecodeError, ValueError) as e:
+            logger.error(f"Nieprawidłowy format JSON dla focus_ranges: {e}")
+            return f"error,Nieprawidłowy format JSON w parametrze focus_ranges: {e}"
 
     logger.info(f"Przetwarzanie przez algorytm: {algorithm_id} z parametrami: {params}")
 

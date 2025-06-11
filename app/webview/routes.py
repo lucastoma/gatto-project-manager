@@ -198,14 +198,23 @@ def handle_palette_transfer():
             "preserve_extremes": request.form.get("preserve_extremes") == "on",
             "extremes_threshold": int(request.form.get("extremes_threshold", 10)),
             "edge_blur_enabled": request.form.get("edge_blur_enabled") == "on",
-            "edge_detection_threshold": float(
-                request.form.get("edge_detection_threshold", 25)
-            ),
+            "edge_detection_threshold": float(request.form.get("edge_detection_threshold", 25)),
             "edge_blur_radius": float(request.form.get("edge_blur_radius", 1.5)),
             "edge_blur_strength": float(request.form.get("edge_blur_strength", 0.3)),
             "quality": int(request.form.get("quality", 5)),
             "distance_metric": request.form.get("distance_metric", "weighted_rgb"),
         }
+        # === COLOR FOCUS PARAMS ===
+        params['use_color_focus'] = request.form.get('use_color_focus') == "on"
+        focus_ranges_str = request.form.get('focus_ranges_json', '[]')
+        try:
+            params['focus_ranges'] = json.loads(focus_ranges_str)
+            if not isinstance(params['focus_ranges'], list):
+                raise ValueError("focus_ranges musi być listą (JSON array).")
+        except (json.JSONDecodeError, ValueError) as e:
+            log_activity("transfer_error", {"error": f"Invalid focus_ranges format: {e}"}, "error")
+            return jsonify({"success": False, "error": f"Nieprawidłowy format JSON w 'Color Focus Ranges': {e}"}), 400
+
         log_activity("parameters_collected", params)
 
         algorithm = PaletteMappingAlgorithm()

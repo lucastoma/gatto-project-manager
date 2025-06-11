@@ -141,6 +141,21 @@
                     </div>
                 </div>
 
+                <!-- Color Focus (Opcjonalne) -->
+                <div class="card">
+                    <h2 class="text-2xl font-semibold mb-4 border-b pb-3">6. Color Focus (Opcjonalne)</h2>
+                    <div class="space-y-2">
+                        <label class="flex items-center space-x-3">
+                            <input type="checkbox" id="use_color_focus" name="use_color_focus" class="h-5 w-5 rounded border-gray-300 text-blue-600 focus:ring-blue-500">
+                            <span><strong>Włącz Color Focus</strong></span>
+                        </label>
+                        <p class="text-sm text-gray-500">Priorytetyzuj określone zakresy kolorów podczas mapowania.</p>
+                        <label for="focus_ranges_json" class="block text-sm font-medium text-gray-700 mt-2">Konfiguracja zakresów (format JSON)</label>
+                        <textarea id="focus_ranges_json" name="focus_ranges_json" class="w-full border rounded-md p-2 mt-1 text-sm" rows="6" disabled placeholder="Włącz Color Focus, aby edytować."></textarea>
+                    </div>
+                </div>
+                <!-- /Color Focus -->
+
                 <button type="submit" class="w-full bg-blue-600 text-white font-bold py-3 px-4 rounded-lg hover:bg-blue-700 transition duration-300 text-xl">
                     Przetwarzaj
                 </button>
@@ -200,6 +215,31 @@
             const edgeBlurControls = document.getElementById('edge-blur-controls');
             edgeBlurCheckbox.addEventListener('change', () => {
                 edgeBlurControls.classList.toggle('hidden', !edgeBlurCheckbox.checked);
+            });
+
+            // --- Color Focus obsługa ---
+            const useColorFocusCheckbox = document.getElementById('use_color_focus');
+            const focusRangesTextarea = document.getElementById('focus_ranges_json');
+            const exampleFocus = [
+                {
+                    "target_hsv": [25, 50, 70],
+                    "range_h": 30,
+                    "range_s": 50,
+                    "range_v": 60,
+                    "boost_factor": 5.0
+                }
+            ];
+            useColorFocusCheckbox.addEventListener('change', function() {
+                if (this.checked) {
+                    focusRangesTextarea.disabled = false;
+                    focusRangesTextarea.placeholder = 'Wprowadź listę obiektów JSON...';
+                    if (focusRangesTextarea.value.trim() === '') {
+                        focusRangesTextarea.value = JSON.stringify(exampleFocus, null, 2);
+                    }
+                } else {
+                    focusRangesTextarea.disabled = true;
+                    focusRangesTextarea.placeholder = 'Włącz Color Focus, aby edytować.';
+                }
             });
 
             // --- Logika Drag & Drop i wyboru pliku ---
