@@ -25,6 +25,7 @@ def get_default_config() -> Dict[str, Any]:
         "edge_blur_radius": 1.5,
         "edge_blur_strength": 0.3,
         "edge_detection_threshold": 25,
+        "edge_blur_device": "auto",  # auto|gpu|cpu
         "postprocess_median_filter": False,
         # Opcje specyficzne dla GPU
         "force_cpu": False,

@@ -54,6 +54,7 @@ def colormatch_endpoint():
         params['edge_detection_threshold'] = float(request.form.get('edge_detection_threshold', 25))
         params['edge_blur_radius'] = float(request.form.get('edge_blur_radius', 1.5))
         params['edge_blur_strength'] = float(request.form.get('edge_blur_strength', 0.3))
+        params['edge_blur_device'] = request.form.get('edge_blur_device', 'auto').lower()
         # === COLOR FOCUS PARAMS ===
         import json
         params['use_color_focus'] = request.form.get('use_color_focus', 'false').lower() == 'true'
@@ -138,6 +139,7 @@ def colormatch_preview_endpoint():
         params['edge_detection_threshold'] = float(request.form.get('edge_detection_threshold', 25))
         params['edge_blur_radius'] = float(request.form.get('edge_blur_radius', 1.5))
         params['edge_blur_strength'] = float(request.form.get('edge_blur_strength', 0.3))
+        params['edge_blur_device'] = request.form.get('edge_blur_device', 'auto').lower()
         # preview_thumbnail_size can be passed from JSX if needed, otherwise default from config
 
     logger.info(f"Przetwarzanie podglądu przez algorytm: {algorithm_id} z parametrami: {params}")

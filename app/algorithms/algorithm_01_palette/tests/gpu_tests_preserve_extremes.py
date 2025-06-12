@@ -3,6 +3,8 @@ import numpy as np
 from PIL import Image
 import os
 import sys
+import tempfile
+import shutil
 from pathlib import Path
 
 # Ensure root path for package import
@@ -25,19 +27,31 @@ class TestPreserveExtremesGPU(unittest.TestCase):
 
     def setUp(self):
         self.alg = PaletteMappingAlgorithmGPU()
-        self.master_path = os.path.join(str(PROJECT_ROOT), "uploads", "m1.tif")
-        self.target_path = self.master_path
-        if not os.path.exists(self.master_path):
-            self.skipTest("Large test image uploads/m1.tif not found")
-        self.tmp = []
+
+        self.tmpdir = Path(tempfile.mkdtemp(prefix="gpu_extremes_"))
+
+        uploads_master = PROJECT_ROOT / "uploads" / "m1.tif"
+        if uploads_master.exists():
+            self.master_path = str(uploads_master)
+            self.target_path = self.master_path
+        else:
+            synth_path = self.tmpdir / "synthetic_master.tif"
+            arr = (np.random.rand(256, 256, 3) * 255).astype(np.uint8)
+            Image.fromarray(arr).save(synth_path)
+            self.master_path = str(synth_path)
+            self.target_path = self.master_path
+
+        self.outputs = []
 
     def tearDown(self):
-        for p in self.tmp:
+        for p in self.outputs:
             if os.path.exists(p):
                 os.remove(p)
+        if self.tmpdir.exists():
+            shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def _run(self, out_path: str, **cfg):
-        self.tmp.append(out_path)
+        self.outputs.append(out_path)
         return self.alg.process_images(self.master_path, self.target_path, out_path, **cfg)
 
     @staticmethod
@@ -48,8 +62,8 @@ class TestPreserveExtremesGPU(unittest.TestCase):
         cfg_off = {"preserve_extremes": False, "extremes_threshold": 0}
         cfg_on = {"preserve_extremes": True, "extremes_threshold": 15}
 
-        out_off = "gpu_extremes_off.jpg"
-        out_on = "gpu_extremes_on.jpg"
+        out_off = str(self.tmpdir / "gpu_extremes_off.jpg")
+        out_on = str(self.tmpdir / "gpu_extremes_on.jpg")
 
         self.assertTrue(self._run(out_off, **cfg_off))
         self.assertTrue(self._run(out_on, **cfg_on))

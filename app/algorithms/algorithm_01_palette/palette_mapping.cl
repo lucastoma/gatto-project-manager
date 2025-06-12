@@ -44,3 +44,69 @@ __kernel void map_palette(
     }
     output_indices[gid] = best_idx;
 }
+
+// === GPU Edge Blur Kernels ===
+
+// box_blur3x3 kernel usunięty – stosujemy wyłącznie separowalne rozmycie Gaussa.
+
+// end edge blur kernels
+
+// === Separable Gaussian Blur Kernels ===
+
+__kernel void gaussian_blur_h(
+    __global const uchar* input_rgb,
+    __global uchar* output_rgb,
+    __global const float* weights,
+    const int radius,
+    const int width,
+    const int height)
+{
+    int gid = get_global_id(0);
+    int x = gid % width;
+    int y = gid / width;
+    if (y >= height) return;
+
+    float sum_r = 0.0f, sum_g = 0.0f, sum_b = 0.0f;
+    for (int k = -radius; k <= radius; ++k) {
+        int xx = clamp(x + k, 0, width - 1);
+        int idx = (y * width + xx) * 3;
+        float w = weights[k + radius];
+        sum_r += (float)input_rgb[idx] * w;
+        sum_g += (float)input_rgb[idx + 1] * w;
+        sum_b += (float)input_rgb[idx + 2] * w;
+    }
+    int out_idx = (y * width + x) * 3;
+    output_rgb[out_idx]     = (uchar)clamp(sum_r + 0.5f, 0.0f, 255.0f);
+    output_rgb[out_idx + 1] = (uchar)clamp(sum_g + 0.5f, 0.0f, 255.0f);
+    output_rgb[out_idx + 2] = (uchar)clamp(sum_b + 0.5f, 0.0f, 255.0f);
+}
+
+__kernel void gaussian_blur_v(
+    __global const uchar* input_rgb,
+    __global uchar* output_rgb,
+    __global const float* weights,
+    const int radius,
+    const int width,
+    const int height)
+{
+    int gid = get_global_id(0);
+    int x = gid % width;
+    int y = gid / width;
+    if (y >= height) return;
+
+    float sum_r = 0.0f, sum_g = 0.0f, sum_b = 0.0f;
+    for (int k = -radius; k <= radius; ++k) {
+        int yy = clamp(y + k, 0, height - 1);
+        int idx = (yy * width + x) * 3;
+        float w = weights[k + radius];
+        sum_r += (float)input_rgb[idx] * w;
+        sum_g += (float)input_rgb[idx + 1] * w;
+        sum_b += (float)input_rgb[idx + 2] * w;
+    }
+    int out_idx = (y * width + x) * 3;
+    output_rgb[out_idx]     = (uchar)clamp(sum_r + 0.5f, 0.0f, 255.0f);
+    output_rgb[out_idx + 1] = (uchar)clamp(sum_g + 0.5f, 0.0f, 255.0f);
+    output_rgb[out_idx + 2] = (uchar)clamp(sum_b + 0.5f, 0.0f, 255.0f);
+}
+
+// end gaussian blur kernels

@@ -117,6 +117,11 @@ class PaletteMappingAlgorithm:
             "postprocess_median_filter": False,
         }
 
+    # --- Backward compatibility helper ---
+    def default_config(self) -> Dict[str, Any]:
+        """Zachowana dla kompatybilności wstecznej (stare testy)."""
+        return self.default_config_values
+
     # ... (metody load_config, validate_palette, extract_palette pozostają bez zmian) ...
     def load_config(self, config_path: str) -> Dict[str, Any]:
         config = self.default_config_values.copy()

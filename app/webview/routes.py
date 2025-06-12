@@ -201,6 +201,7 @@ def handle_palette_transfer():
             "edge_detection_threshold": float(request.form.get("edge_detection_threshold", 25)),
             "edge_blur_radius": float(request.form.get("edge_blur_radius", 1.5)),
             "edge_blur_strength": float(request.form.get("edge_blur_strength", 0.3)),
+            "edge_blur_device": request.form.get("edge_blur_device", "auto").lower(),
             "quality": int(request.form.get("quality", 5)),
             "distance_metric": request.form.get("distance_metric", "weighted_hsv"),
         }

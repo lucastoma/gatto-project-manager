@@ -1,6 +1,5 @@
 import numpy as np
 import pyopencl as cl
-import pyopencl.array as cl_array
 from PIL import Image, ImageFilter
 import logging
 import time
@@ -115,20 +114,83 @@ class PaletteMappingAlgorithmGPU:
         mapped_array[white_mask] = [255, 255, 255]
         return mapped_array
 
+    def _gaussian_weights(self, radius: int) -> np.ndarray:
+        sigma = max(radius / 2.0, 0.1)
+        offsets = np.arange(-radius, radius + 1, dtype=np.float32)
+        weights = np.exp(-offsets ** 2 / (2 * sigma * sigma))
+        weights /= weights.sum()
+        return weights.astype(np.float32)
+
+    def _blur_image_gpu_gauss(self, image_array: np.ndarray, radius: int) -> Optional[np.ndarray]:
+        """Separable Gaussian blur on GPU using two 1-D passes."""
+        if radius <= 0:
+            return image_array
+        h, w, _ = image_array.shape
+        flat = image_array.astype(np.uint8).reshape(-1)
+        weights = self._gaussian_weights(radius)
+        try:
+            with OpenCLManager() as cl_mgr:
+                mf = cl.mem_flags
+                buf_in = cl.Buffer(cl_mgr.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=flat)
+                buf_temp = cl.Buffer(cl_mgr.ctx, mf.READ_WRITE, flat.nbytes)
+                buf_out = cl.Buffer(cl_mgr.ctx, mf.READ_WRITE, flat.nbytes)
+                buf_w = cl.Buffer(cl_mgr.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=weights)
+
+                global_size = (h * w,)
+                # horizontal pass
+                cl_mgr.prg.gaussian_blur_h(cl_mgr.queue, global_size, None,
+                                            buf_in, buf_temp, buf_w,
+                                            np.int32(radius), np.int32(w), np.int32(h))
+                # vertical pass
+                cl_mgr.prg.gaussian_blur_v(cl_mgr.queue, global_size, None,
+                                            buf_temp, buf_out, buf_w,
+                                            np.int32(radius), np.int32(w), np.int32(h))
+
+                cl.enqueue_copy(cl_mgr.queue, flat, buf_out).wait()
+                for b in (buf_in, buf_temp, buf_out, buf_w):
+                    b.release()
+            return flat.reshape((h, w, 3))
+        except Exception as e:
+            self.logger.warning(f"GPU gaussian blur nie powiódł się: {e}.")
+            return None
+
     def _apply_edge_blending(self, mapped_image: Image.Image, config: Dict[str, Any]) -> Image.Image:
         if not SCIPY_AVAILABLE:
-            self.logger.warning("Scipy niedostępne. Pomijam wygładzanie krawędzi.")
+            # brak Scipy; spróbuj GPU box blur bez maski krawędzi? potrzebujemy ndimage do maski
+            self.logger.warning("Scipy niedostępne – nie mogę wygenerować maski krawędzi. Pomijam edge blur.")
             return mapped_image
         self.logger.info("Stosuję zaawansowane wygładzanie krawędzi.")
         mapped_array = np.array(mapped_image, dtype=np.float64)
         gray = np.dot(mapped_array[..., :3], [0.2989, 0.5870, 0.1140])
+        from scipy import ndimage  # import lokalny, jeśli dostępny
         grad_x = ndimage.sobel(gray, axis=1); grad_y = ndimage.sobel(gray, axis=0)
         magnitude = np.sqrt(grad_x**2 + grad_y**2)
         edge_mask = magnitude > config["edge_detection_threshold"]
         radius = int(config["edge_blur_radius"])
-        if radius > 0: edge_mask = ndimage.binary_dilation(edge_mask, iterations=radius)
-        blurred_array = mapped_array.copy()
-        for channel in range(3): blurred_array[:, :, channel] = ndimage.gaussian_filter(mapped_array[:, :, channel], sigma=config["edge_blur_radius"])
+        if radius > 0:
+            edge_mask = ndimage.binary_dilation(edge_mask, iterations=radius)
+        
+        use_gpu = config.get("edge_blur_device", "auto").lower() != "cpu" and not config.get("force_cpu")
+
+        blurred_array = None
+        device_used = "none"
+        start_t = time.perf_counter()
+
+        if radius > 0 and use_gpu:
+            blurred_array = self._blur_image_gpu_gauss(mapped_array.astype(np.uint8), radius)
+            if blurred_array is not None:
+                device_used = "gpu"
+
+        if blurred_array is None:
+            # fallback CPU Gauss
+            blurred_array = mapped_array.copy()
+            for channel in range(3):
+                blurred_array[:, :, channel] = ndimage.gaussian_filter(mapped_array[:, :, channel], sigma=radius)
+            device_used = "cpu"
+
+        elapsed_ms = (time.perf_counter() - start_t) * 1000.0
+        self._log_blur_benchmark(device_used, radius, elapsed_ms, mapped_array.shape[1], mapped_array.shape[0])
+
         blend_factor = (edge_mask * config["edge_blur_strength"])[:, :, np.newaxis]
         result_array = (mapped_array * (1 - blend_factor) + blurred_array * blend_factor)
         return Image.fromarray(np.clip(result_array, 0, 255).astype(np.uint8))
@@ -195,6 +257,8 @@ class PaletteMappingAlgorithmGPU:
                 if key in run_config: run_config[key] = float(run_config[key])
             for key in ['num_colors', 'quality', 'extremes_threshold', 'edge_detection_threshold', 'gpu_batch_size']:
                  if key in run_config: run_config[key] = int(run_config[key])
+            if 'edge_blur_device' in run_config:
+                run_config['edge_blur_device'] = str(run_config['edge_blur_device']).lower()
         except (ValueError, TypeError) as e:
             self.logger.error(f"Błąd konwersji typów w konfiguracji: {e}", exc_info=True)
             return False
@@ -235,6 +299,25 @@ class PaletteMappingAlgorithmGPU:
         except Exception as e:
             self.logger.error(f"Główny proces przetwarzania nie powiódł się: {e}", exc_info=True)
             return False
+
+    def _log_blur_benchmark(self, device: str, radius: int, elapsed_ms: float, width: int, height: int):
+        """Loguje wynik benchmarku do CSV w folderze logs."""
+        try:
+            logs_dir = os.path.join(os.path.dirname(__file__), "..", "..", "logs")
+            os.makedirs(logs_dir, exist_ok=True)
+            csv_path = os.path.join(logs_dir, "edge_blur_benchmarks.csv")
+            header_needed = not os.path.exists(csv_path)
+            import csv, datetime
+            with open(csv_path, "a", newline="", encoding="utf-8") as f:
+                writer = csv.writer(f)
+                if header_needed:
+                    writer.writerow(["timestamp", "device", "radius", "elapsed_ms", "width", "height"])
+                writer.writerow([
+                    datetime.datetime.now().isoformat(), device, radius, f"{elapsed_ms:.2f}", width, height
+                ])
+        except Exception:
+            # nie blokuj głównego procesu w razie problemów z logiem
+            pass
 
 def create_palette_mapping_algorithm_gpu():
     return PaletteMappingAlgorithmGPU()

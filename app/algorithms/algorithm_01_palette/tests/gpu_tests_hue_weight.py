@@ -3,6 +3,8 @@ import numpy as np
 from PIL import Image
 import os
 import sys
+import tempfile
+import shutil
 from pathlib import Path
 
 # Ensure project root (directory containing 'app') in sys.path
@@ -28,16 +30,28 @@ class TestHueWeightGPU(unittest.TestCase):
 
     def setUp(self):
         self.algorithm = PaletteMappingAlgorithmGPU()
-        self.master_path = os.path.join(str(PROJECT_ROOT), "uploads", "m1.tif")
-        self.target_path = self.master_path  # map palette of same image
-        if not os.path.exists(self.master_path):
-            self.skipTest("Large test image uploads/m1.tif not found")
+
+        self.tmpdir = Path(tempfile.mkdtemp(prefix="gpu_hue_"))
+
+        uploads_master = PROJECT_ROOT / "uploads" / "m1.tif"
+        if uploads_master.exists():
+            self.master_path = str(uploads_master)
+            self.target_path = self.master_path
+        else:
+            synth_path = self.tmpdir / "synthetic_master.tif"
+            arr = (np.random.rand(256, 256, 3) * 255).astype(np.uint8)
+            Image.fromarray(arr).save(synth_path)
+            self.master_path = str(synth_path)
+            self.target_path = self.master_path
+
         self.output_files = []
 
     def tearDown(self):
         for path in self.output_files:
             if os.path.exists(path):
                 os.remove(path)
+        if self.tmpdir.exists():
+            shutil.rmtree(self.tmpdir, ignore_errors=True)
 
     def _run(self, output_path: str, **config):
         self.output_files.append(output_path)
@@ -56,8 +70,8 @@ class TestHueWeightGPU(unittest.TestCase):
         low_cfg = {"hue_weight": 1.0}
         high_cfg = {"hue_weight": 5.0}
 
-        out_low = "gpu_hue_low.jpg"
-        out_high = "gpu_hue_high.jpg"
+        out_low = str(self.tmpdir / "gpu_hue_low.jpg")
+        out_high = str(self.tmpdir / "gpu_hue_high.jpg")
 
         self.assertTrue(self._run(out_low, **low_cfg))
         self.assertTrue(self._run(out_high, **high_cfg))
