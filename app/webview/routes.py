@@ -17,6 +17,7 @@ from flask import (
 )
 from werkzeug.utils import secure_filename
 from werkzeug.exceptions import RequestEntityTooLarge
+import time  # Dodano do pomiaru czasu przetwarzania
 
 # --- UWAGA: Upewniamy się, że używamy prawdziwego algorytmu ---
 # Zakładamy, że reszta aplikacji jest poprawnie skonfigurowana.
@@ -27,6 +28,13 @@ except ImportError as e:
     raise ImportError(
         f"CRITICAL: Failed to import PaletteMappingAlgorithm. Ensure the module exists and is correct. Error: {e}"
     )
+
+# Import GPU variant, może być niedostępny na systemach bez OpenCL
+try:
+    from ..algorithms.algorithm_01_palette import PaletteMappingAlgorithmGPU, OPENCL_AVAILABLE
+except ImportError:
+    PaletteMappingAlgorithmGPU = None
+    OPENCL_AVAILABLE = False
 
 # Create Blueprint
 webview_bp = Blueprint(
@@ -193,24 +201,40 @@ def handle_palette_transfer():
 
         params = {
             "num_colors": int(request.form.get("num_colors", 16)),
+            "palette_method": request.form.get("palette_method", "kmeans"),
+            "quality": int(request.form.get("quality", 5)),
+            "distance_metric": request.form.get("distance_metric", "weighted_hsv"),
+            # Wagi HSV
+            "hue_weight": float(request.form.get("hue_weight", 3.0)),
+            "saturation_weight": float(request.form.get("saturation_weight", 1.0)),
+            "value_weight": float(request.form.get("value_weight", 1.0)),
+            # Dithering
             "dithering_method": request.form.get("dithering_method", "none"),
+            "dithering_strength": float(request.form.get("dithering_strength", 8.0)),
+            # Ekstremy
             "inject_extremes": request.form.get("inject_extremes") == "on",
             "preserve_extremes": request.form.get("preserve_extremes") == "on",
             "extremes_threshold": int(request.form.get("extremes_threshold", 10)),
+            # Edge blur
             "edge_blur_enabled": request.form.get("edge_blur_enabled") == "on",
             "edge_detection_threshold": float(request.form.get("edge_detection_threshold", 25)),
             "edge_blur_radius": float(request.form.get("edge_blur_radius", 1.5)),
             "edge_blur_strength": float(request.form.get("edge_blur_strength", 0.3)),
             "edge_blur_device": request.form.get("edge_blur_device", "auto").lower(),
-            "quality": int(request.form.get("quality", 5)),
-            "distance_metric": request.form.get("distance_metric", "weighted_hsv"),
+            # Color focus
+            "use_color_focus": request.form.get("use_color_focus") == "on",
+            # focus_ranges dodany poniżej (JSON)
+            # Zaawansowane GPU/Wydajność
+            "force_cpu": request.form.get("force_cpu") == "on",
+            "gpu_batch_size": int(request.form.get("gpu_batch_size", 2_000_000)),
+            "enable_kernel_fusion": request.form.get("enable_kernel_fusion") == "on",
+            "gpu_memory_cleanup": request.form.get("gpu_memory_cleanup") == "on",
+            "use_64bit_indices": request.form.get("use_64bit_indices") == "on",
         }
-        # === COLOR FOCUS PARAMS ===
-        params['use_color_focus'] = request.form.get('use_color_focus') == "on"
         focus_ranges_str = request.form.get('focus_ranges_json', '[]')
         try:
-            params['focus_ranges'] = json.loads(focus_ranges_str)
-            if not isinstance(params['focus_ranges'], list):
+            params["focus_ranges"] = json.loads(focus_ranges_str)
+            if not isinstance(params["focus_ranges"], list):
                 raise ValueError("focus_ranges musi być listą (JSON array).")
         except (json.JSONDecodeError, ValueError) as e:
             log_activity("transfer_error", {"error": f"Invalid focus_ranges format: {e}"}, "error")
@@ -231,30 +255,57 @@ def handle_palette_transfer():
             "focus_ranges": params['focus_ranges']
         })
 
+        # --- ENGINE CHOICE ---
+        engine_choice = request.form.get("engine", "auto").lower()
+        device_used = "cpu"  # domyślnie
+        if engine_choice == "cpu":
+            AlgoClass = PaletteMappingAlgorithm
+            device_used = "cpu"
+        elif engine_choice == "gpu":
+            if PaletteMappingAlgorithmGPU:
+                AlgoClass = PaletteMappingAlgorithmGPU
+                device_used = "gpu"
+            else:
+                return jsonify({"success": False, "error": "Tryb GPU jest niedostępny na tym serwerze."}), 400
+        else:  # auto
+            if PaletteMappingAlgorithmGPU:
+                AlgoClass = PaletteMappingAlgorithmGPU
+                device_used = "gpu"
+            else:
+                AlgoClass = PaletteMappingAlgorithm
+                device_used = "cpu"
+        params["engine"] = engine_choice  # echo back
+
         log_activity("parameters_collected", params)
 
-        algorithm = PaletteMappingAlgorithm()
+        algorithm = AlgoClass()
         output_filename = f"result_{target_filename}"
         output_path = os.path.join(RESULTS_FOLDER, output_filename)
 
-        log_activity("processing_start", {"output_path": output_path, "params": params})
+        log_activity("processing_start", {"output_path": output_path, "params": params, "device": device_used})
+        # --- START TIMING ---
+        start_t = time.perf_counter()
         success = algorithm.process_images(
             master_path=master_path,
             target_path=target_path,
             output_path=output_path,
             **params,
         )
+        processing_time_ms = round((time.perf_counter() - start_t) * 1000.0, 1)
 
         if not success:
             raise RuntimeError("Przetwarzanie algorytmu nie powiodło się.")
 
         result_url = f"/webview/results/{output_filename}"
-        log_activity("transfer_request_success", {"result_url": result_url})
+        log_activity("transfer_request_success", {"result_url": result_url, "time_ms": processing_time_ms, "device": device_used})
         return jsonify(
             {
                 "success": True,
                 "result_url": result_url,
                 "message": "Obraz przetworzony pomyślnie!",
+                "processing_time_ms": processing_time_ms,
+                "device_used": device_used,
+                "params_echo": params,
             }
         )
 
