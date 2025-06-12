@@ -1,3 +1,12 @@
+"""
+Taichi GPU backend initialization.
+
+Environment variables:
+- TI_ENABLE_CUDA=1   # Wymusza backend CUDA (NVIDIA GPU)
+- TI_ENABLE_METAL=1  # Wymusza backend Metal (MacOS)
+Jeśli żaden nie jest ustawiony, domyślnie używany jest CPU.
+"""
+
 # /app/algorithms/algorithm_01_palette/algorithm_gpu_taichi_init.py
 # Module for Taichi initialization and management.
 

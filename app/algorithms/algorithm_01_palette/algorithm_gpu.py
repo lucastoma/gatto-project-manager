@@ -1,149 +1,240 @@
-# /app/algorithms/algorithm_01_palette/algorithm_gpu.py
-# Główny, zintegrowany plik algorytmu. Wersja poprawiona.
-
 import numpy as np
-from PIL import Image
-import asyncio
-from concurrent.futures import ThreadPoolExecutor
-from typing import Any, Dict, List, Tuple
+import pyopencl as cl
+import pyopencl.array as cl_array
+from PIL import Image, ImageFilter
+import logging
+import time
+import threading
+import os
+from typing import Any, Dict, List, Optional
 
-# Importowanie składowych z podzielonych modułów
+# Logika pomocnicza i fallbacki
 from . import algorithm_gpu_utils as utils
-from . import algorithm_gpu_config as cfg
-from . import algorithm_gpu_taichi_init as ti_init
-from . import algorithm_gpu_kernels as kernels
 from . import algorithm_gpu_cpu_fallback as cpu
 from . import algorithm_gpu_exceptions as err
+from . import algorithm_gpu_config as cfg
 
-# --- POPRAWIONA INICJALIZACJA ---
-# Inicjalizuj Taichi przy starcie i przechowaj flagę o dostępności akceleracji GPU
-IS_GPU_ACCELERATED = ti_init.safe_taichi_init()
+# Zależności
+try:
+    from scipy import ndimage
+    SCIPY_AVAILABLE = True
+except ImportError:
+    SCIPY_AVAILABLE = False
+
+
+class OpenCLManager:
+    """Zarządza zasobami OpenCL. Działa jako context manager."""
+    def __init__(self):
+        self.logger = utils.get_logger()
+        self.ctx: Optional[cl.Context] = None
+        self.queue: Optional[cl.CommandQueue] = None
+        self.prg: Optional[cl.Program] = None
+        self._initialize()
+
+    def _initialize(self):
+        """Inicjalizuje platformę, urządzenie, kontekst i kompiluje kernel."""
+        try:
+            platforms = cl.get_platforms()
+            if not platforms:
+                raise RuntimeError("Nie znaleziono platform OpenCL. Sprawdź sterowniki.")
+            
+            gpu_devices = []
+            for p in platforms:
+                gpu_devices.extend(p.get_devices(device_type=cl.device_type.GPU))
+
+            if not gpu_devices:
+                self.logger.warning("Nie znaleziono GPU, używam CPU jako urządzenia OpenCL.")
+                device = platforms[0].get_devices(device_type=cl.device_type.CPU)[0]
+            else:
+                device = gpu_devices[0]
+
+            self.ctx = cl.Context([device])
+            self.queue = cl.CommandQueue(self.ctx)
+            self.logger.info(f"Zainicjalizowano OpenCL na urządzeniu: {device.name}")
+            self._compile_kernel_from_file()
+        except Exception as e:
+            self.logger.error(f"KRYTYCZNY BŁĄD: Inicjalizacja OpenCL nie powiodła się: {e}", exc_info=True)
+            self.ctx = None 
+            raise err.GPUProcessingError(f"Inicjalizacja OpenCL nie powiodła się: {e}") from e
+
+    def _compile_kernel_from_file(self):
+        """Kompiluje kernel OpenCL z zewnętrznego pliku dla lepszej organizacji kodu."""
+        try:
+            kernel_file_path = os.path.join(os.path.dirname(__file__), 'palette_mapping.cl')
+            with open(kernel_file_path, 'r', encoding='utf-8') as kernel_file:
+                kernel_code = kernel_file.read()
+            
+            self.prg = cl.Program(self.ctx, kernel_code).build()
+        except cl.LogicError as e:
+            self.logger.error(f"Błąd kompilacji kernela OpenCL: {e}")
+            raise err.GPUProcessingError(f"Błąd kompilacji kernela: {e}")
+        except FileNotFoundError:
+            self.logger.error(f"Plik kernela 'palette_mapping.cl' nie został znaleziony w tym samym folderze co algorytm.")
+            raise err.GPUProcessingError("Nie znaleziono pliku kernela OpenCL.")
+
+    def __enter__(self):
+        return self
+
+    def __exit__(self, exc_type, exc_val, exc_tb):
+        self.cleanup()
+
+    def cleanup(self):
+        self.prg = None
+        self.queue = None
+        self.ctx = None
+        self.logger.info("Zasoby OpenCL zostały zwolnione.")
+
 
 class PaletteMappingAlgorithmGPU:
-    """Główna klasa orkiestrująca, wykorzystująca logikę z osobnych modułów."""
-    def __init__(self, config_path: str = None, algorithm_id: str = "algorithm_01_palette_gpu_refactored"):
+    def __init__(self, config_path: str = None, algorithm_id: str = "algorithm_01_palette_production"):
         self.algorithm_id = algorithm_id
         self.logger = utils.get_logger()
         self.profiler = utils.get_profiler()
-        
-        self.logger.info(f"Initializing GPU algorithm: {self.algorithm_id}")
-        if not ti_init.TAICHI_AVAILABLE:
-            self.logger.warning("Taichi library not available. Full CPU mode.")
-        elif not IS_GPU_ACCELERATED:
-            self.logger.warning(f"Taichi GPU backend not found. Using Taichi with CPU backend: {ti_init.GPU_BACKEND}")
-        else:
-            self.logger.info(f"Taichi GPU backend successfully initialized: {ti_init.GPU_BACKEND}")
-        
-        self.name = "Palette Mapping GPU Accelerated (Refactored)"
-        self.version = "5.0-Stable"
-
-        # Konfiguracja
+        self.name = "Palette Mapping (OpenCL Production)"
+        self.version = "12.0-Final"
         self.default_config = cfg.get_default_config()
-        self.config = cfg.load_config(config_path, self.default_config, self.logger) if config_path else self.default_config.copy()
-        
-        # Zarządzanie pamięcią GPU
-        self._gpu_memory_manager = kernels.GPUMemoryManager(
-            logger=self.logger, 
-            max_gpu_memory=self.config.get("max_gpu_memory", 2 * 1024**3), 
-            max_palette_size=self.config.get("max_palette_size", 256)
-        )
+        self.config = cfg.load_config(config_path, self.default_config) if config_path else self.default_config.copy()
+        self.bayer_matrix_8x8 = np.array([[0,32,8,40,2,34,10,42],[48,16,56,24,50,18,58,26],[12,44,4,36,14,46,6,38],[60,28,52,20,62,30,54,22],[3,35,11,43,1,33,9,41],[51,19,59,27,49,17,57,25],[15,47,7,39,13,45,5,37],[63,31,55,23,61,29,53,21]])
 
-    def _determine_strategy(self, image_size: Tuple[int, int], palette_size: int, config: Dict[str, Any]) -> utils.AccelerationStrategy:
-        """Określa optymalną strategię przetwarzania."""
-        if config.get("force_cpu", False) or not IS_GPU_ACCELERATED:
-            return utils.AccelerationStrategy.CPU
+    def _apply_ordered_dithering(self, image_array: np.ndarray, strength: float) -> np.ndarray:
+        """Zoptymalizowana, wektorowa implementacja ditheringu."""
+        self.logger.info(f"Stosuję dithering z siłą {strength}.")
+        h, w, _ = image_array.shape
+        bayer_norm = self.bayer_matrix_8x8 / 64.0 - 0.5
+        tiled_bayer = np.tile(bayer_norm, (h // 8 + 1, w // 8 + 1))[:h, :w]
+        dither_pattern = tiled_bayer[:, :, np.newaxis] * strength
+        return np.clip(image_array.astype(np.float32) + dither_pattern, 0, 255)
 
-        pixel_count = image_size[0] * image_size[1]
-        if pixel_count < 50_000: return utils.AccelerationStrategy.CPU
-        if pixel_count < 500_000 and palette_size <= 16: return utils.AccelerationStrategy.GPU_SMALL
-        if pixel_count < 5_000_000: return utils.AccelerationStrategy.GPU_MEDIUM
-        return utils.AccelerationStrategy.GPU_LARGE
-        
-    def _map_pixels_to_palette_gpu(self, image_array: np.ndarray, palette: List[List[int]], config: Dict[str, Any]) -> np.ndarray:
-        """Wykonuje mapowanie pikseli z użyciem kerneli GPU, z poprawną walidacją i obsługą błędów."""
-        try:
-            # Krok 1: Walidacja danych wejściowych przy użyciu funkcji pomocniczych
-            height, width, _ = utils.validate_image_array(image_array)
-            palette_np_normalized = utils.validate_palette(palette) # Zwraca paletę znormalizowaną do [0,1]
-            
-            # Krok 2: Przygotowanie danych
-            num_pixels = height * width
-            pixels_flat_normalized = image_array.reshape(-1, 3).astype(np.float32) / 255.0
-            hue_weight = float(config.get('hue_weight', 3.0))
-            use_64bit = config.get("use_64bit_indices", False) or num_pixels > 2**31 - 1
-            
-            # Krok 3: Alokacja pamięci GPU
-            fields = self._gpu_memory_manager.get_or_create_fields(num_pixels, len(palette), use_64bit)
-            
-            # Krok 4: Transfer danych na GPU
-            fields['pixels_rgb'].from_numpy(pixels_flat_normalized)
-            fields['palette_hsv'].from_numpy(cpu.rgb2hsv(palette_np_normalized))
-            fields['distance_modifier'].fill(1.0)
-            
-            # Krok 5: Wykonanie kerneli
-            if config.get("enable_kernel_fusion", True):
-                 kernels.combined_conversion_and_mapping(fields['pixels_rgb'], fields['palette_hsv'], fields['closest_indices'], fields['distance_modifier'], hue_weight)
-            else:
-                 kernels.rgb_to_hsv_kernel(fields['pixels_rgb'], fields['pixels_hsv'])
-                 kernels.find_closest_color_kernel(fields['pixels_hsv'], fields['palette_hsv'], fields['closest_indices'], fields['distance_modifier'], hue_weight)
-            
-            # Krok 6: Pobranie wyników
-            closest_indices_np = fields['closest_indices'].to_numpy()
-            
-            # Krok 7: Mapowanie indeksów na kolory i powrót do formatu 8-bit
-            mapped_colors = (palette_np_normalized[closest_indices_np] * 255.0).astype(np.uint8)
-            return mapped_colors.reshape(height, width, 3)
+    def _preserve_extremes(self, mapped_array: np.ndarray, original_array: np.ndarray, threshold: int) -> np.ndarray:
+        """Ulepszona wersja oparta na luminancji."""
+        self.logger.info("Zachowuję skrajne wartości czerni i bieli.")
+        luminance = np.dot(original_array[..., :3], [0.2989, 0.5870, 0.1140])
+        black_mask = luminance <= threshold
+        white_mask = luminance >= (255 - threshold)
+        mapped_array[black_mask] = [0, 0, 0]
+        mapped_array[white_mask] = [255, 255, 255]
+        return mapped_array
 
-        except (err.GPUMemoryError, err.ImageProcessingError) as e:
-            self.logger.error(f"Specific error during GPU processing: {e}")
-            raise
-        except Exception as e:
-            raise err.GPUProcessingError(f"An unexpected error occurred in GPU processing pipeline: {e}") from e
+    def _apply_edge_blending(self, mapped_image: Image.Image, config: Dict[str, Any]) -> Image.Image:
+        if not SCIPY_AVAILABLE:
+            self.logger.warning("Scipy niedostępne. Pomijam wygładzanie krawędzi.")
+            return mapped_image
+        self.logger.info("Stosuję zaawansowane wygładzanie krawędzi.")
+        mapped_array = np.array(mapped_image, dtype=np.float64)
+        gray = np.dot(mapped_array[..., :3], [0.2989, 0.5870, 0.1140])
+        grad_x = ndimage.sobel(gray, axis=1); grad_y = ndimage.sobel(gray, axis=0)
+        magnitude = np.sqrt(grad_x**2 + grad_y**2)
+        edge_mask = magnitude > config["edge_detection_threshold"]
+        radius = int(config["edge_blur_radius"])
+        if radius > 0: edge_mask = ndimage.binary_dilation(edge_mask, iterations=radius)
+        blurred_array = mapped_array.copy()
+        for channel in range(3): blurred_array[:, :, channel] = ndimage.gaussian_filter(mapped_array[:, :, channel], sigma=config["edge_blur_radius"])
+        blend_factor = (edge_mask * config["edge_blur_strength"])[:, :, np.newaxis]
+        result_array = (mapped_array * (1 - blend_factor) + blurred_array * blend_factor)
+        return Image.fromarray(np.clip(result_array, 0, 255).astype(np.uint8))
 
+    def _map_pixels_to_palette_opencl(self, image_array: np.ndarray, palette: List[List[int]], config: Dict[str, Any]) -> np.ndarray:
+        with self.profiler.profile_operation("map_pixels_to_palette_opencl", algorithm_id=self.algorithm_id):
+            start_time = time.perf_counter()
+            with OpenCLManager() as cl_mgr:
+                palette_np_rgb = np.array(palette, dtype=np.float32)
+                palette_np_hsv = cpu.rgb2hsv(palette_np_rgb / 255.0).astype(np.float32).flatten()
+                pixels_flat = image_array.reshape(-1, 3).astype(np.float32)
+                mf = cl.mem_flags
+                
+                pixels_g, palette_hsv_g, output_g = None, None, None
+                try:
+                    pixels_g = cl.Buffer(cl_mgr.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=pixels_flat)
+                    palette_hsv_g = cl.Buffer(cl_mgr.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=palette_np_hsv)
+                    output_g = cl.Buffer(cl_mgr.ctx, mf.WRITE_ONLY, pixels_flat.shape[0] * 4)
+
+                    local_size = (64,)
+                    global_size_raw = pixels_flat.shape[0]
+                    rounded_global_size = (global_size_raw + local_size[0] - 1) // local_size[0] * local_size[0]
+                    global_size = (rounded_global_size,)
+                    
+                    cl_mgr.prg.map_palette(
+                        cl_mgr.queue, global_size, local_size,
+                        pixels_g, palette_hsv_g, output_g,
+                        np.int32(len(palette)), np.float32(config.get('hue_weight', 3.0))
+                    )
+                    
+                    closest_indices = np.empty(pixels_flat.shape[0], dtype=np.int32)
+                    cl.enqueue_copy(cl_mgr.queue, closest_indices, output_g).wait()
+                    
+                    result_array = np.array(palette, dtype=np.uint8)[closest_indices].reshape(image_array.shape)
+                    self.logger.info(f"Przetworzono na GPU (OpenCL) {pixels_flat.shape[0]:,} pikseli w {(time.perf_counter() - start_time) * 1000:.1f}ms")
+                    return result_array
+                except Exception as e:
+                    self.logger.error(f"Błąd podczas wykonywania kernela OpenCL: {e}", exc_info=True)
+                    raise err.GPUProcessingError(f"Błąd wykonania OpenCL: {e}")
+                finally:
+                    if pixels_g: pixels_g.release()
+                    if palette_hsv_g: palette_hsv_g.release()
+                    if output_g: output_g.release()
+    
     def _map_pixels_to_palette(self, image_array: np.ndarray, palette: List[List[int]], config: Dict[str, Any]) -> np.ndarray:
-        """Inteligentny dispatcher, wybierający między CPU i GPU."""
-        strategy = self._determine_strategy(image_array.shape[:2], len(palette), config)
-        self.logger.info(f"Processing strategy: {strategy.name}")
-
-        if strategy == utils.AccelerationStrategy.CPU:
-            return cpu.map_pixels_to_palette_cpu(image_array, palette, config, self.logger)
-        
+        """Dispatcher wybierający między GPU a CPU."""
         try:
-            return self._map_pixels_to_palette_gpu(image_array, palette, config)
-        except (err.GPUProcessingError, err.GPUMemoryError, err.ImageProcessingError) as e:
-            self.logger.warning(f"GPU processing failed: {e}. Falling back to CPU.")
-            self._gpu_memory_manager.cleanup()
-            return cpu.map_pixels_to_palette_cpu(image_array, palette, config, self.logger)
+            if image_array.size > 100_000 and not config.get('force_cpu'):
+                return self._map_pixels_to_palette_opencl(image_array, palette, config)
+        except err.GPUProcessingError as e:
+            self.logger.warning(f"Przetwarzanie GPU nie powiodło się ({e}). Przełączam na CPU.")
+        
+        self.logger.info("Używam ścieżki CPU (obraz zbyt mały lub błąd GPU).")
+        return cpu.map_pixels_to_palette_cpu(image_array, palette, config, self.logger)
 
     def process_images(self, master_path: str, target_path: str, output_path: str, **kwargs) -> bool:
-        """Główny potok przetwarzania synchronicznego."""
-        run_config = self.config.copy()
+        """Pełny potok przetwarzania, od ekstrakcji palety po finalny zapis."""
+        run_config = self.default_config.copy()
         run_config.update(kwargs)
-        cfg.validate_run_config(run_config, self.config.get("max_palette_size", 256))
         
         try:
-            master_image = cpu.safe_image_load(master_path, self.logger)
-            target_image = cpu.safe_image_load(target_path, self.logger)
-            target_array = np.array(target_image) # uint8
-            
-            palette = cpu.extract_palette(
-                master_image, run_config['num_colors'], run_config['quality'], 
-                run_config['inject_extremes'], self.config.get("max_palette_size", 256), self.logger)
-                
-            mapped_array = self._map_pixels_to_palette(target_array, palette, run_config)
-            
-            Image.fromarray(mapped_array).save(output_path, quality=95, optimize=True)
-            self.logger.info(f"Successfully saved processed image: {output_path}")
-            return True
-        except Exception as e:
-            self.logger.error(f"Main processing pipeline failed: {e}", exc_info=True)
+            # Konwersja typów, aby uniknąć błędów
+            for key in ['hue_weight', 'dithering_strength', 'edge_blur_radius', 'edge_blur_strength']:
+                if key in run_config: run_config[key] = float(run_config[key])
+            for key in ['num_colors', 'quality', 'extremes_threshold', 'edge_detection_threshold', 'gpu_batch_size']:
+                 if key in run_config: run_config[key] = int(run_config[key])
+        except (ValueError, TypeError) as e:
+            self.logger.error(f"Błąd konwersji typów w konfiguracji: {e}", exc_info=True)
             return False
 
-    async def process_images_async(self, master_path: str, target_path: str, output_path: str, **kwargs) -> bool:
-        """Główny potok przetwarzania asynchronicznego."""
-        # ... implementacja async pozostaje bez zmian, ale będzie korzystać z poprawionych metod
-        return self.process_images(master_path, target_path, output_path, **kwargs) # Uproszczone dla przykładu
+        try:
+            # Używamy cpu.extract_palette z `algorithm_gpu_cpu_fallback.py`
+            master_image = cpu.safe_image_load(master_path, self.logger)
+            # Pamiętaj, że ta wersja `extract_palette` nie przyjmuje `method`
+            palette = cpu.extract_palette(
+                image=master_image, 
+                num_colors=run_config['num_colors'],
+                quality=run_config['quality'],
+                inject_extremes=run_config['inject_extremes'],
+                max_palette_size=self.default_config.get('_max_palette_size', 256),
+                logger=self.logger
+            )
+
+            target_image_pil = Image.open(target_path).convert("RGB")
+            target_array = np.array(target_image_pil)
+            array_to_map = target_array
+
+            if run_config.get("dithering_method") == "ordered":
+                array_to_map = self._apply_ordered_dithering(array_to_map, run_config.get("dithering_strength", 8.0))
+
+            mapped_array = self._map_pixels_to_palette(array_to_map, palette, run_config)
+            
+            if run_config.get("preserve_extremes"):
+                mapped_array = self._preserve_extremes(mapped_array, target_array, run_config.get("extremes_threshold", 10))
+
+            mapped_image = Image.fromarray(mapped_array, "RGB")
+
+            if run_config.get("edge_blur_enabled"):
+                mapped_image = self._apply_edge_blending(mapped_image, run_config)
+            
+            mapped_image.save(output_path, quality=95)
+            self.logger.info(f"Obraz pomyślnie zapisany w: {output_path}")
+            return True
+        except Exception as e:
+            self.logger.error(f"Główny proces przetwarzania nie powiódł się: {e}", exc_info=True)
+            return False
 
 def create_palette_mapping_algorithm_gpu():
-    """Funkcja fabrykująca do tworzenia instancji algorytmu."""
     return PaletteMappingAlgorithmGPU()

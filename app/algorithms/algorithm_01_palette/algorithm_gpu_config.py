@@ -46,6 +46,22 @@ def validate_run_config(config: Dict[str, Any], max_palette_size: int = 256):
         config["gpu_batch_size"] = max(100_000, min(10_000_000, int(config["gpu_batch_size"])))
     if "num_colors" in config:
         config["num_colors"] = max(2, min(max_palette_size, int(config["num_colors"])))
+    if "quality" in config:
+        config["quality"] = max(1, min(10, int(config["quality"])))
+    if "dithering_strength" in config:
+        config["dithering_strength"] = max(0.0, min(16.0, float(config["dithering_strength"])))
+    if "extremes_threshold" in config:
+        config["extremes_threshold"] = max(0, min(50, int(config["extremes_threshold"])))
+    if "edge_blur_radius" in config:
+        config["edge_blur_radius"] = max(0.0, min(5.0, float(config["edge_blur_radius"])))
+    if "edge_blur_strength" in config:
+        config["edge_blur_strength"] = max(0.0, min(1.0, float(config["edge_blur_strength"])))
+    if "edge_detection_threshold" in config:
+        config["edge_detection_threshold"] = max(0, min(200, int(config["edge_detection_threshold"])))
+    if "saturation_weight" in config:
+        config["saturation_weight"] = max(0.1, min(5.0, float(config["saturation_weight"])))
+    if "value_weight" in config:
+        config["value_weight"] = max(0.1, min(5.0, float(config["value_weight"])))
 
 def load_config(config_path: str, default_config: Dict[str, Any]) -> Dict[str, Any]:
     """
