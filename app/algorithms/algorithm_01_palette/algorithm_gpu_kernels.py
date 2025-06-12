@@ -1,120 +1,85 @@
-# /app/algorithms/algorithm_01_palette/algorithm-gpu-kernels.py
-# Moduł zawierający całą logikę związaną z Taichi, w tym inicjalizację i kernele.
+# /app/algorithms/algorithm_01_palette/algorithm_gpu_kernels.py
+# Moduł zawierający klasę do zarządzania pamięcią GPU oraz definicje kerneli Taichi.
 
-import gc
 import threading
 from typing import Any, Dict
 
-# --- Inicjalizacja Taichi ---
-# Ten blok jest jedynym miejscem, gdzie importowany jest taichi.
-TAICHI_AVAILABLE = False
-GPU_BACKEND = "none"
-ti, tm = None, None
-_taichi_lock = threading.Lock()
+# Import Taichi i wyjątków z dedykowanych modułów
+from .algorithm_gpu_exceptions import GPUMemoryError
+from .algorithm_gpu_taichi_init import ti, tm, TAICHI_AVAILABLE
 
-def _safe_taichi_cleanup():
-    """Bezpiecznie czyści kontekst Taichi, jeśli jest to konieczne."""
-    global ti
-    try:
-        if ti is not None and hasattr(ti, 'reset'):
-            ti.reset()
-    except Exception as e:
-        print(f"Warning: Taichi cleanup failed: {e}")
+class GPUMemoryManager:
+    """Zarządza alokacją i czyszczeniem pamięci GPU dla pól Taichi w sposób bezpieczny wątkowo."""
 
-def safe_taichi_init():
-    """Bezpieczna inicjalizacja Taichi z odpowiednim zarządzaniem zasobami."""
-    global TAICHI_AVAILABLE, GPU_BACKEND, ti, tm
-    
-    with _taichi_lock:
-        try:
-            import taichi as ti_module
-            import taichi.math as tm_module
-            
-            # Próba inicjalizacji GPU
+    def __init__(self, logger: Any, max_gpu_memory: int, max_palette_size: int):
+        self._cached_fields: Dict[str, Any] = {}
+        self._lock = threading.Lock()
+        self.logger = logger
+        self.max_gpu_memory = max_gpu_memory
+        self.max_palette_size = max_palette_size
+
+    def get_or_create_fields(self, num_pixels: int, num_palette_colors: int, use_64bit_indices: bool) -> Dict[str, Any]:
+        """Pobiera lub tworzy (jeśli to konieczne) pola Taichi o zadanych wymiarach."""
+        with self._lock:
+            # Sprawdź, czy istniejące pola mogą być ponownie użyte
+            cached_64bit = self._cached_fields.get('use_64bit_indices', False)
+            if (self._cached_fields.get('num_pixels') == num_pixels and
+                self._cached_fields.get('num_palette_colors') == num_palette_colors and
+                cached_64bit == use_64bit_indices):
+                return self._cached_fields
+
+            # Jeśli nie, wyczyść stare pola przed alokacją nowych
+            self._cleanup_locked()
+
+            if not TAICHI_AVAILABLE:
+                raise GPUMemoryError("Taichi is not available")
+
+            # --- POPRAWIONA LOGIKA ALOKACJI ---
             try:
-                ti_module.init(arch=ti_module.gpu, log_level=ti_module.WARN)
-                GPU_BACKEND = str(ti_module.lang.impl.current_cfg().arch)
-                ti, tm = ti_module, tm_module
-                TAICHI_AVAILABLE = True
-                print(f"SUCCESS: Taichi GPU initialized with backend: {GPU_BACKEND}")
-                return True
-            except Exception as e_gpu:
-                print(f"WARNING: GPU initialization failed: {e_gpu}. Trying CPU fallback.")
-                _safe_taichi_cleanup()
-                ti, tm = None, None
+                # Poprawiony typ danych dla indeksów 64-bitowych
+                index_dtype = ti.i64 if use_64bit_indices else ti.i32
+
+                # Poprawna, nowoczesna składnia alokacji pól Taichi (bez .place())
+                fields = {
+                    'pixels_rgb': ti.Vector.field(3, dtype=ti.f32, shape=num_pixels),
+                    'pixels_hsv': ti.Vector.field(3, dtype=ti.f32, shape=num_pixels),
+                    'palette_hsv': ti.Vector.field(3, dtype=ti.f32, shape=num_palette_colors),
+                    'closest_indices': ti.field(dtype=index_dtype, shape=num_pixels),
+                    'distance_modifier': ti.field(dtype=ti.f32, shape=num_palette_colors),
+                    'num_pixels': num_pixels,
+                    'num_palette_colors': num_palette_colors,
+                    'use_64bit_indices': use_64bit_indices
+                }
                 
-                # Próba fallbacku do CPU
-                try:
-                    ti_module.init(arch=ti_module.cpu, log_level=ti_module.WARN)
-                    ti, tm = ti_module, tm_module
-                    TAICHI_AVAILABLE = True # Taichi jest dostępne, ale na CPU
-                    GPU_BACKEND = "cpu"
-                    print("Taichi initialized with CPU backend as a fallback.")
-                    return False # Zwraca False, by zasygnalizować brak akceleracji GPU
-                except Exception as e_cpu:
-                    print(f"ERROR: Complete Taichi initialization failed: {e_cpu}")
-                    TAICHI_AVAILABLE = False
-                    return False
-        except ImportError:
-            print("WARNING: Taichi not available.")
-            TAICHI_AVAILABLE = False
-            return False
+                self.logger.info(f"Allocated new Taichi fields for {num_pixels} pixels.")
+                self._cached_fields = fields
+                return fields
 
-# --- Zarządzanie pamięcią GPU ---
+            except Exception as e:
+                self._cleanup_locked()
+                raise GPUMemoryError(f"Failed to allocate GPU memory: {e}")
 
-def setup_taichi_fields(cached_fields: Dict, num_pixels: int, num_palette_colors: int, use_64bit_indices: bool, max_gpu_memory: int, max_palette_size: int, logger: Any):
-    """Zarządza alokacją pól Taichi w pamięci GPU."""
-    from .algorithm_gpu_utils import GPUMemoryError
+    def cleanup(self) -> None:
+        """Publiczna metoda do czyszczenia zasobów GPU."""
+        with self._lock:
+            self._cleanup_locked()
 
-    if num_pixels <= 0 or num_palette_colors <= 0 or num_palette_colors > max_palette_size:
-        raise ValueError("Invalid dimensions for Taichi fields")
-
-    cached_64bit = cached_fields.get('use_64bit_indices', False)
-    if (cached_fields.get('num_pixels') == num_pixels and
-        cached_fields.get('num_palette_colors') == num_palette_colors and
-        cached_64bit == use_64bit_indices):
-        return cached_fields
-
-    index_dtype = ti.i64 if use_64bit_indices else ti.i32
-    index_size_bytes = 8 if use_64bit_indices else 4
-
-    field_memory = (
-        num_pixels * 4 * 3 +  # pixels_rgb
-        num_pixels * 4 * 3 +  # pixels_hsv
-        num_palette_colors * 4 * 3 + # palette_hsv
-        num_pixels * index_size_bytes + # closest_indices
-        num_palette_colors * 4 # distance_modifier
-    )
-
-    if field_memory > max_gpu_memory:
-        raise GPUMemoryError(f"Dataset requires {field_memory/1024**3:.1f}GB > limit {max_gpu_memory/1024**3:.1f}GB")
-
-    log_msg = f"Allocating GPU fields: {num_pixels:,} pixels, {num_palette_colors} colors ({field_memory/1024**2:.1f}MB)"
-    if use_64bit_indices:
-        log_msg += " [64-bit indices enabled]"
-    logger.info(log_msg)
-
-    return {
-        'pixels_rgb': ti.Vector.field(3, dtype=ti.f32, shape=num_pixels),
-        'pixels_hsv': ti.Vector.field(3, dtype=ti.f32, shape=num_pixels),
-        'palette_hsv': ti.Vector.field(3, dtype=ti.f32, shape=num_palette_colors),
-        'closest_indices': ti.field(dtype=index_dtype, shape=num_pixels),
-        'distance_modifier': ti.field(dtype=ti.f32, shape=num_palette_colors),
-        'num_pixels': num_pixels,
-        'num_palette_colors': num_palette_colors,
-        'use_64bit_indices': use_64bit_indices
-    }
-
-def cleanup_gpu_memory(cached_fields: Dict, logger: Any):
-    """Czyści pola Taichi i wymusza zwolnienie pamięci."""
-    if TAICHI_AVAILABLE and cached_fields:
-        try:
-            cached_fields.clear()
-            gc.collect()
+    def _cleanup_locked(self) -> None:
+        """Wewnętrzna metoda czyszcząca (musi być wywoływana z aktywną blokadą)."""
+        if not self._cached_fields:
+            return
+            
+        # W Taichi nowoczesne pola są zarządzane przez GC Pythona,
+        # więc usunięcie referencji jest kluczowe.
+        self._cached_fields.clear()
+        
+        # Dodatkowe kroki dla pewności
+        import gc
+        gc.collect()
+        if ti is not None:
             ti.sync()
-            logger.debug("GPU memory cleanup completed")
-        except Exception as e:
-            logger.warning(f"GPU memory cleanup failed: {e}")
+        self.logger.debug("GPU memory cleanup executed.")
+
 
 # --- Kernele Taichi ---
 
@@ -130,7 +95,8 @@ def calculate_hsv_distance_sq_gpu(pixel_hsv: tm.vec3, palette_color_hsv: tm.vec3
 @ti.kernel
 def rgb_to_hsv_kernel(rgb_field: ti.template(), hsv_field: ti.template()):
     for i in range(rgb_field.shape[0]):
-        r, g, b = tm.clamp(rgb_field[i], 0.0, 255.0) / 255.0
+        # Normalizacja z [0,255] do [0,1] nie jest już potrzebna, dane przychodzą znormalizowane
+        r, g, b = rgb_field[i]
         max_val, min_val = tm.max(r, g, b), tm.min(r, g, b)
         delta = max_val - min_val
         v = max_val
@@ -147,29 +113,6 @@ def rgb_to_hsv_kernel(rgb_field: ti.template(), hsv_field: ti.template()):
 def find_closest_color_kernel(pixels_hsv: ti.template(), palette_hsv: ti.template(), closest_indices: ti.template(), dist_modifier: ti.template(), hue_weight: ti.f32):
     for i in range(pixels_hsv.shape[0]):
         pixel_hsv, min_dist, best_j = pixels_hsv[i], 1e30, 0
-        valid_found = False
-        for j in range(palette_hsv.shape[0]):
-            dist = calculate_hsv_distance_sq_gpu(pixel_hsv, palette_hsv[j], hue_weight) * dist_modifier[j]
-            if tm.isfinite(dist) and (not valid_found or dist < min_dist):
-                min_dist, best_j, valid_found = dist, j, True
-        closest_indices[i] = best_j
-
-@ti.kernel
-def combined_conversion_and_mapping(rgb_field: ti.template(), palette_hsv: ti.template(), closest_indices: ti.template(), dist_modifier: ti.template(), hue_weight: ti.f32):
-    for i in range(rgb_field.shape[0]):
-        r, g, b = tm.clamp(rgb_field[i], 0.0, 255.0) / 255.0
-        max_val, min_val = tm.max(r, g, b), tm.min(r, g, b)
-        delta = max_val - min_val
-        v = max_val
-        s = delta / max_val if max_val > 1e-10 else 0.0
-        h = 0.0
-        if delta > 1e-10:
-            if tm.abs(max_val - r) < 1e-10: h = ((g - b) / delta) % 6.0
-            elif tm.abs(max_val - g) < 1e-10: h = (b - r) / delta + 2.0
-            else: h = (r - g) / delta + 4.0
-            h = h / 6.0 + (1.0 if h < 0.0 else 0.0)
-        
-        pixel_hsv, min_dist, best_j = tm.vec3(h, s, v), 1e30, 0
         valid_found = False
         for j in range(palette_hsv.shape[0]):
             dist = calculate_hsv_distance_sq_gpu(pixel_hsv, palette_hsv[j], hue_weight) * dist_modifier[j]

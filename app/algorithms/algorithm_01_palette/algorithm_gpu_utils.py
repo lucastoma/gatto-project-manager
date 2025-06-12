@@ -2,8 +2,9 @@
 # Moduł zawierający podstawowe, współdzielone komponenty i definicje.
 
 import logging
+import numpy as np
 from enum import Enum
-from typing import Any, TYPE_CHECKING
+from typing import Any, TYPE_CHECKING, Tuple, List
 
 # --- Project Imports with Fallbacks ---
 # Umożliwia działanie modułu nawet poza główną strukturą projektu.
@@ -40,17 +41,52 @@ def get_profiler() -> Any:
 
 # --- Enhanced Custom Exceptions ---
 
-class GPUProcessingError(Exception):
-    """Niestandardowy wyjątek dla błędów przetwarzania na GPU."""
-    pass
+# --- Validation Utilities ---
 
-class GPUMemoryError(GPUProcessingError):
-    """Szczególny wyjątek dla problemów z pamięcią GPU."""
-    pass
+def validate_image_array(image_array):
+    """Validates input image array and returns its dimensions.
+    
+    Args:
+        image_array: Input image as numpy array
+        
+    Returns:
+        Tuple of (height, width, channels)
+        
+    Raises:
+        ValueError: If validation fails
+    """
+    if not isinstance(image_array, np.ndarray):
+        raise ValueError("Input must be a numpy array")
+    
+    if image_array.dtype != np.uint8:
+        raise ValueError("Input array must have dtype uint8")
+    
+    if len(image_array.shape) != 3 or image_array.shape[2] != 3:
+        raise ValueError("Input must be a 3D array with shape (H,W,3)")
+    
+    return image_array.shape
 
-class ImageProcessingError(Exception):
-    """Wyjątek dla błędów ładowania lub przetwarzania obrazów."""
-    pass
+def validate_palette(palette):
+    """Validates palette and converts it to numpy array.
+    
+    Args:
+        palette: List of [R,G,B] colors with values 0-255
+        
+    Returns:
+        numpy.ndarray: Palette as float32 array with values 0-1
+        
+    Raises:
+        ValueError: If validation fails
+    """
+    if not palette or not all(isinstance(c, (list, tuple)) and len(c) == 3 for c in palette):
+        raise ValueError("Palette must be a non-empty list of [R,G,B] lists")
+    
+    palette_np = np.array(palette, dtype=np.float32)
+    
+    if np.any((palette_np < 0) | (palette_np > 255)):
+        raise ValueError("Palette values must be in range [0, 255]")
+    
+    return palette_np / 255.0
 
 # --- Acceleration Strategy Enum ---
 

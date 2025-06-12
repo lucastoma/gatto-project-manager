@@ -1,25 +1,25 @@
 # /app/algorithms/algorithm_01_palette/algorithm-gpu-cpu-fallback.py
 # Moduł zawierający logikę awaryjną (CPU) oraz operacje zawsze wykonywane na CPU.
 
-import numpy as np
-from PIL import Image
+import time
 from pathlib import Path
 from typing import Any, Dict, List
-import time
+import numpy as np
 
-# --- Sprawdzenie dostępności zależności ---
+# Poprawiony import wyjątków
+from .algorithm_gpu_exceptions import ImageProcessingError
+
+# Sprawdzenie dostępności zależności
 try:
     from skimage import color as skimage_color
-    # Export color conversion functions for use in other modules
+    # Eksport funkcji konwersji kolorów do użycia w innych modułach
     rgb2hsv = skimage_color.rgb2hsv
-    hsv2rgb = skimage_color.hsv2rgb
-    color = skimage_color
     from sklearn.cluster import KMeans
     SCIPY_SKLEARN_AVAILABLE = True
 except ImportError:
     SCIPY_SKLEARN_AVAILABLE = False
-    
-from .algorithm_gpu_utils import ImageProcessingError
+    # Definicja "pustej" funkcji, aby uniknąć AttributeError
+    def rgb2hsv(x): raise NotImplementedError("scikit-image is not installed")
 
 # --- Operacje na obrazach i paletach (CPU) ---
 

@@ -32,6 +32,7 @@ def get_default_config() -> Dict[str, Any]:
         "enable_kernel_fusion": True,
         "gpu_memory_cleanup": True,
         "use_64bit_indices": False,  # Dla bardzo dużych obrazów
+        "_max_palette_size": 256,    # Dodane dla pełnej spójności konfiguracji
     }
 
 def validate_run_config(config: Dict[str, Any], max_palette_size: int = 256):
