@@ -22,66 +22,95 @@ except ImportError:
 
 
 class OpenCLManager:
-    """Zarządza zasobami OpenCL. Działa jako context manager."""
-    def __init__(self):
-        self.logger = utils.get_logger()
-        self.ctx: Optional[cl.Context] = None
-        self.queue: Optional[cl.CommandQueue] = None
-        self.prg: Optional[cl.Program] = None
-        self._initialize()
+    _instance = None
+    _lock = threading.Lock()
 
-    def _initialize(self):
-        """Inicjalizuje platformę, urządzenie, kontekst i kompiluje kernel."""
-        try:
-            platforms = cl.get_platforms()
-            if not platforms:
-                raise RuntimeError("Nie znaleziono platform OpenCL. Sprawdź sterowniki.")
-            
-            gpu_devices = []
-            for p in platforms:
-                gpu_devices.extend(p.get_devices(device_type=cl.device_type.GPU))
+    def __new__(cls):
+        with cls._lock:
+            if cls._instance is None:
+                cls._instance = super(OpenCLManager, cls).__new__(cls)
+                cls._instance._initialized = False
+                cls._instance.ctx: Optional[cl.Context] = None
+                cls._instance.queue: Optional[cl.CommandQueue] = None
+                cls._instance.prg: Optional[cl.Program] = None
+                cls._instance.logger = utils.get_logger()
+        return cls._instance
 
-            if not gpu_devices:
-                self.logger.warning("Nie znaleziono GPU, używam CPU jako urządzenia OpenCL.")
-                device = platforms[0].get_devices(device_type=cl.device_type.CPU)[0]
-            else:
-                device = gpu_devices[0]
-
-            self.ctx = cl.Context([device])
-            self.queue = cl.CommandQueue(self.ctx)
-            self.logger.info(f"Zainicjalizowano OpenCL na urządzeniu: {device.name}")
-            self._compile_kernel_from_file()
-        except Exception as e:
-            self.logger.error(f"KRYTYCZNY BŁĄD: Inicjalizacja OpenCL nie powiodła się: {e}", exc_info=True)
-            self.ctx = None 
-            raise err.GPUProcessingError(f"Inicjalizacja OpenCL nie powiodła się: {e}") from e
+    def ensure_initialized(self):
+        if self._initialized:
+            return
+        with self._lock:
+            if self._initialized:
+                return
+            self.logger.info("OpenCLManager: Rozpoczynam leniwą inicjalizację...")
+            try:
+                platforms = cl.get_platforms()
+                if not platforms:
+                    raise RuntimeError("Nie znaleziono platform OpenCL. Sprawdź sterowniki.")
+                gpu_devices = []
+                for p in platforms:
+                    try:
+                        gpu_devices.extend(p.get_devices(device_type=cl.device_type.GPU))
+                    except cl.LogicError:
+                        continue
+                if not gpu_devices:
+                    self.logger.warning("Nie znaleziono GPU, próbuję użyć CPU jako urządzenia OpenCL.")
+                    cpu_devices = []
+                    for p in platforms:
+                        try:
+                            cpu_devices.extend(p.get_devices(device_type=cl.device_type.CPU))
+                        except cl.LogicError:
+                            continue
+                    if not cpu_devices:
+                        raise RuntimeError("Nie znaleziono żadnych urządzeń OpenCL (ani GPU, ani CPU).")
+                    device = cpu_devices[0]
+                else:
+                    device = gpu_devices[0]
+                self.ctx = cl.Context([device])
+                self.queue = cl.CommandQueue(self.ctx)
+                self.logger.info(f"Zainicjalizowano OpenCL na urządzeniu: {device.name}")
+                self._compile_kernel_from_file()
+                self._initialized = True
+                self.logger.info("OpenCLManager: Leniwa inicjalizacja zakończona pomyślnie.")
+            except Exception as e:
+                self.logger.error(f"KRYTYCZNY BŁĄD: Inicjalizacja OpenCL nie powiodła się: {e}", exc_info=True)
+                self.ctx = None
+                self.queue = None
+                self.prg = None
+                self._initialized = False
+                raise err.GPUProcessingError(f"Inicjalizacja OpenCL nie powiodła się: {e}") from e
 
     def _compile_kernel_from_file(self):
-        """Kompiluje kernel OpenCL z zewnętrznego pliku dla lepszej organizacji kodu."""
         try:
             kernel_file_path = os.path.join(os.path.dirname(__file__), 'palette_mapping.cl')
             with open(kernel_file_path, 'r', encoding='utf-8') as kernel_file:
                 kernel_code = kernel_file.read()
-            
             self.prg = cl.Program(self.ctx, kernel_code).build()
         except cl.LogicError as e:
             self.logger.error(f"Błąd kompilacji kernela OpenCL: {e}")
             raise err.GPUProcessingError(f"Błąd kompilacji kernela: {e}")
         except FileNotFoundError:
-            self.logger.error(f"Plik kernela 'palette_mapping.cl' nie został znaleziony w tym samym folderze co algorytm.")
+            self.logger.error(f"Plik kernela 'palette_mapping.cl' nie został znaleziony.")
             raise err.GPUProcessingError("Nie znaleziono pliku kernela OpenCL.")
 
-    def __enter__(self):
-        return self
+    def get_context(self) -> cl.Context:
+        self.ensure_initialized()
+        if not self.ctx:
+            raise err.GPUProcessingError("Kontekst OpenCL jest niedostępny.")
+        return self.ctx
 
-    def __exit__(self, exc_type, exc_val, exc_tb):
-        self.cleanup()
+    def get_queue(self) -> cl.CommandQueue:
+        self.ensure_initialized()
+        if not self.queue:
+            raise err.GPUProcessingError("Kolejka poleceń OpenCL jest niedostępna.")
+        return self.queue
 
-    def cleanup(self):
-        self.prg = None
-        self.queue = None
-        self.ctx = None
-        self.logger.info("Zasoby OpenCL zostały zwolnione.")
+    def get_program(self) -> cl.Program:
+        self.ensure_initialized()
+        if not self.prg:
+            raise err.GPUProcessingError("Program kernela OpenCL jest niedostępny.")
+        return self.prg
+
 
 
 class PaletteMappingAlgorithmGPU:
@@ -129,29 +158,32 @@ class PaletteMappingAlgorithmGPU:
         flat = image_array.astype(np.uint8).reshape(-1)
         weights = self._gaussian_weights(radius)
         try:
-            with OpenCLManager() as cl_mgr:
-                mf = cl.mem_flags
-                buf_in = cl.Buffer(cl_mgr.ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=flat)
-                buf_temp = cl.Buffer(cl_mgr.ctx, mf.READ_WRITE, flat.nbytes)
-                buf_out = cl.Buffer(cl_mgr.ctx, mf.READ_WRITE, flat.nbytes)
-                buf_w = cl.Buffer(cl_mgr.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=weights)
+            cl_mgr = OpenCLManager()
+            ctx = cl_mgr.get_context()
+            queue = cl_mgr.get_queue()
+            prg = cl_mgr.get_program()
+            mf = cl.mem_flags
+            buf_in = cl.Buffer(ctx, mf.READ_WRITE | mf.COPY_HOST_PTR, hostbuf=flat)
+            buf_temp = cl.Buffer(ctx, mf.READ_WRITE, flat.nbytes)
+            buf_out = cl.Buffer(ctx, mf.READ_WRITE, flat.nbytes)
+            buf_w = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=weights)
 
-                global_size = (h * w,)
-                # horizontal pass
-                cl_mgr.prg.gaussian_blur_h(cl_mgr.queue, global_size, None,
-                                            buf_in, buf_temp, buf_w,
-                                            np.int32(radius), np.int32(w), np.int32(h))
-                # vertical pass
-                cl_mgr.prg.gaussian_blur_v(cl_mgr.queue, global_size, None,
-                                            buf_temp, buf_out, buf_w,
-                                            np.int32(radius), np.int32(w), np.int32(h))
+            global_size = (h * w,)
+            # horizontal pass
+            prg.gaussian_blur_h(queue, global_size, None,
+                                buf_in, buf_temp, buf_w,
+                                np.int32(radius), np.int32(w), np.int32(h))
+            # vertical pass
+            prg.gaussian_blur_v(queue, global_size, None,
+                                buf_temp, buf_out, buf_w,
+                                np.int32(radius), np.int32(w), np.int32(h))
 
-                cl.enqueue_copy(cl_mgr.queue, flat, buf_out).wait()
-                for b in (buf_in, buf_temp, buf_out, buf_w):
-                    b.release()
+            cl.enqueue_copy(queue, flat, buf_out).wait()
+            for b in (buf_in, buf_temp, buf_out, buf_w):
+                b.release()
             return flat.reshape((h, w, 3))
         except Exception as e:
-            self.logger.warning(f"GPU gaussian blur nie powiódł się: {e}.")
+            self.logger.warning(f"GPU gaussian blur nie powiódł się: {e}. Użycie CPU jako fallback (jeśli zaimplementowano).")
             return None
 
     def _apply_edge_blending(self, mapped_image: Image.Image, config: Dict[str, Any]) -> Image.Image:
@@ -198,42 +230,40 @@ class PaletteMappingAlgorithmGPU:
     def _map_pixels_to_palette_opencl(self, image_array: np.ndarray, palette: List[List[int]], config: Dict[str, Any]) -> np.ndarray:
         with self.profiler.profile_operation("map_pixels_to_palette_opencl", algorithm_id=self.algorithm_id):
             start_time = time.perf_counter()
-            with OpenCLManager() as cl_mgr:
-                palette_np_rgb = np.array(palette, dtype=np.float32)
-                palette_np_hsv = cpu.rgb2hsv(palette_np_rgb / 255.0).astype(np.float32).flatten()
-                pixels_flat = image_array.reshape(-1, 3).astype(np.float32)
-                mf = cl.mem_flags
-                
-                pixels_g, palette_hsv_g, output_g = None, None, None
-                try:
-                    pixels_g = cl.Buffer(cl_mgr.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=pixels_flat)
-                    palette_hsv_g = cl.Buffer(cl_mgr.ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=palette_np_hsv)
-                    output_g = cl.Buffer(cl_mgr.ctx, mf.WRITE_ONLY, pixels_flat.shape[0] * 4)
-
-                    local_size = (64,)
-                    global_size_raw = pixels_flat.shape[0]
-                    rounded_global_size = (global_size_raw + local_size[0] - 1) // local_size[0] * local_size[0]
-                    global_size = (rounded_global_size,)
-                    
-                    cl_mgr.prg.map_palette(
-                        cl_mgr.queue, global_size, local_size,
-                        pixels_g, palette_hsv_g, output_g,
-                        np.int32(len(palette)), np.float32(config.get('hue_weight', 3.0))
-                    )
-                    
-                    closest_indices = np.empty(pixels_flat.shape[0], dtype=np.int32)
-                    cl.enqueue_copy(cl_mgr.queue, closest_indices, output_g).wait()
-                    
-                    result_array = np.array(palette, dtype=np.uint8)[closest_indices].reshape(image_array.shape)
-                    self.logger.info(f"Przetworzono na GPU (OpenCL) {pixels_flat.shape[0]:,} pikseli w {(time.perf_counter() - start_time) * 1000:.1f}ms")
-                    return result_array
-                except Exception as e:
-                    self.logger.error(f"Błąd podczas wykonywania kernela OpenCL: {e}", exc_info=True)
-                    raise err.GPUProcessingError(f"Błąd wykonania OpenCL: {e}")
-                finally:
-                    if pixels_g: pixels_g.release()
-                    if palette_hsv_g: palette_hsv_g.release()
-                    if output_g: output_g.release()
+            cl_mgr = OpenCLManager()
+            ctx = cl_mgr.get_context()
+            queue = cl_mgr.get_queue()
+            prg = cl_mgr.get_program()
+            palette_np_rgb = np.array(palette, dtype=np.float32)
+            palette_np_hsv = cpu.rgb2hsv(palette_np_rgb / 255.0).astype(np.float32).flatten()
+            pixels_flat = image_array.reshape(-1, 3).astype(np.float32)
+            mf = cl.mem_flags
+            pixels_g, palette_hsv_g, output_g = None, None, None
+            try:
+                pixels_g = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=pixels_flat)
+                palette_hsv_g = cl.Buffer(ctx, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=palette_np_hsv)
+                output_g = cl.Buffer(ctx, mf.WRITE_ONLY, pixels_flat.shape[0] * 4)
+                local_size = (64,)
+                global_size_raw = pixels_flat.shape[0]
+                rounded_global_size = (global_size_raw + local_size[0] - 1) // local_size[0] * local_size[0]
+                global_size = (rounded_global_size,)
+                prg.map_palette(
+                    queue, global_size, local_size,
+                    pixels_g, palette_hsv_g, output_g,
+                    np.int32(len(palette)), np.float32(config.get('hue_weight', 3.0))
+                )
+                closest_indices = np.empty(pixels_flat.shape[0], dtype=np.int32)
+                cl.enqueue_copy(queue, closest_indices, output_g).wait()
+                result_array = np.array(palette, dtype=np.uint8)[closest_indices].reshape(image_array.shape)
+                self.logger.info(f"Przetworzono na GPU (OpenCL) {pixels_flat.shape[0]:,} pikseli w {(time.perf_counter() - start_time) * 1000:.1f}ms")
+                return result_array
+            except Exception as e:
+                self.logger.error(f"Błąd podczas wykonywania kernela OpenCL: {e}", exc_info=True)
+                raise err.GPUProcessingError(f"Błąd wykonania OpenCL: {e}")
+            finally:
+                if pixels_g: pixels_g.release()
+                if palette_hsv_g: palette_hsv_g.release()
+                if output_g: output_g.release()
     
     def _map_pixels_to_palette(self, image_array: np.ndarray, palette: List[List[int]], config: Dict[str, Any]) -> np.ndarray:
         """Dispatcher wybierający między GPU a CPU."""

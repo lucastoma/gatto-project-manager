@@ -72,7 +72,7 @@ def safe_start_server():
     print("-" * 50)
 
     # Uruchamiamy serwer Flask (debug=False zeby uniknac konfliktow z kontrola portu)
-    app.run(host='127.0.0.1', port=port, debug=False)
+    app.run(host='0.0.0.0', port=port, debug=False)
 
 if __name__ == '__main__':
     safe_start_server()
