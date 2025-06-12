@@ -237,9 +237,13 @@ class PaletteMappingAlgorithm:
 
                 distances_sq = self._calculate_hsv_distance_sq(
                     pixels_hsv, palette_hsv, weights
-                )                # POPRAWIONA LOGIKA "Color Focus"
-                self.logger.info(f"COLOR FOCUS DEBUG: use_color_focus = {config.get('use_color_focus', False)}")
-                self.logger.info(f"COLOR FOCUS DEBUG: focus_ranges = {config.get('focus_ranges', [])}")
+                )  # POPRAWIONA LOGIKA "Color Focus"
+                self.logger.info(
+                    f"COLOR FOCUS DEBUG: use_color_focus = {config.get('use_color_focus', False)}"
+                )
+                self.logger.info(
+                    f"COLOR FOCUS DEBUG: focus_ranges = {config.get('focus_ranges', [])}"
+                )
                 if config.get("use_color_focus", False) and config.get("focus_ranges"):
                     self.logger.info(
                         f"Using Color Focus with {len(config['focus_ranges'])} range(s)."

@@ -71,7 +71,7 @@ class PaletteMappingAlgorithm:
 
         self.logger.info(f"Initialized algorithm: {self.algorithm_id}")
         self.name = "Palette Mapping Refactored"
-        self.version = "2.4-HuePriority"
+        self.version = "2.5-ColorFocus"
         self.default_config_values = self._get_default_config()
         self.config = (
             self.load_config(config_path)
@@ -101,8 +101,10 @@ class PaletteMappingAlgorithm:
             "num_colors": 16,
             "palette_method": "kmeans",
             "quality": 5,
-            "distance_metric": "weighted_hsv",  # ZMIANA DOMYŚLNEJ METRYKI
-            "hue_weight": 3.0,  # Waga dla HUE w metryce 'weighted_hsv'
+            "distance_metric": "weighted_hsv",
+            "hue_weight": 3.0,
+            "use_color_focus": False,
+            "focus_ranges": [],  # Lista obiektów definiujących zakresy
             "dithering_method": "none",
             "dithering_strength": 8.0,
             "inject_extremes": False,
@@ -112,7 +114,7 @@ class PaletteMappingAlgorithm:
             "edge_blur_radius": 1.5,
             "edge_blur_strength": 0.3,
             "edge_detection_threshold": 25,
-            "postprocess_median_filter": False,  # Opcja do walki z "samotnymi pikselami"
+            "postprocess_median_filter": False,
         }
 
     # ... (metody load_config, validate_palette, extract_palette pozostają bez zmian) ...
@@ -197,43 +199,96 @@ class PaletteMappingAlgorithm:
                 self.logger.error(f"Error extracting palette: {e}", exc_info=True)
                 return [[0, 0, 0], [128, 128, 128], [255, 255, 255]]
 
-    def _calculate_hsv_distance(
-        self, pixels_hsv: np.ndarray, palette_hsv: np.ndarray, hue_weight: float
-    ) -> np.ndarray:
-        """Oblicza ważoną odległość w przestrzeni HSV, poprawnie obsługując cykliczne HUE."""
-        # Różnice dla S i V (zakres 0-1)
+    def _calculate_hsv_distance_sq(self, pixels_hsv, palette_hsv, weights):
+        """Oblicza kwadrat ważonej odległości w HSV, używając tablicy wag."""
         delta_sv = pixels_hsv[:, np.newaxis, 1:] - palette_hsv[np.newaxis, :, 1:]
+        delta_h_abs = np.abs(
+            pixels_hsv[:, np.newaxis, 0] - palette_hsv[np.newaxis, :, 0]
+        )
+        delta_h = np.minimum(delta_h_abs, 1.0 - delta_h_abs)
 
-        # Różnica dla HUE (zakres 0-1), z uwzględnieniem cykliczności
-        delta_h = np.abs(pixels_hsv[:, np.newaxis, 0] - palette_hsv[np.newaxis, :, 0])
-        # Bierzemy krótszą drogę po kole (np. dystans między 0.9 a 0.1 to 0.2, a nie 0.8)
-        delta_h = np.minimum(delta_h, 1.0 - delta_h)
+        # Tworzenie pełnej macierzy delty
+        delta_hsv = np.concatenate((delta_h[..., np.newaxis], delta_sv), axis=2)
 
-        # Obliczenie kwadratu ważonej odległości
-        # Dystans HUE jest ważony, a S i V mają wagę 1.
-        distance_sq = (hue_weight * delta_h) ** 2 + np.sum(delta_sv**2, axis=2)
-        return distance_sq  # Zwracamy kwadrat dla wydajności, bo nie potrzebujemy pierwiastka do znalezienia minimum
+        # Zastosowanie wag (broadcasting)
+        # weights mają kształt (N, 3), delta_hsv ma (N, M, 3) -> weights[:, np.newaxis, :] ma (N, 1, 3)
+        weighted_delta_hsv = delta_hsv * weights[:, np.newaxis, :]
+
+        return np.sum(weighted_delta_hsv**2, axis=2)
 
     def _map_pixels_to_palette(
-        self,
-        image_array: np.ndarray,
-        palette: List[List[int]],
-        metric: str,
-        hue_weight: float,
+        self, image_array: np.ndarray, palette: List[List[int]], config: Dict[str, Any]
     ) -> np.ndarray:
         with self.profiler.profile_operation(
             "map_pixels_to_palette", algorithm_id=self.algorithm_id
         ):
+            metric = config.get("distance_metric")
             palette_np = np.array(palette, dtype=np.float32)
             pixels_flat = image_array.reshape(-1, 3).astype(np.float32)
 
-            if metric == "weighted_hsv":
+            if "hsv" in metric:
                 pixels_hsv = color.rgb2hsv(pixels_flat / 255.0)
                 palette_hsv = color.rgb2hsv(palette_np / 255.0)
-                distances_sq = self._calculate_hsv_distance(
-                    pixels_hsv, palette_hsv, hue_weight
+
+                # Ustawienie domyślnych wag
+                weights = np.full(
+                    (pixels_hsv.shape[0], 3), [config.get("hue_weight", 3.0), 1.0, 1.0]
                 )
+
+                distances_sq = self._calculate_hsv_distance_sq(
+                    pixels_hsv, palette_hsv, weights
+                )  # POPRAWIONA LOGIKA "Color Focus"
+                self.logger.info(
+                    f"COLOR FOCUS DEBUG: use_color_focus = {config.get('use_color_focus', False)}"
+                )
+                self.logger.info(
+                    f"COLOR FOCUS DEBUG: focus_ranges = {config.get('focus_ranges', [])}"
+                )
+                if config.get("use_color_focus", False) and config.get("focus_ranges"):
+                    self.logger.info(
+                        f"Using Color Focus with {len(config['focus_ranges'])} range(s)."
+                    )
+
+                    # Dla każdego focus range
+                    for i, focus in enumerate(config["focus_ranges"]):
+                        target_h = focus["target_hsv"][0] / 360.0
+                        target_s = focus["target_hsv"][1] / 100.0
+                        target_v = focus["target_hsv"][2] / 100.0
+
+                        range_h = focus["range_h"] / 360.0
+                        range_s = focus["range_s"] / 100.0
+                        range_v = focus["range_v"] / 100.0
+
+                        # Sprawdź które KOLORY Z PALETY pasują do focus range
+                        palette_h_dist = np.abs(palette_hsv[:, 0] - target_h)
+                        palette_hue_mask = np.minimum(
+                            palette_h_dist, 1.0 - palette_h_dist
+                        ) <= (range_h / 2.0)
+                        palette_sat_mask = np.abs(palette_hsv[:, 1] - target_s) <= (
+                            range_s / 2.0
+                        )
+                        palette_val_mask = np.abs(palette_hsv[:, 2] - target_v) <= (
+                            range_v / 2.0
+                        )
+
+                        palette_final_mask = (
+                            palette_hue_mask & palette_sat_mask & palette_val_mask
+                        )
+
+                        if np.sum(palette_final_mask) > 0:
+                            # APLIKUJ COLOR FOCUS: zmniejsz odległości do preferowanych kolorów palety
+                            boost = focus.get("boost_factor", 1.0)
+                            distances_sq[:, palette_final_mask] /= boost
+                            self.logger.info(
+                                f"Color Focus applied: boosted {np.sum(palette_final_mask)} palette colors by factor {boost}"
+                            )
+                        else:
+                            self.logger.warning(
+                                f"Color Focus range {i+1}: no palette colors matched the specified range"
+                            )
+
                 closest_indices = np.argmin(distances_sq, axis=1)
+
             elif metric == "lab" and SCIPY_AVAILABLE:
                 palette_lab = color.rgb2lab(palette_np / 255.0)
                 kdtree = KDTree(palette_lab)
@@ -284,10 +339,10 @@ class PaletteMappingAlgorithm:
             )
             return dithered_image
 
-    # ... (metody _apply_edge_blending i _preserve_extremes pozostają bez zmian) ...
     def _apply_edge_blending(
         self, mapped_image: Image.Image, config: Dict[str, Any]
     ) -> Image.Image:
+        # ... (bez zmian)
         with self.profiler.profile_operation(
             "apply_edge_blending", algorithm_id=self.algorithm_id
         ):
@@ -346,6 +401,7 @@ class PaletteMappingAlgorithm:
         ):
             run_config = self.default_config_values.copy()
             run_config.update(kwargs)
+
             self.logger.info(f"Processing with effective config: {run_config}")
 
             try:
@@ -368,10 +424,7 @@ class PaletteMappingAlgorithm:
                     )
 
                 mapped_array = self._map_pixels_to_palette(
-                    array_to_map,
-                    palette,
-                    run_config["distance_metric"],
-                    run_config["hue_weight"],
+                    array_to_map, palette, run_config
                 )
 
                 if run_config["preserve_extremes"]:
@@ -390,7 +443,9 @@ class PaletteMappingAlgorithm:
                     self.logger.info(
                         "Applying post-process median filter to reduce noise."
                     )
-                    filtered_array = ndimage.median_filter(mapped_image, size=3)
+                    filtered_array = ndimage.median_filter(
+                        np.array(mapped_image), size=3
+                    )
                     mapped_image = Image.fromarray(filtered_array)
 
                 mapped_image.save(output_path)
