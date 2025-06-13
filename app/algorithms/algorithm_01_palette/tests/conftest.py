@@ -63,6 +63,18 @@ def noise_image(tmp_path):
     Image.fromarray(arr).save(path)
     return str(path)
 
+@pytest.fixture
+def checkerboard(tmp_path):
+    """Create a 64×64 checkerboard image and return its path."""
+    arr = np.zeros((64, 64, 3), dtype=np.uint8)
+    arr[0:32, 0:32] = [255, 0, 0]   # Red
+    arr[0:32, 32:64] = [0, 0, 255]  # Blue
+    arr[32:64, 0:32] = [0, 255, 0]  # Green
+    arr[32:64, 32:64] = [255, 255, 0]  # Yellow
+    path = tmp_path / "checkerboard.png"
+    Image.fromarray(arr).save(path)
+    return str(path)
+
 from app.algorithms.algorithm_01_palette.algorithm import PaletteMappingAlgorithm
 
 @pytest.fixture
