@@ -427,11 +427,27 @@ class LABColorConverter:
 
     def calculate_delta_e(self, lab1, lab2):
         """
-        Oblicza Delta E (CIE76) między dwoma obrazami LAB
+        Oblicza Delta E między dwoma obrazami LAB przy użyciu miary CIEDE2000.
+        Jest to percepcyjnie dokładniejsza miara niż Delta E 1976 (Euclidean).
+        
+        Wymaga: from skimage.color import deltaE_ciede2000
         """
-        diff = lab1 - lab2
-        delta_e = np.sqrt(np.sum(diff**2, axis=2))
-        return delta_e
+        # Import na poziomie funkcji aby uniknąć zależności globalnych
+        from skimage.color import deltaE_ciede2000
+        
+        # CIEDE2000 dla lepszej percepcyjnej dokładności
+        # Musimy zadbać o kształt arrayów
+        original_shape = lab1.shape[:2]  # Zachowaj oryginalny kształt
+        
+        # Przekształć do formatu wymaganego przez deltaE_ciede2000
+        lab1_reshaped = lab1.reshape(-1, 3)
+        lab2_reshaped = lab2.reshape(-1, 3)
+        
+        # Oblicz Delta E używając CIEDE2000
+        delta_e = deltaE_ciede2000(lab1_reshaped, lab2_reshaped)
+        
+        # Przywróć oryginalny kształt
+        return delta_e.reshape(original_shape)
 ```
 
 ---

@@ -37,34 +37,38 @@ class LABColorTransfer:
         self.name = "LAB Color Space Transfer"
         self.version = "2.1"
         self.logger = get_logger()
+        
+        # Import potrzebny dla metody process_image_batch
+        import concurrent.futures
         self.profiler = get_profiler()
         
         # Parametry konwersji
-        self.illuminant_d65 = np.array([95.047, 100.000, 108.883])
         self.srgb_to_xyz_matrix = np.array([
             [0.4124564, 0.3575761, 0.1804375],
             [0.2126729, 0.7151522, 0.0721750],
             [0.0193339, 0.1191920, 0.9503041]
         ])
-        self.xyz_to_srgb_matrix = np.array([
-            [ 3.2404542, -1.5371385, -0.4985314],
-            [-0.9692660,  1.8760108,  0.0415560],
-            [ 0.0556434, -0.2040259,  1.0572252]
-        ])
+        self.xyz_to_srgb_matrix = np.linalg.inv(self.srgb_to_xyz_matrix)
+        self.illuminant_d65 = np.array([0.95047, 1.0, 1.08883])
         
-        # Cache dla optymalizacji z limitem
-        self._conversion_cache = {}
-        self.MAX_CACHE_SIZE = 10
+        # Ustaw cache dla konwersji kolorów
+        self._rgb_to_lab = self._rgb_to_lab_impl
+        self._lab_to_rgb = self._lab_to_rgb_impl
         
-    def rgb_to_lab_optimized(self, rgb_array):
+        # Jeśli użycie cache'a jest włączone, zastosuj lru_cache
+        # Doświadczalnie dobrana wartość maxsize=32 (większa niż poprzednio)
+        self.rgb_to_lab_optimized = functools.lru_cache(maxsize=32)(self._rgb_to_lab)
+        self.lab_to_rgb_optimized = functools.lru_cache(maxsize=32)(self._lab_to_rgb)
+        
+    def _rgb_to_lab_impl(self, rgb_array_bytes):
         """
         Zoptymalizowana konwersja RGB -> LAB.
+        Przyjmuje immutable bytes zamiast array dla prawidłowego działania lru_cache.
         """
-        # 🟢 POPRAWKA: Użycie bezpiecznego hasha jako klucza cache'a.
-        cache_key = (rgb_array.shape, hash(rgb_array.tobytes()[:1000]))  # Sample hash
-        if cache_key in self._conversion_cache:
-            return self._conversion_cache[cache_key].copy()
+        # Konwersja z powrotem do numpy array
+        rgb_array = np.frombuffer(rgb_array_bytes, dtype=np.uint8).reshape((-1, -1, 3))
         
+        # Implementacja konwersji RGB -> LAB
         rgb_norm = rgb_array.astype(np.float64) / 255.0
         mask = rgb_norm > 0.04045
         rgb_linear = np.where(mask,
@@ -85,10 +89,6 @@ class LABColorTransfer:
         b = 200 * (f_xyz[:, :, 1] - f_xyz[:, :, 2])
         
         lab = np.stack([L, a, b], axis=2)
-        
-        # Zarządzanie cache z limitem
-        if len(self._conversion_cache) < self.MAX_CACHE_SIZE:
-            self._conversion_cache[cache_key] = lab
         
         return lab
     
@@ -263,17 +263,6 @@ def calculate_region_statistics(self, source_region, target_lab):
             'std': np.std(target_region[:, i])
         }
     
-    return stats
-```
-
-### 2. Dopasowanie Histogramu (Histogram Matching) - Alternatywna Technika
-
-🟢 **Wyjaśnienie:** Dopasowanie histogramu to technika transferu kolorów, która działa inaczej niż transfer statystyczny. Zamiast dopasowywać tylko średnią i odchylenie standardowe, dąży do całkowitego przekształcenia rozkładu (dystrybucji) kolorów obrazu źródłowego tak, aby pasował do rozkładu obrazu docelowego. Daje to często bardziej dramatyczne i dokładne rezultaty, ale może też prowadzić do utraty oryginalnej struktury jasności, jeśli nie jest stosowane ostrożnie.
-
-```python
-def lab_histogram_matching(self, source_lab, target_lab):
-    """
-    Dopasowanie histogramu w przestrzeni LAB dla każdego kanału.
     """
     result_lab = np.zeros_like(source_lab)
     
@@ -306,30 +295,108 @@ def lab_histogram_matching(self, source_lab, target_lab):
 ### 1. Batch Processing
 
 ```python
-def process_image_batch(self, image_paths, target_path, output_dir, 
-                       method='basic', batch_size=4):
+def _process_single_image(self, args):
     """
-    Przetwarzanie wsadowe obrazów
+    Pomocnicza funkcja do przetwarzania pojedynczego obrazu (do użycia z ProcessPoolExecutor)
+    
+    Args:
+        args: Tuple zawierający (path, target_lab, output_dir, method)
+    
+    Returns:
+        Słownik z wynikami przetwarzania
     """
+    path, target_lab, output_dir, method = args
+    
+    try:
+        # Wczytaj obraz
+        source_image = Image.open(path).convert('RGB')
+        source_lab = self.rgb_to_lab_optimized(np.array(source_image))
+        
+        # Zastosuj transfer
+        if method == 'basic':
+            result_lab = self.basic_lab_transfer(source_lab, target_lab)
+        elif method == 'weighted':
+            result_lab = self.weighted_lab_transfer(source_lab, target_lab)
+        elif method == 'selective':
+            result_lab = self.selective_lab_transfer(source_lab, target_lab)
+        elif method == 'adaptive':
+            result_lab = self.adaptive_lab_transfer(source_lab, target_lab)
+        else:
+            result_lab = self.basic_lab_transfer(source_lab, target_lab)
+        
+        # Konwertuj z powrotem
+        result_rgb = self.lab_to_rgb_optimized(result_lab)
+        
+        # Zapisz
+        output_path = f"{output_dir}/lab_transfer_{os.path.basename(path)}"
+        Image.fromarray(result_rgb).save(output_path)
+        
+        return {
+            'input': path,
+            'output': output_path,
+            'success': True
+        }
+        
+    except Exception as e:
+        # Użyj logger.exception tylko w głównym wątku, tutaj po prostu logujemy błąd
+        return {
+            'input': path,
+            'output': None,
+            'success': False,
+            'error': str(e)
+        }
+
+def process_image_batch(self, image_paths, target_path, output_dir, method, batch_size=10, max_workers=None):
+    """
+    Przetwarzanie wsadowe obrazów z wykorzystaniem przetwarzania równoległego
+    
+    Args:
+        image_paths: Lista ścieżek do obrazów źródłowych
+        target_path: Ścieżka do obrazu docelowego
+        output_dir: Katalog wyjściowy
+        method: Metoda transferu ('basic', 'weighted', 'selective', 'adaptive')
+        batch_size: Rozmiar wsadu do raportowania postępu
+        max_workers: Maksymalna liczba procesów roboczych (None = auto)
+    """
+    # Importuj dopiero gdy potrzeba, aby uniknąć zbędnych zależności
+    from concurrent.futures import ProcessPoolExecutor
+    import multiprocessing
+    
     # Wczytaj target raz
     target_image = Image.open(target_path).convert('RGB')
     target_lab = self.rgb_to_lab_optimized(np.array(target_image))
     
+    # Określ liczbę procesów roboczych
+    if max_workers is None:
+        max_workers = min(multiprocessing.cpu_count(), 8)  # Limit to 8 cores max by default
+    
+    self.logger.info(f"Rozpoczęcie przetwarzania równoległego na {max_workers} rdzeniach")
+    
+    # Przygotuj argumenty dla każdego obrazu
+    all_args = [(path, target_lab, output_dir, method) for path in image_paths]
+    total_images = len(image_paths)
     results = []
     
-    for i in range(0, len(image_paths), batch_size):
-        batch_paths = image_paths[i:i+batch_size]
+    # Uruchom przetwarzanie równoległe
+    with ProcessPoolExecutor(max_workers=max_workers) as executor:
+        futures = [executor.submit(self._process_single_image, arg) for arg in all_args]
         
-        # Przetwórz batch
-        batch_results = self.process_batch(
-            batch_paths, target_lab, output_dir, method
-        )
-        
-        results.extend(batch_results)
-        
-        # Progress
-        progress = min(i + batch_size, len(image_paths))
-        print(f"Przetworzono {progress}/{len(image_paths)} obrazów")
+        # Zbieraj wyniki i raportuj postęp
+        for i, future in enumerate(concurrent.futures.as_completed(futures), 1):
+            try:
+                result = future.result()
+                results.append(result)
+                
+                # Logowanie postępu co batch_size obrazów lub na końcu
+                if i % batch_size == 0 or i == total_images:
+                    self.logger.info(f"Przetworzono {i}/{total_images} obrazów ({(i / total_images) * 100:.1f}%)")
+                    
+            except Exception as e:
+                self.logger.exception(f"Błąd podczas przetwarzania równoległego: {str(e)}")
+    
+    # Podsumowanie
+    successful = sum(1 for r in results if r['success'])
+    self.logger.info(f"Zakończono przetwarzanie równoległe: {successful}/{total_images} obrazów przetworzono pomyślnie")
     
     return results
 
@@ -371,6 +438,8 @@ def process_batch(self, image_paths, target_lab, output_dir, method):
             })
             
         except Exception as e:
+            # Użyj logger.exception aby przechwycić pełny stack trace
+            self.logger.exception(f"Błąd podczas przetwarzania {path}: {str(e)}")
             results.append({
                 'input': path,
                 'output': None,
@@ -429,13 +498,28 @@ def process_large_image(self, source_path, target_path, output_path,
     
     return True
 
-def blend_tile_overlap(self, tile, result_image, x, y, overlap):
+def blend_tile_overlap(self, tile_array, result_image_array, x, y, overlap):
     """
-    Blenduje overlap między kafelkami
+    Prosty blending liniowy na obszarze nachodzenia.
     """
-    # Implementacja blendingu dla smooth transitions
-    # Simplified version - można rozszerzyć o gaussian blending
-    return tile
+    # Pobierz istniejący fragment z obrazu wynikowego
+    h, w, _ = tile_array.shape
+    
+    # Blending pionowy (jeśli jest overlap z góry)
+    if y > 0:
+        top_overlap = result_image_array[y : y + overlap, x : x + w]
+        for i in range(overlap):
+            alpha = i / (overlap - 1) # waga od 0 do 1
+            tile_array[i, :] = (1 - alpha) * top_overlap[i, :] + alpha * tile_array[i, :]
+
+    # Blending poziomy (jeśli jest overlap z lewej)
+    if x > 0:
+        left_overlap = result_image_array[y : y + h, x : x + overlap]
+        for i in range(overlap):
+            alpha = i / (overlap - 1)
+            tile_array[:, i] = (1 - alpha) * left_overlap[:, i] + alpha * tile_array[:, i]
+            
+    return tile_array.astype(np.uint8)
 ```
 
 ---
@@ -586,11 +670,27 @@ class LABColorTransferAdvanced(LABColorTransfer):
     
     def calculate_delta_e_lab(self, lab1, lab2):
         """
-        Oblicza Delta E między dwoma obrazami LAB
+        Oblicza Delta E między dwoma obrazami LAB przy użyciu miary CIEDE2000.
+        Jest to percepcyjnie dokładniejsza miara niż Delta E 1976 (Euclidean).
+        
+        Wymaga: from skimage.color import deltaE_ciede2000
         """
-        diff = lab1 - lab2
-        delta_e = np.sqrt(np.sum(diff**2, axis=2))
-        return delta_e
+        # Import na poziomie funkcji aby uniknąć zależności globalnych
+        from skimage.color import deltaE_ciede2000
+        
+        # CIEDE2000 dla lepszej percepcyjnej dokładności
+        # Musimy zadbać o kształt arrayów
+        original_shape = lab1.shape[:2]  # Zachowaj oryginalny kształt
+        
+        # Przekształć do formatu wymaganego przez deltaE_ciede2000
+        lab1_reshaped = lab1.reshape(-1, 3)
+        lab2_reshaped = lab2.reshape(-1, 3)
+        
+        # Oblicz Delta E używając CIEDE2000
+        delta_e = deltaE_ciede2000(lab1_reshaped, lab2_reshaped)
+        
+        # Przywróć oryginalny kształt
+        return delta_e.reshape(original_shape)
 ```
 
 ---

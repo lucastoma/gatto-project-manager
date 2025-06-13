@@ -362,7 +362,7 @@ def validate_config(config_dict):
     
     # Sprawdź metodę adaptacji
     if 'adaptation_method' in config_dict:
-        valid_adaptations = ['none', 'luminance', 'chromaticity']
+        valid_adaptations = ['none', 'luminance', 'saturation', 'gradient'] 
         if config_dict['adaptation_method'] not in valid_adaptations:
             errors.append(f"Invalid adaptation_method. Must be one of: {valid_adaptations}")
     

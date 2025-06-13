@@ -1,0 +1,87 @@
+# Przykładowa konfiguracja z pełnymi opcjami Repomix
+# Wszystkie parametry mają swoje wartości domyślne, ale można je nadpisać
+
+project_name: "Gatto PS AI Project - Full Repomix Config"
+output_file: ".doc-gen/export/comb-scripts-output-full.xml"
+gitignore_file: ".gitignore"
+
+# Globalne opcje Repomix - będą używane dla wszystkich grup, chyba że grupa je nadpisze
+repomix_global_options:
+  # Output options
+  style: "xml" # Format wyjściowy: xml, markdown, plain
+  remove_comments: true # Usuwanie komentarzy z kodu
+  remove_empty_lines: true # Usuwanie pustych linii
+  show_line_numbers: false # Pokazywanie numerów linii
+  calculate_tokens: true # Obliczanie liczby tokenów
+  show_file_stats: true # Pokazywanie statystyk plików
+  show_directory_structure: true # Pokazywanie struktury katalogów
+  top_files_length: 3 # Liczba top plików w statystykach
+  copy_to_clipboard: false # Kopiowanie do schowka
+  include_empty_directories: false # Dołączanie pustych katalogów
+
+  # Compression options
+  compression:
+    enabled: true # Włączenie kompresji
+    keep_signatures: false # Zachowanie sygnatur funkcji
+    keep_docstrings: false # Zachowanie docstringów
+    keep_interfaces: false # Zachowanie interfejsów
+
+  # Security options
+  security_check: true # Sprawdzanie bezpieczeństwa
+
+groups:
+  - name: "Main Source Files"
+    description: "Główne pliki źródłowe aplikacji"
+    paths:
+      - "app"
+    patterns:
+      - "*.py"
+      - "*.jsx"
+      - "*.html"
+      - "*.css"
+      - "*.js"
+    exclude_patterns:
+      - "**/logs/**"
+      - "**/temp_uploads/**"
+      - "**/__pycache__/**"
+      - "**/node_modules/**"
+    # Opcje specyficzne dla tej grupy - nadpisują globalne
+
+  - name: "Documentation"
+    description: "Pliki dokumentacji i konfiguracji"
+    paths:
+      - "."
+    patterns:
+      - "*.md"
+      - "*.yaml"
+      - "*.yml"
+      - "*.json"
+      - "*.txt"
+      - "*.py" # Skrypty konfiguracyjne
+    exclude_patterns:
+      - "**/node_modules/**"
+      - "**/venv/**"
+      - "**/logs/**"
+      - "**/temp_uploads/**"
+      - "**/__pycache__/**"
+      - "**/export/**"
+      - "docs/**" # Pomijamy docs jeśli nie istnieje
+    # Opcje specyficzne dla dokumentacji
+
+  - name: "Configuration Files"
+    description: "Pliki konfiguracyjne systemu"
+    paths:
+      - "."
+    patterns:
+      - ".gitignore"
+      - ".pylintrc"
+      - "requirements.txt"
+      - "Dockerfile"
+      - "*.config.json"
+      - "*.ps1"
+      - "*.cmd"
+      - "*.bat"
+    exclude_patterns:
+      - "**/node_modules/**"
+      - "**/venv/**"
+    # Minimalne opcje dla plików konfiguracyjnych

@@ -77,9 +77,9 @@ def display_config_list(config_files):
     print("\n" + "="*80)
 
 def run_script_with_config(config_file):
-    """Uruchamia skrypt .comb-scripts-v5.py z wybraną konfiguracją."""
+    """Uruchamia skrypt .comb-scripts-v6.py z wybraną konfiguracją."""
     script_dir = Path(__file__).parent
-    main_script = script_dir / '.comb-scripts-v5.py'
+    main_script = script_dir / '.comb-scripts-v6.py'
     export_dir = script_dir / 'export'
     
     if not main_script.exists():

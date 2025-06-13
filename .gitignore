@@ -27,8 +27,8 @@ logs/**/*
 
 .trae/**/*
 .kilocode/**/*
-.doc-gen/**/*.md
-.doc-gen/**/*
+# .doc-gen/**/*.md
+# .doc-gen/**/*
 
 .doc/**/*
 .history/**/*
