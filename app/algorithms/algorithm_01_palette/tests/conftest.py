@@ -43,7 +43,7 @@ def synthetic_image(tmp_path):
 
 # ------------- Additional common fixtures (CPU tests) -------------
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def gradient_image(tmp_path):
     """Create horizontal RGB gradient, return path."""
     arr = np.zeros((100, 100, 3), dtype=np.uint8)
@@ -55,10 +55,11 @@ def gradient_image(tmp_path):
     Image.fromarray(arr).save(path)
     return str(path)
 
-@pytest.fixture(scope="session")
+@pytest.fixture(scope="function")
 def noise_image(tmp_path):
-    """Random noise RGB image (200x200)."""
-    arr = (np.random.rand(200, 200, 3) * 255).astype(np.uint8)
+    """Random noise RGB image (200x200) with deterministic content."""
+    rng = np.random.RandomState(42)
+    arr = (rng.rand(200, 200, 3) * 255).astype(np.uint8)
     path = tmp_path / "noise.png"
     Image.fromarray(arr).save(path)
     return str(path)

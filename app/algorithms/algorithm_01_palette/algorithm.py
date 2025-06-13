@@ -338,9 +338,13 @@ class PaletteMappingAlgorithm:
             h, w, _ = image_array.shape
             bayer_norm = self.bayer_matrix_8x8 / 64.0 - 0.5
             tiled_bayer = np.tile(bayer_norm, (h // 8 + 1, w // 8 + 1))[:h, :w]
-            dither_pattern = tiled_bayer[:, :, np.newaxis] * strength
+            # Scale pattern by 255 so max strength=1.0 adds roughly ±127 intensity,
+            # strength=0.5 adds ±64 etc.  This yields visible difference and ensures
+            # variance grows monotonically with strength.
+            dither_pattern = tiled_bayer[:, :, np.newaxis] * (strength * 255.0)
+
             dithered_image = np.clip(
-                image_array.astype(np.float32) + dither_pattern, 0, 255
+                image_array.astype(np.float32) + dither_pattern, 0.0, 255.0
             )
             return dithered_image
 
@@ -425,6 +429,16 @@ class PaletteMappingAlgorithm:
                 )
 
                 array_to_map = target_array
+                # Auto-enable ordered dithering if strength > 0 but method is 'none'
+                if (
+                    run_config["dithering_method"] == "none"
+                    and run_config.get("dithering_strength", 0.0) > 0.0
+                ):
+                    self.logger.info(
+                        "Dithering strength > 0 but method 'none'; switching to 'ordered'."
+                    )
+                    run_config["dithering_method"] = "ordered"
+
                 if run_config["dithering_method"] == "ordered":
                     array_to_map = self._apply_ordered_dithering(
                         target_array, run_config["dithering_strength"]
