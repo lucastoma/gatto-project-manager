@@ -404,6 +404,8 @@ class PaletteMappingAlgorithm:
         with self.profiler.profile_operation(
             "process_images_full", algorithm_id=self.algorithm_id
         ):
+            # Handle distance cache flag transparently for CPU implementation
+            kwargs.pop("distance_cache_enabled", None)
             run_config = self.default_config_values.copy()
             run_config.update(kwargs)
 

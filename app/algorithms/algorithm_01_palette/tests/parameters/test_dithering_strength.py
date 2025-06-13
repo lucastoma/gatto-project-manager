@@ -28,8 +28,9 @@ def test_dithering_strength_variation(tmp_path, gradient_image, noise_image, alg
 def test_dithering_strength_monotone():
     data = getattr(pytest, "_dither_outputs", {})
     assert data, "Param loop missing"
-    # compare no dithering vs strongest dithering
+    # check monotonic increase in variance with strength
     var_none = np.var(data[0.0].astype(float))
+    var_mid = np.var(data[0.5].astype(float))
     var_strong = np.var(data[1.0].astype(float))
-    # observed behavior: ordered dithering reduces variance overall
-    assert var_strong < var_none, "Strongest dithering should reduce variance vs no dithering"
+    assert var_none < var_mid < var_strong, \
+        f"Variance not increasing monotonically: {var_none:.1f} !< {var_mid:.1f} !< {var_strong:.1f}"

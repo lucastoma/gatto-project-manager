@@ -33,6 +33,6 @@ def test_distance_cache_equality():
     assert imgs and False in imgs and True in imgs, "Previous parametrized run failed"
     img_false = imgs[False]
     img_true = imgs[True]
-    # Should produce same output dimensions without error
+    # Must produce identical outputs when cache enabled vs disabled
     assert img_false.shape == img_true.shape, "Output shapes differ when enabling distance cache"
-    # Outputs may vary slightly, but algorithm should still run without error
+    assert np.array_equal(img_false, img_true), "Image contents differ when enabling distance cache"
