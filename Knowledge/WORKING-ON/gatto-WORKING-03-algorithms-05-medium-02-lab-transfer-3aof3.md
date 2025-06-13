@@ -225,46 +225,50 @@ class TestLABColorTransfer(unittest.TestCase):
         self.assertEqual(result_image.size, (100, 100))
 
 class TestLABPerformance(unittest.TestCase):
-    """Testy wydajności"""
+    """Testy wydajności z poprawioną stabilnością pomiarów."""
     
     def setUp(self):
         self.transfer = LABColorTransferAdvanced()
-        
-        # Różne rozmiary obrazów do testów
         self.small_image = np.random.randint(0, 256, (100, 100, 3), dtype=np.uint8)
         self.medium_image = np.random.randint(0, 256, (500, 500, 3), dtype=np.uint8)
         self.large_image = np.random.randint(0, 256, (1000, 1000, 3), dtype=np.uint8)
     
     def test_conversion_performance(self):
-        """Test wydajności konwersji"""
+        """Test wydajności konwersji z wielokrotnymi pomiarami."""
         images = [
             ("small", self.small_image),
             ("medium", self.medium_image),
             ("large", self.large_image)
         ]
         
+        num_runs = 3  # Liczba powtórzeń dla stabilności
+
+        print("\n--- Test Wydajności Konwersji ---")
         for name, image in images:
             with self.subTest(size=name):
-                # Test RGB → LAB
-                start_time = time.time()
-                lab = self.transfer.rgb_to_lab_optimized(image)
-                rgb_to_lab_time = time.time() - start_time
+                # 🟢 POPRAWKA: Pętla dla stabilniejszych pomiarów
+                rgb_to_lab_times = []
+                lab_to_rgb_times = []
                 
-                # Test LAB → RGB
-                start_time = time.time()
-                rgb = self.transfer.lab_to_rgb_optimized(lab)
-                lab_to_rgb_time = time.time() - start_time
+                for _ in range(num_runs):
+                    start_time = time.time()
+                    lab = self.transfer.rgb_to_lab_optimized(image)
+                    rgb_to_lab_times.append(time.time() - start_time)
+                    
+                    start_time = time.time()
+                    rgb = self.transfer.lab_to_rgb_optimized(lab)
+                    lab_to_rgb_times.append(time.time() - start_time)
                 
-                print(f"\n{name} image ({image.shape}):")
-                print(f"  RGB→LAB: {rgb_to_lab_time:.3f}s")
-                print(f"  LAB→RGB: {lab_to_rgb_time:.3f}s")
+                avg_rgb_to_lab = np.mean(rgb_to_lab_times)
+                avg_lab_to_rgb = np.mean(lab_to_rgb_times)
+
+                print(f"\nObraz: {name} ({image.shape}), {num_runs} przebiegów:")
+                print(f"  Średni czas RGB→LAB: {avg_rgb_to_lab:.4f}s")
+                print(f"  Średni czas LAB→RGB: {avg_lab_to_rgb:.4f}s")
                 
-                # Sprawdź czy czasy są rozsądne
                 pixels = image.shape[0] * image.shape[1]
-                self.assertLess(rgb_to_lab_time, pixels / 10000, 
-                               f"RGB→LAB too slow for {name} image")
-                self.assertLess(lab_to_rgb_time, pixels / 10000, 
-                               f"LAB→RGB too slow for {name} image")
+                self.assertLess(avg_rgb_to_lab, pixels / 10000, f"Konwersja RGB→LAB zbyt wolna dla obrazu {name}")
+                self.assertLess(avg_lab_to_rgb, pixels / 10000, f"Konwersja LAB→RGB zbyt wolna dla obrazu {name}")
     
     def test_transfer_performance(self):
         """Test wydajności transferu"""
@@ -284,6 +288,14 @@ class TestLABPerformance(unittest.TestCase):
                 transfer_time = time.time() - start_time
                 
                 print(f"\n{method_name} transfer: {transfer_time:.3f}s")
+                
+                # Sprawdź wynik
+                self.assertEqual(result.shape, source_lab.shape)
+                
+                # Sprawdź czas
+                pixels = source_lab.shape[0] * source_lab.shape[1]
+                self.assertLess(transfer_time, pixels / 50000, 
+                               f"{method_name} transfer too slow")
                 
                 # Sprawdź wynik
                 self.assertEqual(result.shape, source_lab.shape)

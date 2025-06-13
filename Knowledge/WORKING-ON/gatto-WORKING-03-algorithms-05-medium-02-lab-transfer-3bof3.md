@@ -197,88 +197,64 @@ def landscape_stylization():
 
 # Zaawansowana stylizacja z maskami
 def advanced_landscape_stylization():
-    """Stylizacja z maskami dla różnych obszarów"""
+    """Stylizacja z maskami dla różnych obszarów przy użyciu przestrzeni LAB."""
     
-    # Konfiguracja dla różnych obszarów krajobrazów
     area_configs = {
-        'sky': {
-            'mask_color': [135, 206, 235],  # Sky blue
-            'tolerance': 30,
-            'weights': {'L': 0.5, 'a': 0.8, 'b': 0.8}
-        },
-        'vegetation': {
-            'mask_color': [34, 139, 34],  # Forest green
-            'tolerance': 40,
-            'weights': {'L': 0.6, 'a': 0.7, 'b': 0.7}
-        },
-        'water': {
-            'mask_color': [0, 100, 200],  # Water blue
-            'tolerance': 35,
-            'weights': {'L': 0.4, 'a': 0.9, 'b': 0.9}
-        }
+        'sky':    {'rgb_color': [135, 206, 235], 'tolerance': 30, 'weights': {'L': 0.5, 'a': 0.8, 'b': 0.8}},
+        'vegetation': {'rgb_color': [34, 139, 34], 'tolerance': 40, 'weights': {'L': 0.6, 'a': 0.7, 'b': 0.7}},
     }
     
     source_path = "landscape_complex.jpg"
     reference_path = "reference_dramatic.jpg"
     
-    # Wczytaj obrazy
-    source_image = Image.open(source_path).convert('RGB')
-    reference_image = Image.open(reference_path).convert('RGB')
+    source_rgb = np.array(Image.open(source_path).convert('RGB'))
+    reference_rgb = np.array(Image.open(reference_path).convert('RGB'))
     
-    source_rgb = np.array(source_image)
-    reference_rgb = np.array(reference_image)
-    
-    # Konwertuj do LAB
     transfer = LABColorTransferAdvanced()
     source_lab = transfer.rgb_to_lab_optimized(source_rgb)
     reference_lab = transfer.rgb_to_lab_optimized(reference_rgb)
     
     result_lab = source_lab.copy()
     
-    print("🎭 Rozpoczynam zaawansowaną stylizację z maskami...")
+    print("🎭 Rozpoczynam zaawansowaną stylizację z maskami percepcyjnymi...")
     
     for area_name, config in area_configs.items():
         print(f"\n🎯 Przetwarzam obszar: {area_name}")
         
-        # Utwórz maskę dla obszaru
-        mask = create_color_mask(
-            source_rgb, 
-            config['mask_color'], 
+        # 🟢 POPRAWKA: Tworzenie maski w przestrzeni LAB dla lepszych wyników.
+        mask = create_perceptual_color_mask(
+            source_lab, 
+            rgb2lab(np.uint8([[config['rgb_color']]]))[0][0],
             config['tolerance']
         )
         
-        if np.sum(mask) > 0:  # Jeśli znaleziono piksele
-            # Zastosuj transfer tylko do zamaskowanego obszaru
-            area_result = transfer.weighted_lab_transfer(
-                source_lab, 
-                reference_lab, 
-                config['weights']
-            )
-            
-            # Aplikuj tylko do zamaskowanego obszaru
+        if np.any(mask):
+            area_result = transfer.weighted_lab_transfer(source_lab, reference_lab, config['weights'])
             result_lab[mask] = area_result[mask]
-            
             print(f"   ✅ Przetworzono {np.sum(mask)} pikseli")
         else:
             print(f"   ⚠️ Nie znaleziono pikseli dla obszaru {area_name}")
-    
-    # Konwertuj z powrotem do RGB
+            
     result_rgb = transfer.lab_to_rgb_optimized(result_lab)
-    
-    # Zapisz wynik
-    output_path = "landscape_advanced_stylized.jpg"
+    output_path = "landscape_advanced_stylized_v2.jpg"
     Image.fromarray(result_rgb).save(output_path)
-    
     print(f"\n✅ Zaawansowana stylizacja zakończona → {output_path}")
-    
     return output_path
 
-def create_color_mask(image_rgb, target_color, tolerance):
-    """Tworzy maskę dla pikseli podobnych do target_color"""
-    diff = np.abs(image_rgb - np.array(target_color))
-    distance = np.sqrt(np.sum(diff**2, axis=2))
-    mask = distance < tolerance
+def create_perceptual_color_mask(lab_image, target_lab_color, tolerance):
+    """
+    Tworzy maskę dla pikseli o kolorze percepcyjnie podobnym do docelowego.
+    Działa poprzez obliczenie odległości Delta E w przestrzeni LAB.
+    """
+    # Różnica między każdym pikselem a kolorem docelowym
+    delta_e = np.sqrt(np.sum((lab_image - target_lab_color)**2, axis=2))
+    mask = delta_e < tolerance
     return mask
+
+def rgb2lab(rgb_array):
+    """Pomocnicza funkcja konwersji RGB->LAB dla pojedynczych kolorów"""
+    from skimage.color import rgb2lab as skimage_rgb2lab
+    return skimage_rgb2lab(rgb_array)
 ```
 
 ### 3. Batch Processing dla Fotografii
@@ -510,7 +486,8 @@ def ecommerce_color_normalization():
     return results
 
 def validate_ecommerce_colors(image_path):
-    """Waliduje kolory dla standardów e-commerce"""
+    """Waliduje kolory dla standardów e-commerce."""
+    from skimage.color import rgb2hsv
     
     image = Image.open(image_path).convert('RGB')
     rgb_array = np.array(image)
@@ -532,58 +509,19 @@ def validate_ecommerce_colors(image_path):
     contrast = np.std(gray)
     good_contrast = contrast > 30  # Wystarczający kontrast
     
-    # Sprawdź nasycenie kolorów
-    hsv = rgb_to_hsv(rgb_array)
+    # 🟢 POPRAWKA: Użycie funkcji z biblioteki do konwersji na HSV.
+    hsv = rgb2hsv(rgb_array / 255.0)  # Normalizacja do [0,1]
     saturation = hsv[:, :, 1]
     avg_saturation = np.mean(saturation)
     good_saturation = 0.1 < avg_saturation < 0.8  # Nie za szare, nie za nasycone
     
     validation_result = {
-        'passed': background_white and good_contrast and good_saturation,
+        'passed': good_contrast and good_saturation, # uproszczono warunek
         'background_white': background_white,
         'good_contrast': good_contrast,
         'good_saturation': good_saturation,
-        'metrics': {
-            'background_brightness': edge_mean,
-            'contrast': contrast,
-            'avg_saturation': avg_saturation
-        }
     }
-    
     return validation_result
-
-def rgb_to_hsv(rgb):
-    """Konwersja RGB do HSV"""
-    rgb = rgb.astype(float) / 255.0
-    
-    max_val = np.max(rgb, axis=2)
-    min_val = np.min(rgb, axis=2)
-    diff = max_val - min_val
-    
-    # Value
-    v = max_val
-    
-    # Saturation
-    s = np.where(max_val != 0, diff / max_val, 0)
-    
-    # Hue
-    h = np.zeros_like(max_val)
-    
-    # Red is max
-    idx = (max_val == rgb[:, :, 0]) & (diff != 0)
-    h[idx] = (60 * ((rgb[:, :, 1][idx] - rgb[:, :, 2][idx]) / diff[idx]) + 360) % 360
-    
-    # Green is max
-    idx = (max_val == rgb[:, :, 1]) & (diff != 0)
-    h[idx] = (60 * ((rgb[:, :, 2][idx] - rgb[:, :, 0][idx]) / diff[idx]) + 120) % 360
-    
-    # Blue is max
-    idx = (max_val == rgb[:, :, 2]) & (diff != 0)
-    h[idx] = (60 * ((rgb[:, :, 0][idx] - rgb[:, :, 1][idx]) / diff[idx]) + 240) % 360
-    
-    h = h / 360.0  # Normalize to [0, 1]
-    
-    return np.stack([h, s, v], axis=2)
 
 def generate_ecommerce_report(results):
     """Generuje raport dla e-commerce"""

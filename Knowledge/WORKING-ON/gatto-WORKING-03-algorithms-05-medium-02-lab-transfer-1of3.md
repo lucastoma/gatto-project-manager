@@ -1,7 +1,8 @@
-# LAB Color Space Transfer - Część 1: Podstawy Teoretyczne
+# LAB Color Space Transfer - Część 1: Podstawy Teoretyczne (Wersja Poprawiona)
 
 ## 🟡 Poziom: Medium
-**Trudność**: Średnia | **Czas implementacji**: 4-6 godzin | **Złożoność**: O(n)
+**Trudność**: Średnia | **Czas implementacji**: 4-6 godzin | **Złożoność**: O(n)  
+**ID Algorytmu**: `algorithm_05_lab_transfer` | **Numer API**: `5`
 
 ---
 
@@ -45,13 +46,11 @@ Przestrzeń LAB składa się z trzech składowych:
 3. **Separacja luminancji**: Kanał L* jest niezależny od chromatyczności
 4. **Większy gamut**: Pokrywa wszystkie kolory widzialne przez człowieka
 
-### Konwersja RGB → LAB
+---
 
-Proces konwersji przebiega przez przestrzeń XYZ:
+## Konwersja RGB ↔ LAB
 
-```
-RGB → XYZ → LAB
-```
+Proces konwersji przebiega przez przestrzeń XYZ: RGB → XYZ → LAB i z powrotem LAB → XYZ → RGB. Poniżej znajdują się formuły i zoptymalizowana implementacja.
 
 #### Krok 1: RGB → XYZ
 ```
@@ -66,7 +65,7 @@ if R' > 0.04045:
 else:
     R' = R' / 12.92
 
-// Podobnie dla G' i B'
+// Podobnie dla G' i B' 
 
 // Transformacja do XYZ (sRGB matrix)
 X = R' * 0.4124564 + G' * 0.3575761 + B' * 0.1804375
@@ -95,14 +94,6 @@ else:
 L* = 116 * fy - 16
 a* = 500 * (fx - fy)
 b* = 200 * (fy - fz)
-```
-
-### Konwersja LAB → RGB
-
-Proces odwrotny:
-
-```
-LAB → XYZ → RGB
 ```
 
 #### Krok 1: LAB → XYZ
@@ -163,8 +154,7 @@ FUNCTION lab_color_transfer(source_image, target_image):
         target_std = std(target_lab[channel])
         
         // Zastosuj transformację
-        result_lab[channel] = (source_lab[channel] - source_mean) * 
-                             (target_std / source_std) + target_mean
+        result_lab[channel] = (source_lab[channel] - source_mean) * (target_std / source_std) + target_mean
     
     // Konwertuj z powrotem do RGB
     result_rgb = lab_to_rgb(result_lab)
@@ -261,154 +251,187 @@ def evaluate_lab_transfer_quality(source_lab, target_lab, result_lab):
 
 ---
 
-## Implementacja Podstawowych Funkcji
+## Implementacja Podstawowych Funkcji (Wersja Zoptymalizowana)
 
-### Konwersja RGB → LAB
+Poniższy kod przedstawia zoptymalizowane, zwektoryzowane funkcje konwersji zgodne z architekturą GattoNero. Użycie operacji na tablicach NumPy (np.where) jest znacznie wydajniejsze niż podejście z np.vectorize.
+
 ```python
 import numpy as np
-from scipy import optimize
+from PIL import Image
+from app.core.development_logger import get_logger
+from app.core.performance_profiler import get_profiler
 
-def rgb_to_xyz(rgb):
+class LABColorConverter:
     """
-    Konwertuje RGB do XYZ (sRGB)
+    Klasa do konwersji kolorów RGB ↔ LAB zgodna z architekturą GattoNero
     """
-    # Normalizacja do 0-1
-    rgb_norm = rgb / 255.0
     
-    # Gamma correction
-    def gamma_correct(c):
-        if c > 0.04045:
-            return np.power((c + 0.055) / 1.055, 2.4)
-        else:
-            return c / 12.92
-    
-    rgb_linear = np.vectorize(gamma_correct)(rgb_norm)
-    
-    # sRGB to XYZ matrix
-    matrix = np.array([
-        [0.4124564, 0.3575761, 0.1804375],
-        [0.2126729, 0.7151522, 0.0721750],
-        [0.0193339, 0.1191920, 0.9503041]
-    ])
-    
-    # Reshape dla matrix multiplication
-    original_shape = rgb_linear.shape
-    rgb_reshaped = rgb_linear.reshape(-1, 3)
-    
-    # Transformacja
-    xyz = np.dot(rgb_reshaped, matrix.T)
-    
-    return xyz.reshape(original_shape)
+    def __init__(self):
+        self.logger = get_logger()
+        self.profiler = get_profiler()
+        
+        # Stałe używane w konwersjach
+        self.ILLUMINANT_D65 = np.array([95.047, 100.000, 108.883])
+        self.SRGB_TO_XYZ_MATRIX = np.array([
+            [0.4124564, 0.3575761, 0.1804375],
+            [0.2126729, 0.7151522, 0.0721750],
+            [0.0193339, 0.1191920, 0.9503041]
+        ])
+        self.XYZ_TO_SRGB_MATRIX = np.array([
+            [ 3.2404542, -1.5371385, -0.4985314],
+            [-0.9692660,  1.8760108,  0.0415560],
+            [ 0.0556434, -0.2040259,  1.0572252]
+        ])
+        
+        # Cache dla optymalizacji (z limitem)
+        self._conversion_cache = {}
+        self.MAX_CACHE_SIZE = 10
 
-def xyz_to_lab(xyz):
-    """
-    Konwertuje XYZ do LAB
-    """
-    # Illuminant D65
-    Xn, Yn, Zn = 95.047, 100.000, 108.883
-    
-    # Normalizacja
-    x = xyz[:, :, 0] / Xn
-    y = xyz[:, :, 1] / Yn
-    z = xyz[:, :, 2] / Zn
-    
-    # Funkcja f(t)
-    def f(t):
-        delta = 6.0 / 29.0
-        return np.where(t > delta**3, 
-                       np.power(t, 1.0/3.0),
-                       (t / (3 * delta**2)) + (4.0/29.0))
-    
-    fx = f(x)
-    fy = f(y)
-    fz = f(z)
-    
-    # Obliczenie LAB
-    L = 116 * fy - 16
-    a = 500 * (fx - fy)
-    b = 200 * (fy - fz)
-    
-    return np.stack([L, a, b], axis=2)
+    def load_image_safely(self, image_path):
+        """Bezpieczne ładowanie obrazów z różnych formatów"""
+        try:
+            image = Image.open(image_path)
+            
+            # Konwertuj RGBA do RGB z białym tłem
+            if image.mode == 'RGBA':
+                background = Image.new('RGB', image.size, (255, 255, 255))
+                background.paste(image, mask=image.split()[-1])
+                image = background
+            elif image.mode != 'RGB':
+                image = image.convert('RGB')
+                
+            return np.array(image)
+        except Exception as e:
+            self.logger.error(f"Błąd ładowania obrazu {image_path}: {e}")
+            raise
 
-def rgb_to_lab(rgb):
-    """
-    Bezpośrednia konwersja RGB → LAB
-    """
-    xyz = rgb_to_xyz(rgb)
-    lab = xyz_to_lab(xyz)
-    return lab
-```
+    def validate_lab_ranges(self, lab_array):
+        """Walidacja zakresów LAB z automatyczną korekcją"""
+        L, a, b = lab_array[:, :, 0], lab_array[:, :, 1], lab_array[:, :, 2]
+        
+        corrections = []
+        
+        # Sprawdź i popraw zakresy
+        if np.any(L < 0) or np.any(L > 100):
+            lab_array[:, :, 0] = np.clip(L, 0, 100)
+            corrections.append("L channel clipped to [0, 100]")
+        
+        if np.any(a < -128) or np.any(a > 127):
+            lab_array[:, :, 1] = np.clip(a, -128, 127)
+            corrections.append("a channel clipped to [-128, 127]")
+        
+        if np.any(b < -128) or np.any(b > 127):
+            lab_array[:, :, 2] = np.clip(b, -128, 127)
+            corrections.append("b channel clipped to [-128, 127]")
+        
+        if corrections:
+            self.logger.warning(f"LAB corrections applied: {corrections}")
+        
+        return lab_array
 
-### Konwersja LAB → RGB
-```python
-def lab_to_xyz(lab):
-    """
-    Konwertuje LAB do XYZ
-    """
-    # Illuminant D65
-    Xn, Yn, Zn = 95.047, 100.000, 108.883
-    
-    L = lab[:, :, 0]
-    a = lab[:, :, 1]
-    b = lab[:, :, 2]
-    
-    # Obliczenie f wartości
-    fy = (L + 16) / 116
-    fx = a / 500 + fy
-    fz = fy - b / 200
-    
-    # Odwrotna funkcja f
-    def f_inv(t):
-        delta = 6.0 / 29.0
-        return np.where(t > delta,
-                       np.power(t, 3),
-                       3 * delta**2 * (t - 4.0/29.0))
-    
-    x = f_inv(fx) * Xn
-    y = f_inv(fy) * Yn
-    z = f_inv(fz) * Zn
-    
-    return np.stack([x, y, z], axis=2)
+    def rgb_to_lab(self, rgb_array):
+        """
+        Zoptymalizowana konwersja RGB -> LAB z walidacją i cache
+        """
+        with self.profiler.profile_operation("rgb_to_lab_conversion"):
+            # Cache key based on shape and sample of data
+            cache_key = (rgb_array.shape, hash(rgb_array.tobytes()[:1000]))
+            
+            if cache_key in self._conversion_cache:
+                return self._conversion_cache[cache_key].copy()
+            
+            try:
+                # Normalizacja i korekcja gamma
+                rgb_norm = rgb_array.astype(np.float64) / 255.0
+                mask = rgb_norm > 0.04045
+                rgb_linear = np.where(mask,
+                                     np.power((rgb_norm + 0.055) / 1.055, 2.4),
+                                     rgb_norm / 12.92)
+                
+                # Transformacja do XYZ
+                original_shape = rgb_linear.shape
+                xyz = np.dot(rgb_linear.reshape(-1, 3), self.SRGB_TO_XYZ_MATRIX.T).reshape(original_shape)
+                
+                # Transformacja do LAB
+                xyz_norm = xyz / self.ILLUMINANT_D65
+                delta = 6.0 / 29.0
+                f_xyz = np.where(xyz_norm > (delta ** 3),
+                                np.power(xyz_norm, 1.0/3.0),
+                                (xyz_norm / (3 * delta**2)) + (4.0/29.0))
+                
+                L = 116 * f_xyz[:, :, 1] - 16
+                a = 500 * (f_xyz[:, :, 0] - f_xyz[:, :, 1])
+                b = 200 * (f_xyz[:, :, 1] - f_xyz[:, :, 2])
+                
+                lab_array = np.stack([L, a, b], axis=2)
+                
+                # Walidacja zakresów
+                lab_array = self.validate_lab_ranges(lab_array)
+                
+                # Zarządzanie cache
+                if len(self._conversion_cache) >= self.MAX_CACHE_SIZE:
+                    oldest_key = next(iter(self._conversion_cache))
+                    del self._conversion_cache[oldest_key]
+                
+                self._conversion_cache[cache_key] = lab_array
+                return lab_array
+                
+            except Exception as e:
+                self.logger.error(f"Błąd konwersji RGB->LAB: {e}")
+                raise
 
-def xyz_to_rgb(xyz):
-    """
-    Konwertuje XYZ do RGB (sRGB)
-    """
-    # XYZ to sRGB matrix
-    matrix = np.array([
-        [ 3.2404542, -1.5371385, -0.4985314],
-        [-0.9692660,  1.8760108,  0.0415560],
-        [ 0.0556434, -0.2040259,  1.0572252]
-    ])
-    
-    # Reshape dla matrix multiplication
-    original_shape = xyz.shape
-    xyz_reshaped = xyz.reshape(-1, 3)
-    
-    # Transformacja
-    rgb_linear = np.dot(xyz_reshaped, matrix.T)
-    rgb_linear = rgb_linear.reshape(original_shape)
-    
-    # Odwrotna gamma correction
-    def gamma_correct_inv(c):
-        return np.where(c > 0.0031308,
-                       1.055 * np.power(c, 1.0/2.4) - 0.055,
-                       12.92 * c)
-    
-    rgb_norm = gamma_correct_inv(rgb_linear)
-    
-    # Denormalizacja i clipping
-    rgb = np.clip(rgb_norm * 255, 0, 255)
-    
-    return rgb.astype(np.uint8)
+    def lab_to_rgb(self, lab_array):
+        """
+        Zoptymalizowana konwersja LAB -> RGB z walidacją
+        """
+        with self.profiler.profile_operation("lab_to_rgb_conversion"):
+            try:
+                L, a, b = lab_array[:, :, 0], lab_array[:, :, 1], lab_array[:, :, 2]
+                
+                # Transformacja do XYZ
+                fy = (L + 16) / 116
+                fx = a / 500 + fy
+                fz = fy - b / 200
+                
+                delta = 6.0 / 29.0
+                
+                def f_inv(t):
+                    return np.where(t > delta,
+                                   np.power(t, 3),
+                                   3 * delta**2 * (t - 4.0/29.0))
+                
+                xyz = np.stack([
+                    f_inv(fx) * self.ILLUMINANT_D65[0],
+                    f_inv(fy) * self.ILLUMINANT_D65[1],
+                    f_inv(fz) * self.ILLUMINANT_D65[2]
+                ], axis=2)
+                
+                # Transformacja do RGB
+                original_shape = xyz.shape
+                rgb_linear = np.dot(xyz.reshape(-1, 3), self.XYZ_TO_SRGB_MATRIX.T).reshape(original_shape)
+                
+                # Odwrotna korekcja gamma
+                mask = rgb_linear > 0.0031308
+                rgb_norm = np.where(mask,
+                                   1.055 * np.power(np.abs(rgb_linear), 1.0/2.4) - 0.055,
+                                   12.92 * rgb_linear)
+                
+                # Denormalizacja i obcięcie do zakresu
+                rgb = np.clip(rgb_norm * 255, 0, 255).astype(np.uint8)
+                
+                return rgb
+                
+            except Exception as e:
+                self.logger.error(f"Błąd konwersji LAB->RGB: {e}")
+                raise
 
-def lab_to_rgb(lab):
-    """
-    Bezpośrednia konwersja LAB → RGB
-    """
-    xyz = lab_to_xyz(lab)
-    rgb = xyz_to_rgb(xyz)
-    return rgb
+    def calculate_delta_e(self, lab1, lab2):
+        """
+        Oblicza Delta E (CIE76) między dwoma obrazami LAB
+        """
+        diff = lab1 - lab2
+        delta_e = np.sqrt(np.sum(diff**2, axis=2))
+        return delta_e
 ```
 
 ---
@@ -416,12 +439,18 @@ def lab_to_rgb(lab):
 ## Walidacja Konwersji
 
 ### Test Roundtrip
+
+Test "w obie strony" (RGB → LAB → RGB) pozwala zweryfikować, czy konwersje nie wprowadzają znaczących błędów.
+
 ```python
 def test_rgb_lab_roundtrip():
     """
-    Test czy RGB → LAB → RGB zachowuje kolory
+    Testuje, czy konwersja RGB -> LAB -> RGB zachowuje kolory.
+    Używa zoptymalizowanych funkcji.
     """
-    # Testowe kolory
+    # Utwórz instancję konwertera
+    converter = LABColorConverter()
+    
     test_colors = np.array([
         [[255, 0, 0]],    # Czerwony
         [[0, 255, 0]],    # Zielony
@@ -432,25 +461,27 @@ def test_rgb_lab_roundtrip():
     ], dtype=np.uint8)
     
     # Konwersja roundtrip
-    lab = rgb_to_lab(test_colors)
-    rgb_back = lab_to_rgb(lab)
+    lab = converter.rgb_to_lab(test_colors)
+    rgb_back = converter.lab_to_rgb(lab)
     
-    # Sprawdź różnice
+    # Sprawdzenie różnic
     diff = np.abs(test_colors.astype(float) - rgb_back.astype(float))
     max_diff = np.max(diff)
     mean_diff = np.mean(diff)
     
-    print(f"Maksymalna różnica: {max_diff}")
-    print(f"Średnia różnica: {mean_diff}")
+    print(f"Maksymalna różnica w teście roundtrip: {max_diff:.2f}")
+    print(f"Średnia różnica w teście roundtrip: {mean_diff:.2f}")
     
-    # Akceptowalna różnica: ±2 (błąd zaokrąglenia)
+    # Błędy zaokrągleń mogą powodować niewielkie różnice.
+    # Tolerancja na poziomie 2 jednostek na kanał jest akceptowalna.
     assert max_diff <= 2, f"Zbyt duża różnica w roundtrip: {max_diff}"
     
     return True
 
-# Test
-test_rgb_lab_roundtrip()
-print("✅ Test roundtrip RGB↔LAB przeszedł pomyślnie")
+# Uruchomienie testu
+if __name__ == "__main__":
+    test_rgb_lab_roundtrip()
+    print("✅ Test roundtrip RGB↔LAB przeszedł pomyślnie.")
 ```
 
 ---
@@ -458,30 +489,9 @@ print("✅ Test roundtrip RGB↔LAB przeszedł pomyślnie")
 ## Podsumowanie Części 1
 
 W tej części omówiliśmy:
-
-1. **Podstawy teoretyczne** przestrzeni kolorów LAB
-2. **Matematyczne formuły** konwersji RGB ↔ LAB
-3. **Implementację** podstawowych funkcji konwersji
-4. **Metryki jakości** (Delta E) w przestrzeni LAB
-5. **Walidację** poprawności konwersji
-
-### Co dalej?
-
-**Część 2** będzie zawierać:
-- Implementację algorytmów transferu kolorów
-- Optymalizacje wydajności
-- Zaawansowane techniki (lokalny transfer, adaptacyjne wagi)
-
-**Część 3** będzie zawierać:
-- Testy i benchmarki
-- Przypadki użycia
-- Rozwiązywanie problemów
-- Integrację z systemem
-
----
-
-**Autor**: GattoNero AI Assistant  
-**Data utworzenia**: 2024-01-20  
-**Ostatnia aktualizacja**: 2024-01-20  
-**Wersja**: 1.0  
-**Status**: ✅ Część 1 - Podstawy teoretyczne
+- Podstawy teoretyczne przestrzeni kolorów LAB.
+- Matematyczne formuły konwersji RGB ↔ LAB.
+- Zoptymalizowaną implementację podstawowych funkcji konwersji.
+- Metryki jakości (Delta E) do oceny różnic kolorów.
+- Metodę walidacji poprawności konwersji za pomocą testu roundtrip.
+- Integrację z systemem GattoNero zgodnie z ustalonymi zasadami.

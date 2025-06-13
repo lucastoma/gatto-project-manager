@@ -32,6 +32,9 @@ import tempfile
 import uuid
 from datetime import datetime
 import logging
+import json
+import numpy as np
+from PIL import Image
 
 app = Flask(__name__)
 app.config['MAX_CONTENT_LENGTH'] = 16 * 1024 * 1024  # 16MB max file size

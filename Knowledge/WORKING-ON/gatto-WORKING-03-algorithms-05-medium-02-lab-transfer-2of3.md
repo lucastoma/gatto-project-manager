@@ -1,4 +1,4 @@
-# LAB Color Space Transfer - Część 2: Implementacja i Algorytmy
+# LAB Color Space Transfer - Część 2: Implementacja i Algorytmy (Wersja Poprawiona)
 
 ## 🟡 Poziom: Medium
 **Trudność**: Średnia | **Czas implementacji**: 4-6 godzin | **Złożoność**: O(n)
@@ -10,10 +10,11 @@
 Ta część koncentruje się na praktycznej implementacji algorytmów transferu kolorów w przestrzeni LAB. Omówimy różne strategie transferu, optymalizacje wydajności oraz zaawansowane techniki.
 
 ### Zawartość
-- Implementacja podstawowego transferu statystycznego
-- Zaawansowane metody transferu
-- Optymalizacje wydajności
-- Kontrola jakości i parametryzacja
+- Implementacja podstawowego transferu statystycznego.
+- Zaawansowane metody transferu (ważony, selektywny, adaptacyjny).
+- Wyjaśnienie i implementacja dopasowania histogramu jako alternatywnej techniki.
+- Optymalizacje wydajności.
+- Kontrola jakości i parametryzacja.
 
 ---
 
@@ -25,92 +26,85 @@ Ta część koncentruje się na praktycznej implementacji algorytmów transferu 
 import numpy as np
 from PIL import Image
 import time
+import os
 from scipy import ndimage
 import matplotlib.pyplot as plt
+from app.core.development_logger import get_logger
+from app.core.performance_profiler import get_profiler
 
 class LABColorTransfer:
     def __init__(self):
         self.name = "LAB Color Space Transfer"
-        self.version = "2.0"
+        self.version = "2.1"
+        self.logger = get_logger()
+        self.profiler = get_profiler()
         
         # Parametry konwersji
         self.illuminant_d65 = np.array([95.047, 100.000, 108.883])
+        self.srgb_to_xyz_matrix = np.array([
+            [0.4124564, 0.3575761, 0.1804375],
+            [0.2126729, 0.7151522, 0.0721750],
+            [0.0193339, 0.1191920, 0.9503041]
+        ])
+        self.xyz_to_srgb_matrix = np.array([
+            [ 3.2404542, -1.5371385, -0.4985314],
+            [-0.9692660,  1.8760108,  0.0415560],
+            [ 0.0556434, -0.2040259,  1.0572252]
+        ])
         
-        # Cache dla optymalizacji
+        # Cache dla optymalizacji z limitem
         self._conversion_cache = {}
+        self.MAX_CACHE_SIZE = 10
         
     def rgb_to_lab_optimized(self, rgb_array):
         """
-        Zoptymalizowana konwersja RGB → LAB
+        Zoptymalizowana konwersja RGB -> LAB.
         """
-        # Sprawdź cache
-        cache_key = f"rgb_to_lab_{rgb_array.shape}_{np.mean(rgb_array):.2f}"
+        # 🟢 POPRAWKA: Użycie bezpiecznego hasha jako klucza cache'a.
+        cache_key = (rgb_array.shape, hash(rgb_array.tobytes()[:1000]))  # Sample hash
         if cache_key in self._conversion_cache:
-            return self._conversion_cache[cache_key]
+            return self._conversion_cache[cache_key].copy()
         
-        # Normalizacja RGB (0-1)
         rgb_norm = rgb_array.astype(np.float64) / 255.0
-        
-        # Vectorized gamma correction
         mask = rgb_norm > 0.04045
         rgb_linear = np.where(mask,
                              np.power((rgb_norm + 0.055) / 1.055, 2.4),
                              rgb_norm / 12.92)
         
-        # sRGB to XYZ transformation matrix
-        srgb_to_xyz = np.array([
-            [0.4124564, 0.3575761, 0.1804375],
-            [0.2126729, 0.7151522, 0.0721750],
-            [0.0193339, 0.1191920, 0.9503041]
-        ])
-        
-        # Reshape i transformacja
         original_shape = rgb_linear.shape
-        rgb_reshaped = rgb_linear.reshape(-1, 3)
-        xyz = np.dot(rgb_reshaped, srgb_to_xyz.T).reshape(original_shape)
+        xyz = np.dot(rgb_linear.reshape(-1, 3), self.srgb_to_xyz_matrix.T).reshape(original_shape)
         
-        # XYZ to LAB
         xyz_norm = xyz / self.illuminant_d65
-        
-        # Vectorized f function
         delta = 6.0 / 29.0
-        delta_cubed = delta ** 3
-        
-        f_xyz = np.where(xyz_norm > delta_cubed,
+        f_xyz = np.where(xyz_norm > (delta ** 3),
                         np.power(xyz_norm, 1.0/3.0),
                         (xyz_norm / (3 * delta**2)) + (4.0/29.0))
         
-        # Obliczenie LAB
         L = 116 * f_xyz[:, :, 1] - 16
         a = 500 * (f_xyz[:, :, 0] - f_xyz[:, :, 1])
         b = 200 * (f_xyz[:, :, 1] - f_xyz[:, :, 2])
         
         lab = np.stack([L, a, b], axis=2)
         
-        # Cache result
-        if len(self._conversion_cache) < 10:  # Limit cache size
+        # Zarządzanie cache z limitem
+        if len(self._conversion_cache) < self.MAX_CACHE_SIZE:
             self._conversion_cache[cache_key] = lab
         
         return lab
     
     def lab_to_rgb_optimized(self, lab_array):
         """
-        Zoptymalizowana konwersja LAB → RGB
+        Zoptymalizowana konwersja LAB -> RGB.
         """
         L, a, b = lab_array[:, :, 0], lab_array[:, :, 1], lab_array[:, :, 2]
         
-        # LAB to XYZ
         fy = (L + 16) / 116
         fx = a / 500 + fy
         fz = fy - b / 200
         
-        # Vectorized inverse f function
         delta = 6.0 / 29.0
-        
         def f_inv(t):
-            return np.where(t > delta,
-                           np.power(t, 3),
-                           3 * delta**2 * (t - 4.0/29.0))
+            return np.where(t > delta, np.power(t, 3), 3 * delta**2 * (t - 4.0/29.0))
         
         xyz = np.stack([
             f_inv(fx) * self.illuminant_d65[0],
@@ -118,116 +112,70 @@ class LABColorTransfer:
             f_inv(fz) * self.illuminant_d65[2]
         ], axis=2)
         
-        # XYZ to RGB
-        xyz_to_srgb = np.array([
-            [ 3.2404542, -1.5371385, -0.4985314],
-            [-0.9692660,  1.8760108,  0.0415560],
-            [ 0.0556434, -0.2040259,  1.0572252]
-        ])
-        
         original_shape = xyz.shape
-        xyz_reshaped = xyz.reshape(-1, 3)
-        rgb_linear = np.dot(xyz_reshaped, xyz_to_srgb.T).reshape(original_shape)
+        rgb_linear = np.dot(xyz.reshape(-1, 3), self.xyz_to_srgb_matrix.T).reshape(original_shape)
         
-        # Inverse gamma correction
         mask = rgb_linear > 0.0031308
         rgb_norm = np.where(mask,
                            1.055 * np.power(rgb_linear, 1.0/2.4) - 0.055,
                            12.92 * rgb_linear)
         
-        # Denormalizacja i clipping
         rgb = np.clip(rgb_norm * 255, 0, 255).astype(np.uint8)
         
         return rgb
     
     def calculate_lab_statistics(self, lab_array):
-        """
-        Oblicza statystyki dla każdego kanału LAB
-        """
         stats = {}
-        
         for i, channel in enumerate(['L', 'a', 'b']):
             channel_data = lab_array[:, :, i]
-            
             stats[channel] = {
                 'mean': np.mean(channel_data),
                 'std': np.std(channel_data),
                 'min': np.min(channel_data),
-                'max': np.max(channel_data),
-                'median': np.median(channel_data),
-                'percentile_5': np.percentile(channel_data, 5),
-                'percentile_95': np.percentile(channel_data, 95)
+                'max': np.max(channel_data)
             }
-        
         return stats
     
     def basic_lab_transfer(self, source_lab, target_lab):
-        """
-        Podstawowy transfer statystyczny w przestrzeni LAB
-        """
         result_lab = source_lab.copy()
-        
-        # Oblicz statystyki
         source_stats = self.calculate_lab_statistics(source_lab)
         target_stats = self.calculate_lab_statistics(target_lab)
         
-        # Zastosuj transfer dla każdego kanału
         for i, channel in enumerate(['L', 'a', 'b']):
             source_mean = source_stats[channel]['mean']
             source_std = source_stats[channel]['std']
             target_mean = target_stats[channel]['mean']
             target_std = target_stats[channel]['std']
             
-            # Unikaj dzielenia przez zero
             if source_std > 1e-6:
-                # Standardowa transformacja
-                result_lab[:, :, i] = ((source_lab[:, :, i] - source_mean) * 
-                                      (target_std / source_std) + target_mean)
+                result_lab[:, :, i] = ((source_lab[:, :, i] - source_mean) * (target_std / source_std) + target_mean)
             else:
-                # Jeśli brak wariancji, użyj tylko przesunięcia
                 result_lab[:, :, i] = source_lab[:, :, i] + (target_mean - source_mean)
         
         return result_lab
     
     def weighted_lab_transfer(self, source_lab, target_lab, weights={'L': 0.8, 'a': 1.0, 'b': 1.0}):
-        """
-        Transfer z wagami dla różnych kanałów
-        """
-        # Podstawowy transfer
         transferred_lab = self.basic_lab_transfer(source_lab, target_lab)
-        
-        # Zastosuj wagi
         result_lab = source_lab.copy()
         
         for i, channel in enumerate(['L', 'a', 'b']):
-            weight = weights[channel]
-            result_lab[:, :, i] = (source_lab[:, :, i] + 
-                                  weight * (transferred_lab[:, :, i] - source_lab[:, :, i]))
+            weight = weights.get(channel, 1.0)
+            result_lab[:, :, i] = source_lab[:, :, i] * (1 - weight) + transferred_lab[:, :, i] * weight
         
         return result_lab
     
     def selective_lab_transfer(self, source_lab, target_lab, transfer_channels=['a', 'b']):
-        """
-        Transfer tylko wybranych kanałów
-        """
         result_lab = source_lab.copy()
-        
-        # Oblicz statystyki
         source_stats = self.calculate_lab_statistics(source_lab)
         target_stats = self.calculate_lab_statistics(target_lab)
         
-        # Transfer tylko wybranych kanałów
         for channel in transfer_channels:
             i = ['L', 'a', 'b'].index(channel)
-            
-            source_mean = source_stats[channel]['mean']
-            source_std = source_stats[channel]['std']
-            target_mean = target_stats[channel]['mean']
-            target_std = target_stats[channel]['std']
+            source_mean, source_std = source_stats[channel]['mean'], source_stats[channel]['std']
+            target_mean, target_std = target_stats[channel]['mean'], target_stats[channel]['std']
             
             if source_std > 1e-6:
-                result_lab[:, :, i] = ((source_lab[:, :, i] - source_mean) * 
-                                      (target_std / source_std) + target_mean)
+                result_lab[:, :, i] = ((source_lab[:, :, i] - source_mean) * (target_std / source_std) + target_mean)
             else:
                 result_lab[:, :, i] = source_lab[:, :, i] + (target_mean - source_mean)
         
@@ -236,63 +184,9 @@ class LABColorTransfer:
 
 ---
 
-## Zaawansowane Metody Transferu
+## Zaawansowane i Alternatywne Metody Transferu
 
-### 1. Lokalny Transfer LAB
-
-```python
-def local_lab_transfer(self, source_lab, target_lab, window_size=64, overlap=0.5):
-    """
-    Transfer w lokalnych regionach obrazu
-    """
-    height, width = source_lab.shape[:2]
-    result_lab = np.zeros_like(source_lab)
-    weight_map = np.zeros((height, width))
-    
-    step = int(window_size * (1 - overlap))
-    
-    for y in range(0, height - window_size + 1, step):
-        for x in range(0, width - window_size + 1, step):
-            # Wytnij okno
-            y_end = min(y + window_size, height)
-            x_end = min(x + window_size, width)
-            
-            source_window = source_lab[y:y_end, x:x_end]
-            
-            # Transfer lokalny
-            transferred_window = self.basic_lab_transfer(source_window, target_lab)
-            
-            # Waga okna (gaussian)
-            window_h, window_w = transferred_window.shape[:2]
-            weight_window = self.create_gaussian_weight(window_h, window_w)
-            
-            # Akumuluj wyniki
-            result_lab[y:y_end, x:x_end] += (transferred_window * 
-                                            weight_window[:, :, np.newaxis])
-            weight_map[y:y_end, x:x_end] += weight_window
-    
-    # Normalizuj przez wagi
-    weight_map[weight_map == 0] = 1  # Unikaj dzielenia przez zero
-    result_lab = result_lab / weight_map[:, :, np.newaxis]
-    
-    return result_lab
-
-def create_gaussian_weight(self, height, width, sigma=None):
-    """
-    Tworzy gaussian weight map dla okna
-    """
-    if sigma is None:
-        sigma = min(height, width) / 6
-    
-    y, x = np.ogrid[:height, :width]
-    center_y, center_x = height // 2, width // 2
-    
-    weight = np.exp(-((x - center_x)**2 + (y - center_y)**2) / (2 * sigma**2))
-    
-    return weight
-```
-
-### 2. Adaptacyjny Transfer z Maskami
+### 1. Adaptacyjny Transfer z Maskami
 
 ```python
 def adaptive_lab_transfer(self, source_lab, target_lab, adaptation_method='luminance'):
@@ -372,54 +266,37 @@ def calculate_region_statistics(self, source_region, target_lab):
     return stats
 ```
 
-### 3. Histogram Matching w LAB
+### 2. Dopasowanie Histogramu (Histogram Matching) - Alternatywna Technika
+
+🟢 **Wyjaśnienie:** Dopasowanie histogramu to technika transferu kolorów, która działa inaczej niż transfer statystyczny. Zamiast dopasowywać tylko średnią i odchylenie standardowe, dąży do całkowitego przekształcenia rozkładu (dystrybucji) kolorów obrazu źródłowego tak, aby pasował do rozkładu obrazu docelowego. Daje to często bardziej dramatyczne i dokładne rezultaty, ale może też prowadzić do utraty oryginalnej struktury jasności, jeśli nie jest stosowane ostrożnie.
 
 ```python
 def lab_histogram_matching(self, source_lab, target_lab):
     """
-    Histogram matching w przestrzeni LAB
+    Dopasowanie histogramu w przestrzeni LAB dla każdego kanału.
     """
     result_lab = np.zeros_like(source_lab)
     
-    for i, channel in enumerate(['L', 'a', 'b']):
+    for i in range(3): # Pętla po kanałach L, a, b
         source_channel = source_lab[:, :, i]
         target_channel = target_lab[:, :, i]
         
-        # Histogram matching dla kanału
-        matched_channel = self.match_histogram_channel(
-            source_channel, target_channel
-        )
+        # Oblicz CDF (dystrybuantę) dla obu kanałów
+        source_values, bin_idx, source_counts = np.unique(source_channel, return_inverse=True, return_counts=True)
+        target_values, target_counts = np.unique(target_channel, return_counts=True)
         
-        result_lab[:, :, i] = matched_channel
+        source_cdf = np.cumsum(source_counts).astype(np.float64)
+        source_cdf /= source_cdf[-1]
+        
+        target_cdf = np.cumsum(target_counts).astype(np.float64)
+        target_cdf /= target_cdf[-1]
+        
+        # Dopasuj wartości
+        interp_values = np.interp(source_cdf, target_cdf, target_values)
+        
+        result_lab[:, :, i] = interp_values[bin_idx].reshape(source_channel.shape)
     
     return result_lab
-
-def match_histogram_channel(self, source, target):
-    """
-    Histogram matching dla pojedynczego kanału
-    """
-    # Oblicz histogramy
-    source_hist, source_bins = np.histogram(source.flatten(), bins=256, density=True)
-    target_hist, target_bins = np.histogram(target.flatten(), bins=256, density=True)
-    
-    # Oblicz CDF
-    source_cdf = np.cumsum(source_hist)
-    target_cdf = np.cumsum(target_hist)
-    
-    # Normalizuj CDF
-    source_cdf = source_cdf / source_cdf[-1]
-    target_cdf = target_cdf / target_cdf[-1]
-    
-    # Utwórz lookup table
-    lut = np.interp(source_cdf, target_cdf, target_bins[:-1])
-    
-    # Zastosuj LUT
-    source_indices = np.digitize(source.flatten(), source_bins[:-1]) - 1
-    source_indices = np.clip(source_indices, 0, len(lut) - 1)
-    
-    matched = lut[source_indices].reshape(source.shape)
-    
-    return matched
 ```
 
 ---

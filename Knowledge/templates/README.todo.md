@@ -69,17 +69,20 @@ auto_update: true
 
 ### Documentation Workflow Concept Plan
 
-#### Notes (example)
+#### Notes
 
-<AI-Agent-task>write down explanation</AI-Agent-task>
+- Celem jest spójny, lekki proces dokumentacji (A-B-C).
+- Agent ładuje blok “Task List” na start sesji; zapisuje go na koniec.
 
 #### Task List
 
-<AI-Agent-task>write down explanation</AI-Agent-task>
+- [ ] Zdefiniuj lint, który wymusza link `AD.x` dla każdego zadania. (→ AD.2)
+- [ ] Opisać minimalny zestaw sekcji w [PROCESS.md](cci:7://file:///d:/projects/gatto-ps-ai/docs/PROCESS.md:0:0-0:0). (→ AD.4)
+- [ ] Przygotować draft hooka `docs-sync --check` (→ AD.3)
 
 #### Current Goal
 
-<AI-Agent-task>write down explanation</AI-Agent-task>
+W tej iteracji skupiamy się na specyfikacji automatyzacji i lincie pre-commit.
 
 ## Future Development
 
