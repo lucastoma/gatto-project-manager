@@ -2,7 +2,7 @@
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import pino from 'pino';
+import * as pino from 'pino';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
@@ -13,9 +13,9 @@ import { expandHome, normalizePath } from '../utils/pathUtils.js';
 async function main() {
   const config = await loadConfig();
 
-  const logger = pino({
+  const logger = pino.pino({
     level: config.logging.level,
-    formatters: { level: (label) => ({ level: label }) },
+    formatters: { level: (label: string) => ({ level: label }) },
     timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
     base: { service: 'mcp-filesystem-server', version: '0.7.0' }
   });

@@ -41,7 +41,7 @@ export const HINTS: Record<string, HintInfo> = {
     confidence: 0.85,
     hint: "Source file does not exist. Check the 'source' argument.",
     example: { source: "/workspace/missing.txt" }
-  }
+  },
   UNKNOWN_ERROR: {
     confidence: 0.1,
     hint: "An unexpected error occurred. Check server logs for details."

@@ -25,7 +25,7 @@ function getFileLock(filePath: string, config: Config): Mutex {
   if (!fileLocks.has(filePath)) {
     if (fileLocks.size >= config.concurrency.maxConcurrentEdits) {
       const oldestKey = fileLocks.keys().next().value;
-      fileLocks.delete(oldestKey);
+      if (oldestKey) fileLocks.delete(oldestKey);
     }
     fileLocks.set(filePath, new Mutex());
   }

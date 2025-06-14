@@ -1,0 +1,1072 @@
+--- START gatto_filesystem_v2\index.ts ---
+// This file is intentionally left blank after refactoring to src/server/index.ts
+
+--- END gatto_filesystem_v2\index.ts ---
+
+--- START gatto_filesystem_v2\package.json ---
+{
+  "name": "@modelcontextprotocol/server-filesystem",
+  "version": "0.6.3",
+  "description": "MCP server for filesystem access",
+  "license": "MIT",
+  "author": "Anthropic, PBC (https://anthropic.com)",
+  "homepage": "https://modelcontextprotocol.io",
+  "bugs": "https://github.com/modelcontextprotocol/servers/issues",
+  "type": "module",
+  "bin": {
+    "mcp-server-filesystem": "dist/server/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "npm run clean && tsc && shx chmod +x dist/server/*.js",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "@shopify/async-mutex": "^1.3.2",
+    "pino": "^8.17.2",
+    "@modelcontextprotocol/sdk": "0.5.0",
+    "diff": "^5.1.0",
+    "glob": "^10.3.10",
+    "minimatch": "^10.0.1",
+    "zod-to-json-schema": "^3.23.5"
+  },
+  "devDependencies": {
+    "@types/pino": "^7.0.5",
+    "rimraf": "^5.0.5",
+    "@types/diff": "^5.0.9",
+    "@types/minimatch": "^5.1.2",
+    "@types/node": "^22",
+    "shx": "^0.3.4",
+    "typescript": "^5.3.3"
+  },
+  "types": "./dist/server/index.d.ts"
+}
+--- END gatto_filesystem_v2\package.json ---
+
+--- START gatto_filesystem_v2\src\core\fileInfo.ts ---
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { minimatch } from 'minimatch';
+import { isBinaryFile } from '../utils/binaryDetect.js';
+import { PerformanceTimer } from '../utils/performance.js';
+import { validatePath } from './security.js';
+import type { Logger } from 'pino';
+import type { Config } from '../server/config.js';
+
+export interface FileInfo {
+  size: number;
+  created: Date;
+  modified: Date;
+  accessed: Date;
+  isDirectory: boolean;
+  isFile: boolean;
+  permissions: string;
+  isBinary?: boolean;
+  mimeType?: string;
+}
+
+export async function getFileStats(filePath: string, logger: Logger, config: Config): Promise<FileInfo> {
+  const timer = new PerformanceTimer('getFileStats', logger, config);
+  
+  try {
+    const stats = await fs.stat(filePath);
+    const buffer = await fs.readFile(filePath);
+    const isBinary = isBinaryFile(buffer, filePath);
+    
+    const result = {
+      size: stats.size,
+      created: stats.birthtime,
+      modified: stats.mtime,
+      accessed: stats.atime,
+      isDirectory: stats.isDirectory(),
+      isFile: stats.isFile(),
+      permissions: stats.mode.toString(8).slice(-3),
+      isBinary,
+      mimeType: isBinary ? 'application/octet-stream' : 'text/plain'
+    };
+    
+    timer.end({ isBinary, size: stats.size });
+    return result;
+  } catch (error) {
+    timer.end({ result: 'error' });
+    throw error;
+  }
+}
+
+export async function searchFiles(
+  rootPath: string,
+  pattern: string,
+  allowedDirectories: string[],
+  logger: Logger,
+  config: Config,
+  excludePatterns: string[] = [],
+  useExactPatterns: boolean = false
+): Promise<string[]> {
+  const timer = new PerformanceTimer('searchFiles', logger, config);
+  const results: string[] = [];
+  const visitedForThisSearch = new Set<string>();
+
+  async function search(currentPath: string): Promise<void> {
+    try {
+      const stats = await fs.stat(currentPath);
+      const inodeKey = `${stats.dev}-${stats.ino}`;
+      
+      if (visitedForThisSearch.has(inodeKey)) {
+        logger.debug({ path: currentPath }, 'Skipping already visited inode (symlink loop)');
+        return;
+      }
+      visitedForThisSearch.add(inodeKey);
+
+      const entries = await fs.readdir(currentPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(currentPath, entry.name);
+
+        try {
+          await validatePath(fullPath, allowedDirectories, logger, config);
+
+          const relativePath = path.relative(rootPath, fullPath);
+          const shouldExclude = excludePatterns.some(p => minimatch(relativePath, p, { dot: true }));
+
+          if (shouldExclude) {
+            continue;
+          }
+
+          if (entry.name.toLowerCase().includes(pattern.toLowerCase())) {
+            results.push(fullPath);
+          }
+
+          if (entry.isDirectory()) {
+            await search(fullPath);
+          }
+        } catch (error) {
+          logger.debug({ path: fullPath, error: (error as Error).message }, 'Skipping invalid path during search');
+          continue;
+        }
+      }
+    } catch (error) {
+      logger.debug({ path: currentPath, error: (error as Error).message }, 'Skipping inaccessible path');
+      return;
+    }
+  }
+
+  await search(rootPath);
+  timer.end({ resultsCount: results.length });
+  return results;
+}
+
+--- END gatto_filesystem_v2\src\core\fileInfo.ts ---
+
+--- START gatto_filesystem_v2\src\core\fuzzyEdit.ts ---
+import fs from 'node:fs/promises';
+import { createTwoFilesPatch } from 'diff';
+import { isBinaryFile } from '../utils/binaryDetect.js';
+import { createError } from '../types/errors.js';
+import { PerformanceTimer } from '../utils/performance.js';
+import type { Logger } from 'pino';
+import type { Config } from '../server/config.js';
+
+export interface FuzzyMatchConfig {
+  maxDistanceRatio: number;
+  minSimilarity: number;
+  caseSensitive: boolean;
+  ignoreWhitespace: boolean;
+  preserveLeadingWhitespace: 'auto' | 'strict' | 'normalize';
+  debug: boolean;
+}
+
+export interface ApplyFileEditsResult {
+  modifiedContent: string;
+  formattedDiff: string;
+}
+
+function normalizeLineEndings(text: string): string {
+  return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+function createUnifiedDiff(originalContent: string, newContent: string, filepath: string = 'file'): string {
+  const normalizedOriginal = normalizeLineEndings(originalContent);
+  const normalizedNew = normalizeLineEndings(newContent);
+  return createTwoFilesPatch(
+    filepath,
+    filepath,
+    normalizedOriginal,
+    normalizedNew,
+    'original',
+    'modified'
+  );
+}
+
+function preprocessText(text: string, config: FuzzyMatchConfig): string {
+  let processed = text;
+  if (!config.caseSensitive) {
+    processed = processed.toLowerCase();
+  }
+  if (config.ignoreWhitespace) {
+    processed = processed.replace(/[ \t]+/g, ' ').replace(/\n+/g, '\n').trim();
+  }
+  return processed;
+}
+
+function levenshteinDistanceOptimized(str1: string, str2: string): number {
+  if (str1 === str2) return 0;
+  if (str1.length === 0) return str2.length;
+  if (str2.length === 0) return str1.length;
+  
+  const shorter = str1.length <= str2.length ? str1 : str2;
+  const longer = str1.length <= str2.length ? str2 : str1;
+  
+  let previousRow = Array(shorter.length + 1).fill(0).map((_, i) => i);
+  
+  for (let i = 0; i < longer.length; i++) {
+    const currentRow = [i + 1];
+    for (let j = 0; j < shorter.length; j++) {
+      const cost = longer[i] === shorter[j] ? 0 : 1;
+      currentRow.push(Math.min(
+        currentRow[j] + 1,
+        previousRow[j + 1] + 1,
+        previousRow[j] + cost
+      ));
+    }
+    previousRow = currentRow;
+  }
+  return previousRow[shorter.length];
+}
+
+function calculateSimilarity(distance: number, maxLength: number): number {
+  return Math.max(0, 1 - (distance / maxLength));
+}
+
+function validateEdits(edits: Array<{oldText: string, newText: string}>, debug: boolean, logger: Logger): void {
+  for (let i = 0; i < edits.length; i++) {
+    for (let j = i + 1; j < edits.length; j++) {
+      const edit1 = edits[i];
+      const edit2 = edits[j];
+      if (edit1.oldText.includes(edit2.oldText) || edit2.oldText.includes(edit1.oldText)) {
+        const warning = `Warning: Potentially overlapping oldText in edits ${i+1} and ${j+1}`;
+        logger.warn({ edit1Index: i, edit2Index: j }, warning);
+      }
+      if (edit1.newText.includes(edit2.oldText) || edit2.newText.includes(edit1.oldText)) {
+        const warning = `Warning: newText in edit ${i+1} contains oldText from edit ${j+1} - potential mutual overlap`;
+        logger.warn({ edit1Index: i, edit2Index: j }, warning);
+      }
+    }
+  }
+}
+
+function applyRelativeIndentation(
+  newLines: string[], 
+  oldLines: string[], 
+  originalIndent: string,
+  preserveMode: 'auto' | 'strict' | 'normalize'
+): string[] {
+  switch (preserveMode) {
+    case 'strict':
+      return newLines.map(line => originalIndent + line.trimStart());
+    case 'normalize':
+      return newLines.map(line => originalIndent + line.trimStart());
+    case 'auto':
+    default:
+      return newLines.map((line, idx) => {
+        if (idx === 0) {
+          return originalIndent + line.trimStart();
+        }
+        const oldLineIndex = Math.min(idx, oldLines.length - 1);
+        const newLineIndent = line.match(/^\s*/)?.[0] || '';
+        const baseOldIndent = oldLines[0]?.match(/^\s*/)?.[0]?.length || 0;
+        const relativeIndentChange = newLineIndent.length - baseOldIndent;
+        const finalIndent = originalIndent + ' '.repeat(Math.max(0, relativeIndentChange));
+        return finalIndent + line.trimStart();
+      });
+  }
+}
+
+export async function applyFileEdits(
+  filePath: string,
+  edits: Array<{oldText: string, newText: string}>,
+  config: FuzzyMatchConfig,
+  logger: Logger,
+  globalConfig: Config
+): Promise<ApplyFileEditsResult> {
+  const timer = new PerformanceTimer('applyFileEdits', logger, globalConfig);
+  let levenshteinIterations = 0;
+  
+  try {
+    const buffer = await fs.readFile(filePath);
+    if (isBinaryFile(buffer, filePath)) {
+      throw createError(
+        'BINARY_FILE_ERROR',
+        'Cannot edit binary files',
+        { filePath, detectedAs: 'binary' }
+      );
+    }
+
+    const originalContent = normalizeLineEndings(buffer.toString('utf-8'));
+    let modifiedContent = originalContent;
+
+    validateEdits(edits, config.debug, logger);
+
+    for (const [editIndex, edit] of edits.entries()) {
+      const normalizedOld = normalizeLineEndings(edit.oldText);
+      const normalizedNew = normalizeLineEndings(edit.newText);
+      let matchFound = false;
+
+      const exactMatchIndex = modifiedContent.indexOf(normalizedOld);
+      if (exactMatchIndex !== -1) {
+        modifiedContent = modifiedContent.substring(0, exactMatchIndex) +
+                          normalizedNew +
+                          modifiedContent.substring(exactMatchIndex + normalizedOld.length);
+        matchFound = true;
+      } else {
+        const contentLines = modifiedContent.split('\n');
+        const oldLines = normalizedOld.split('\n');
+        const processedOld = preprocessText(normalizedOld, config);
+
+        let bestMatch = {
+          distance: Infinity,
+          index: -1,
+          text: '',
+          similarity: 0,
+          windowSize: 0
+        };
+
+        const windowSizes = [
+          oldLines.length,
+          Math.max(1, oldLines.length - 1),
+          oldLines.length + 1,
+          Math.max(1, oldLines.length - 2),
+          oldLines.length + 2
+        ].filter((size, index, arr) => arr.indexOf(size) === index && size > 0);
+
+        for (const windowSize of windowSizes) {
+          if (windowSize > contentLines.length) continue;
+
+          for (let i = 0; i <= contentLines.length - windowSize; i++) {
+            const windowLines = contentLines.slice(i, i + windowSize);
+            const windowText = windowLines.join('\n');
+            const processedWindow = preprocessText(windowText, config);
+            
+            levenshteinIterations++;
+            const distance = levenshteinDistanceOptimized(processedOld, processedWindow);
+            const similarity = calculateSimilarity(distance, Math.max(processedOld.length, processedWindow.length));
+
+            if (distance < bestMatch.distance) {
+              bestMatch = { distance, index: i, text: windowText, similarity, windowSize };
+            }
+            if (distance === 0) break;
+          }
+          if (bestMatch.distance === 0) break;
+        }
+
+        const distanceThreshold = Math.floor(processedOld.length * config.maxDistanceRatio);
+
+        if (bestMatch.index !== -1 && 
+            bestMatch.distance <= distanceThreshold && 
+            bestMatch.similarity >= config.minSimilarity) {
+          
+          const newLines = normalizedNew.split('\n');
+          const originalIndent = contentLines[bestMatch.index].match(/^\s*/)?.[0] || '';
+          const indentedNewLines = applyRelativeIndentation(
+            newLines, 
+            oldLines, 
+            originalIndent, 
+            config.preserveLeadingWhitespace
+          );
+
+          contentLines.splice(bestMatch.index, bestMatch.windowSize, ...indentedNewLines);
+          modifiedContent = contentLines.join('\n');
+          matchFound = true;
+        } else if (bestMatch.similarity >= 0.5) {
+            throw createError(
+                'PARTIAL_MATCH',
+                `Found a partial match for edit ${editIndex + 1} with similarity ${bestMatch.similarity.toFixed(3)}. Please adjust 'oldText' or matching parameters.`,
+                { 
+                    editIndex, 
+                    similarity: bestMatch.similarity, 
+                    bestMatchPreview: bestMatch.text.substring(0, 100) 
+                }
+            );
+        }
+      }
+
+      if (!matchFound) {
+        let errorMessage = `Could not find a close match for edit ${editIndex + 1}:\n---\n${edit.oldText}\n---`;
+        throw createError(
+          'FUZZY_MATCH_FAILED',
+          errorMessage,
+          { editIndex, levenshteinIterations }
+        );
+      }
+    }
+
+    const diff = createUnifiedDiff(originalContent, modifiedContent, filePath);
+    const formattedDiff = "```diff\n" + diff + "\n```\n\n";
+
+    timer.end({ 
+      editsCount: edits.length, 
+      levenshteinIterations,
+      charactersProcessed: originalContent.length
+    });
+
+    return { modifiedContent, formattedDiff };
+  } catch (error) {
+    timer.end({ result: 'error' });
+    throw error;
+  }
+}
+--- END gatto_filesystem_v2\src\core\fuzzyEdit.ts ---
+
+--- START gatto_filesystem_v2\src\core\schemas.ts ---
+import { z } from 'zod';
+import type { Config } from '../server/config.js';
+
+export const ReadFileArgsSchema = z.object({
+  path: z.string(),
+  encoding: z.enum(['utf-8', 'base64', 'auto']).default('auto').describe('Encoding for file content')
+});
+
+export const ReadMultipleFilesArgsSchema = z.object({
+  paths: z.array(z.string()),
+  encoding: z.enum(['utf-8', 'base64', 'auto']).default('auto').describe('Encoding for file content')
+});
+
+export const WriteFileArgsSchema = z.object({
+  path: z.string(),
+  content: z.string(),
+  encoding: z.enum(['utf-8', 'base64']).default('utf-8').describe('Encoding of provided content')
+});
+
+const EditOperation = z.object({
+  oldText: z.string().describe('Text to search for - can be slightly inaccurate'),
+  newText: z.string().describe('Text to replace with')
+});
+
+export const getEditFileArgsSchema = (config: Config) => z.object({
+  path: z.string(),
+  edits: z.array(EditOperation),
+  dryRun: z.boolean().default(false).describe('Preview changes using git-style diff format'),
+  debug: z.boolean().default(false).describe('Show detailed matching information'),
+  caseSensitive: z.boolean().default(config.fuzzyMatching.caseSensitive).describe('Whether to match case sensitively'),
+  ignoreWhitespace: z.boolean().default(config.fuzzyMatching.ignoreWhitespace).describe('Whether to normalize whitespace differences'),
+  maxDistanceRatio: z.number().min(0).max(1).default(config.fuzzyMatching.maxDistanceRatio).describe('Maximum allowed distance as ratio of text length'),
+  minSimilarity: z.number().min(0).max(1).default(config.fuzzyMatching.minSimilarity).describe('Minimum similarity threshold (0-1)'),
+  preserveLeadingWhitespace: z.enum(['auto', 'strict', 'normalize']).default(config.fuzzyMatching.preserveLeadingWhitespace).describe('How to handle leading whitespace preservation')
+});
+
+export const CreateDirectoryArgsSchema = z.object({
+  path: z.string(),
+});
+
+export const ListDirectoryArgsSchema = z.object({
+  path: z.string(),
+});
+
+export const DirectoryTreeArgsSchema = z.object({
+  path: z.string(),
+});
+
+export const MoveFileArgsSchema = z.object({
+  source: z.string(),
+  destination: z.string(),
+});
+
+export const SearchFilesArgsSchema = z.object({
+  path: z.string(),
+  pattern: z.string(),
+  excludePatterns: z.array(z.string()).optional().default([]),
+  useExactPatterns: z.boolean().default(false).describe('Use patterns exactly as provided instead of wrapping with **/')
+});
+
+export const GetFileInfoArgsSchema = z.object({
+  path: z.string(),
+});
+
+--- END gatto_filesystem_v2\src\core\schemas.ts ---
+
+--- START gatto_filesystem_v2\src\core\security.ts ---
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { PerformanceTimer } from '../utils/performance.js';
+import { expandHome, normalizePath } from '../utils/pathUtils.js';
+import { createError } from '../types/errors.js';
+import type { Logger } from 'pino';
+import type { Config } from '../server/config.js';
+
+export async function validatePath(requestedPath: string, allowedDirectories: string[], logger: Logger, config: Config): Promise<string> {
+  const timer = new PerformanceTimer('validatePath', logger, config);
+  
+  try {
+    const expandedPath = expandHome(requestedPath);
+    const absolute = path.isAbsolute(expandedPath)
+      ? path.resolve(expandedPath)
+      : path.resolve(process.cwd(), expandedPath);
+
+    const normalizedRequested = normalizePath(absolute);
+
+    const isAllowed = allowedDirectories.some(dir => {
+      const relativePath = path.relative(dir, normalizedRequested);
+      return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
+    });
+    
+    if (!isAllowed) {
+      throw createError(
+        'ACCESS_DENIED',
+        `Path outside allowed directories: ${absolute}`,
+        { 
+          requestedPath: absolute, 
+          allowedDirectories: allowedDirectories 
+        }
+      );
+    }
+
+    try {
+      const realPath = await fs.realpath(absolute);
+      const normalizedReal = normalizePath(realPath);
+      const isRealPathAllowed = allowedDirectories.some(dir => {
+        const relativePath = path.relative(dir, normalizedReal);
+        return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
+      });
+      
+      if (!isRealPathAllowed) {
+        throw createError(
+          'ACCESS_DENIED',
+          'Symlink target outside allowed directories',
+          { symlinkTarget: realPath }
+        );
+      }
+      
+      timer.end({ result: 'success', realPath });
+      return realPath;
+    } catch (error) {
+      const parentDir = path.dirname(absolute);
+      try {
+        const realParentPath = await fs.realpath(parentDir);
+        const normalizedParent = normalizePath(realParentPath);
+        const isParentAllowed = allowedDirectories.some(dir => {
+          const relativePath = path.relative(dir, normalizedParent);
+          return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
+        });
+        
+        if (!isParentAllowed) {
+          throw createError(
+            'ACCESS_DENIED',
+            'Parent directory outside allowed directories',
+            { parentDirectory: realParentPath }
+          );
+        }
+        
+        timer.end({ result: 'success', newFile: true });
+        return absolute;
+      } catch {
+        throw createError(
+          'ACCESS_DENIED',
+          `Parent directory does not exist or is not accessible: ${parentDir}`,
+          { parentDirectory: parentDir }
+        );
+      }
+    }
+  } catch (error) {
+    timer.end({ result: 'error' });
+    if ((error as any).code) {
+      throw error;
+    }
+    throw createError('VALIDATION_ERROR', (error as Error).message || String(error));
+  }
+}
+
+--- END gatto_filesystem_v2\src\core\security.ts ---
+
+--- START gatto_filesystem_v2\src\core\toolHandlers.ts ---
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { CallToolRequestSchema, ListToolsRequestSchema, ToolSchema } from '@modelcontextprotocol/sdk/types.js';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+import { Mutex } from 'async-mutex';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+import { createError, StructuredError } from '../types/errors.js';
+import { PerformanceTimer } from '../utils/performance.js';
+import { isBinaryFile } from '../utils/binaryDetect.js';
+import { validatePath } from './security.js';
+import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit.js';
+import { getFileStats, searchFiles } from './fileInfo.js';
+import * as schemas from './schemas.js';
+
+import type { Logger } from 'pino';
+import type { Config } from '../server/config.js';
+
+let requestCount = 0;
+let editOperationCount = 0;
+let binaryFileAttempts = 0;
+let averageEditTime = 0;
+
+const fileLocks = new Map<string, Mutex>();
+
+function getFileLock(filePath: string, config: Config): Mutex {
+  if (!fileLocks.has(filePath)) {
+    if (fileLocks.size >= config.concurrency.maxConcurrentEdits) {
+      const oldestKey = fileLocks.keys().next().value;
+      fileLocks.delete(oldestKey);
+    }
+    fileLocks.set(filePath, new Mutex());
+  }
+  return fileLocks.get(filePath)!;
+}
+
+export function setupToolHandlers(server: Server, allowedDirectories: string[], logger: Logger, config: Config) {
+  const EditFileArgsSchema = schemas.getEditFileArgsSchema(config);
+
+  server.setRequestHandler(ListToolsRequestSchema, async () => {
+    return {
+      tools: [
+        { name: 'read_file', description: 'Read file contents.', inputSchema: zodToJsonSchema(schemas.ReadFileArgsSchema) as any },
+        { name: 'read_multiple_files', description: 'Read multiple files.', inputSchema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) as any },
+        { name: 'write_file', description: 'Write to a file.', inputSchema: zodToJsonSchema(schemas.WriteFileArgsSchema) as any },
+        { name: 'edit_file', description: 'Apply fuzzy edits to a file.', inputSchema: zodToJsonSchema(EditFileArgsSchema) as any },
+        { name: 'create_directory', description: 'Create a directory.', inputSchema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) as any },
+        { name: 'list_directory', description: 'List directory contents.', inputSchema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) as any },
+        { name: 'directory_tree', description: 'Get a directory tree.', inputSchema: zodToJsonSchema(schemas.DirectoryTreeArgsSchema) as any },
+        { name: 'move_file', description: 'Move/rename a file.', inputSchema: zodToJsonSchema(schemas.MoveFileArgsSchema) as any },
+        { name: 'search_files', description: 'Search for files.', inputSchema: zodToJsonSchema(schemas.SearchFilesArgsSchema) as any },
+        { name: 'get_file_info', description: 'Get file metadata.', inputSchema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) as any },
+        { name: 'list_allowed_directories', description: 'List allowed directories.', inputSchema: { type: 'object', properties: {} } },
+        { name: 'server_stats', description: 'Get server statistics.', inputSchema: { type: 'object', properties: {} } },
+      ],
+    };
+  });
+
+  server.setRequestHandler(CallToolRequestSchema, async (request) => {
+    const operationTimer = new PerformanceTimer('request_handler', logger, config);
+    requestCount++;
+    const { name, arguments: args } = request.params;
+    logger.info({ tool: name, requestCount }, `Processing tool request: ${name}`);
+
+    try {
+      switch (name) {
+        case 'read_file': {
+          const parsed = schemas.ReadFileArgsSchema.safeParse(args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadFileArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const buffer = await fs.readFile(validPath);
+          let content: string, encoding: string;
+          if (parsed.data.encoding === 'base64' || (parsed.data.encoding === 'auto' && isBinaryFile(buffer, validPath))) {
+            content = buffer.toString('base64');
+            encoding = 'base64';
+          } else {
+            content = buffer.toString('utf-8');
+            encoding = 'utf-8';
+          }
+          return { content: [{ type: 'text', text: `File: ${validPath}\nEncoding: ${encoding}\n\n${content}` }] };
+        }
+
+        case 'write_file': {
+          const parsed = schemas.WriteFileArgsSchema.safeParse(args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.WriteFileArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const buffer = Buffer.from(parsed.data.content, parsed.data.encoding);
+          await fs.writeFile(validPath, buffer);
+          return { content: [{ type: 'text', text: `Successfully wrote to ${validPath}` }] };
+        }
+
+        case 'edit_file': {
+          editOperationCount++;
+          const parsed = EditFileArgsSchema.safeParse(args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(EditFileArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const fileLock = getFileLock(validPath, config);
+          return await fileLock.runExclusive(async () => {
+            const { modifiedContent, formattedDiff } = await applyFileEdits(validPath, parsed.data.edits, parsed.data, logger, config);
+            if (!parsed.data.dryRun) {
+              await fs.writeFile(validPath, modifiedContent, 'utf-8');
+            }
+            const resultMessage = parsed.data.dryRun ? `Dry run complete. Changes:\n\n${formattedDiff}` : `File edited. Changes:\n\n${formattedDiff}`;
+            return { content: [{ type: 'text', text: resultMessage }] };
+          });
+        }
+
+        case 'create_directory': {
+            const parsed = schemas.CreateDirectoryArgsSchema.safeParse(args);
+            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) });
+            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+            await fs.mkdir(validPath, { recursive: true });
+            return { content: [{ type: 'text', text: `Successfully created directory ${validPath}` }] };
+        }
+
+        case 'list_directory': {
+            const parsed = schemas.ListDirectoryArgsSchema.safeParse(args);
+            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) });
+            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+            const entries = await fs.readdir(validPath, { withFileTypes: true });
+            const listing = entries.map(e => e.isDirectory() ? `[DIR]  ${e.name}` : `[FILE] ${e.name}`).join('\n');
+            return { content: [{ type: 'text', text: listing }] };
+        }
+
+        case 'get_file_info': {
+            const parsed = schemas.GetFileInfoArgsSchema.safeParse(args);
+            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) });
+            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+            const stats = await getFileStats(validPath, logger, config);
+            return { content: [{ type: 'text', text: JSON.stringify(stats, null, 2) }] };
+        }
+
+        case 'list_allowed_directories': {
+            return { content: [{ type: 'text', text: JSON.stringify(allowedDirectories, null, 2) }] };
+        }
+
+        case 'server_stats': {
+            const stats = { requestCount, editOperationCount, binaryFileAttempts, averageEditTime, config };
+            return { content: [{ type: 'text', text: JSON.stringify(stats, null, 2) }] };
+        }
+
+        default:
+          throw createError('UNKNOWN_TOOL', `Unknown tool: ${name}`);
+      }
+    } catch (error) {
+      let structuredError: StructuredError;
+      if ((error as any).code) {
+        structuredError = error as StructuredError;
+      } else {
+        structuredError = createError('UNKNOWN_ERROR', error instanceof Error ? error.message : String(error));
+      }
+      logger.error({ error: structuredError, tool: name }, `Tool request failed: ${name}`);
+      return {
+        content: [{ type: 'text', text: `Error (${structuredError.code}): ${structuredError.message}` }],
+        isError: true,
+        meta: { hint: structuredError.hint, confidence: structuredError.confidence, details: structuredError.details }
+      };
+    }
+  });
+}
+
+--- END gatto_filesystem_v2\src\core\toolHandlers.ts ---
+
+--- START gatto_filesystem_v2\src\server\config.ts ---
+import { z } from "zod";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+export const ConfigSchema = z.object({
+  allowedDirectories: z.array(z.string()),
+  fuzzyMatching: z.object({
+    maxDistanceRatio: z.number().min(0).max(1).default(0.25),
+    minSimilarity: z.number().min(0).max(1).default(0.7),
+    caseSensitive: z.boolean().default(false),
+    ignoreWhitespace: z.boolean().default(true),
+    preserveLeadingWhitespace: z.enum(['auto', 'strict', 'normalize']).default('auto')
+  }).default({}),
+  logging: z.object({
+    level: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
+    performance: z.boolean().default(false)
+  }).default({}),
+  concurrency: z.object({
+    maxConcurrentEdits: z.number().positive().default(10)
+  }).default({})
+});
+
+export type Config = z.infer<typeof ConfigSchema>;
+
+export async function loadConfig(): Promise<Config> {
+    const args = process.argv.slice(2);
+    if (args.length > 0 && (args[0] === '--config' || args[0] === '-c')) {
+        if (args.length < 2) {
+            console.error("Usage: mcp-server-filesystem --config <config-file>");
+            console.error("   or: mcp-server-filesystem <allowed-directory> [additional-directories...]");
+            process.exit(1);
+        }
+        
+        try {
+            const configPath = path.resolve(args[1]);
+            const configContent = await fs.readFile(configPath, 'utf-8');
+            const rawConfig = JSON.parse(configContent);
+            return ConfigSchema.parse(rawConfig);
+        } catch (error) {
+            console.error("Error loading config file:", error);
+            process.exit(1);
+        }
+    } else {
+        if (args.length === 0) {
+            console.error("Usage: mcp-server-filesystem --config <config-file>");
+            console.error("   or: mcp-server-filesystem <allowed-directory> [additional-directories...]");
+            process.exit(1);
+        }
+        
+        const DEFAULT_MAX_DISTANCE_RATIO = parseFloat(process.env.MCP_EDIT_MAX_DISTANCE_RATIO || '0.25');
+        const DEFAULT_MIN_SIMILARITY = parseFloat(process.env.MCP_EDIT_MIN_SIMILARITY || '0.7');
+        const DEFAULT_CASE_SENSITIVE = process.env.MCP_EDIT_CASE_SENSITIVE === 'true';
+        const DEFAULT_IGNORE_WHITESPACE = process.env.MCP_EDIT_IGNORE_WHITESPACE !== 'false';
+
+        return {
+            allowedDirectories: args,
+            fuzzyMatching: {
+                maxDistanceRatio: DEFAULT_MAX_DISTANCE_RATIO,
+                minSimilarity: DEFAULT_MIN_SIMILARITY,
+                caseSensitive: DEFAULT_CASE_SENSITIVE,
+                ignoreWhitespace: DEFAULT_IGNORE_WHITESPACE,
+                preserveLeadingWhitespace: 'auto'
+            },
+            logging: {
+                level: (process.env.LOG_LEVEL as any) || 'info',
+                performance: process.env.LOG_PERFORMANCE === 'true'
+            },
+            concurrency: {
+                maxConcurrentEdits: parseInt(process.env.MAX_CONCURRENT_EDITS || '10')
+            }
+        };
+    }
+}
+
+--- END gatto_filesystem_v2\src\server\config.ts ---
+
+--- START gatto_filesystem_v2\src\server\index.ts ---
+#!/usr/bin/env node
+
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import pino from 'pino';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+import { loadConfig } from './config.js';
+import { setupToolHandlers } from '../core/toolHandlers.js';
+import { expandHome, normalizePath } from '../utils/pathUtils.js';
+
+async function main() {
+  const config = await loadConfig();
+
+  const logger = pino({
+    level: config.logging.level,
+    formatters: { level: (label) => ({ level: label }) },
+    timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+    base: { service: 'mcp-filesystem-server', version: '0.7.0' }
+  });
+
+  const allowedDirectories = config.allowedDirectories.map(dir => normalizePath(path.resolve(expandHome(dir))));
+
+  await Promise.all(allowedDirectories.map(async (dir) => {
+    try {
+      const stats = await fs.stat(dir);
+      if (!stats.isDirectory()) {
+        logger.error(`Error: ${dir} is not a directory`);
+        process.exit(1);
+      }
+    } catch (error) {
+      logger.error({ error, directory: dir }, `Error accessing directory ${dir}`);
+      process.exit(1);
+    }
+  }));
+
+  const server = new Server(
+    { name: 'secure-filesystem-server', version: '0.7.0' },
+    { capabilities: { tools: {} } }
+  );
+
+  setupToolHandlers(server, allowedDirectories, logger, config);
+
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+
+  logger.info({ version: '0.7.0', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started');
+}
+
+main().catch((error) => {
+  console.error('Fatal error running server:', error);
+  process.exit(1);
+});
+
+--- END gatto_filesystem_v2\src\server\index.ts ---
+
+--- START gatto_filesystem_v2\src\types\errors.ts ---
+import type { HintInfo, HINTS } from "../utils/hintMap.js";
+
+export interface StructuredError {
+  code: keyof typeof HINTS | string;
+  message: string;
+  hint?: HintInfo["hint"];
+  confidence?: HintInfo["confidence"];
+  details?: unknown;
+}
+
+export function createError(
+  code: StructuredError["code"],
+  message: string,
+  details?: unknown
+): StructuredError {
+  const hint = HINTS[code as keyof typeof HINTS];
+  return {
+    code,
+    message,
+    hint: hint?.hint,
+    confidence: hint?.confidence,
+    details
+  };
+}
+
+--- END gatto_filesystem_v2\src\types\errors.ts ---
+
+--- START gatto_filesystem_v2\src\utils\binaryDetect.ts ---
+import path from 'node:path';
+
+const BINARY_EXTENSIONS = new Set([
+  '.exe', '.dll', '.so', '.dylib', '.bin', '.dat',
+  '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.ico',
+  '.mp3', '.mp4', '.avi', '.mov', '.wmv', '.flv',
+  '.pdf', '.zip', '.rar', '.tar', '.gz', '.7z',
+  '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'
+]);
+
+export function isBinaryFile(buffer: Buffer, filename?: string): boolean {
+  if (Buffer.isUtf8 && !Buffer.isUtf8(buffer)) {
+    return true;
+  }
+
+  if (buffer.includes(0)) {
+    return true;
+  }
+
+  if (filename) {
+    const ext = path.extname(filename).toLowerCase();
+    if (BINARY_EXTENSIONS.has(ext)) {
+      return true;
+    }
+  }
+
+  let nonPrintable = 0;
+  const sampleSize = Math.min(1024, buffer.length);
+  
+  for (let i = 0; i < sampleSize; i++) {
+    const byte = buffer[i];
+    if (byte < 32 && byte !== 9 && byte !== 10 && byte !== 13) {
+      nonPrintable++;
+    }
+  }
+
+  return (nonPrintable / sampleSize) > 0.1;
+}
+
+--- END gatto_filesystem_v2\src\utils\binaryDetect.ts ---
+
+--- START gatto_filesystem_v2\src\utils\hintMap.ts ---
+export interface HintInfo {
+  confidence: number;
+  hint: string;
+  example?: unknown;
+}
+
+export const HINTS: Record<string, HintInfo> = {
+  ACCESS_DENIED: {
+    confidence: 0.9,
+    hint: "Path is outside of allowedDirectories. Check the 'path' argument.",
+    example: { path: "/workspace/project/file.txt" }
+  },
+  VALIDATION_ERROR: { confidence: 0.8, hint: "Check the required fields and their types in the arguments." },
+  FUZZY_MATCH_FAILED: {
+    confidence: 0.7,
+    hint: "Try adjusting minSimilarity/maxDistanceRatio or check for whitespace/indentation issues.",
+    example: { minSimilarity: 0.6, maxDistanceRatio: 0.3 }
+  },
+  BINARY_FILE_ERROR: {
+    confidence: 0.95,
+    hint: "'edit_file' works only on text files. Use 'write_file' with base64 encoding for binary files."
+  },
+  PARTIAL_MATCH: {
+    confidence: 0.6,
+    hint: "Found a partial match. Review the diff and correct 'oldText' or parameters."
+  },
+  UNKNOWN_TOOL: {
+    confidence: 0.9,
+    hint: "The requested tool does not exist. Use 'list_tools' to see available tools."
+  },
+  UNKNOWN_ERROR: {
+    confidence: 0.1,
+    hint: "An unexpected error occurred. Check server logs for details."
+  }
+};
+
+--- END gatto_filesystem_v2\src\utils\hintMap.ts ---
+
+--- START gatto_filesystem_v2\src\utils\pathUtils.ts ---
+import path from 'node:path';
+import os from 'node:os';
+
+export function normalizePath(p: string): string {
+  return path.normalize(p);
+}
+
+export function expandHome(filepath: string): string {
+  if (filepath.startsWith('~/') || filepath === '~') {
+    return path.join(os.homedir(), filepath.slice(1));
+  }
+  return filepath;
+}
+
+--- END gatto_filesystem_v2\src\utils\pathUtils.ts ---
+
+--- START gatto_filesystem_v2\src\utils\performance.ts ---
+import { performance } from 'node:perf_hooks';
+import type { Logger } from 'pino';
+import type { Config } from '../server/config.js';
+
+export class PerformanceTimer {
+  private startTime: number;
+  private operation: string;
+  private logger: Logger;
+  private enabled: boolean;
+
+  constructor(operation: string, logger: Logger, config: Config) {
+    this.operation = operation;
+    this.logger = logger;
+    this.enabled = config.logging.performance;
+    this.startTime = this.enabled ? performance.now() : 0;
+  }
+
+  end(additionalData?: any): number {
+    if (!this.enabled) {
+      return 0;
+    }
+    const duration = performance.now() - this.startTime;
+    this.logger.debug({
+      operation: this.operation,
+      duration_ms: Math.round(duration * 100) / 100,
+      ...additionalData
+    }, `Performance: ${this.operation}`);
+    return duration;
+  }
+}
+
+--- END gatto_filesystem_v2\src\utils\performance.ts ---
+
+--- START gatto_filesystem_v2\tsconfig.json ---
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "esnext",
+    "moduleResolution": "nodenext", // or "node" if preferred
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "sourceMap": true,
+    "resolveJsonModule": true, // Good for importing config.example.json if needed
+    "baseUrl": ".",
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
+}
+
+--- END gatto_filesystem_v2\tsconfig.json ---
+

@@ -1,0 +1,22 @@
+[
+  {
+    "directory": "D:/projects/gatto-ps-ai-link1/gatto_filesystem_v2",
+    "filter_name": "All Source Code (Common Types)"
+  },
+  {
+    "directory": "D:/projects/gatto-ps-ai-link1/gatto_filesystem_v2",
+    "filter_name": "All Files (*.*)"
+  },
+  {
+    "directory": "D:/projects/gatto-ps-ai-link1/app/algorithms/algorithm_05_lab_transfer",
+    "filter_name": "Python & OpenCL (py, cl)"
+  },
+  {
+    "directory": "D:/projects/gatto-ps-ai/app/algorithms/algorithm_01_palette",
+    "filter_name": "All Source Code (Common Types)"
+  },
+  {
+    "directory": "D:/projects/gatto-ps-ai/app/algorithms/algorithm_05_lab_transfer",
+    "filter_name": "All Source Code (Common Types)"
+  }
+]
