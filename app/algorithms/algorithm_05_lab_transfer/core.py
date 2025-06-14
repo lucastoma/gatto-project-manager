@@ -127,7 +127,36 @@ class LABColorTransfer:
                 transferred_channel = (source_channel - s_mean[i]) * std_ratio + t_mean[i]
             blended_channel = (transferred_channel * blend_factor) + (source_channel * (1 - blend_factor))
             np.copyto(result_lab[..., i], blended_channel, where=mask_bool)
-        return result_lab.astype(original_dtype, copy=False)
+        return result_lab
+
+    def weighted_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, weights: Dict[str, float]) -> np.ndarray:
+        """
+        Performs LAB color transfer by blending source and target channels based on specified weights.
+        result_channel = source_channel * (1 - weight) + target_channel * weight
+        """
+        if source_lab.shape != target_lab.shape:
+            self.logger.warning(f"Source and target LAB images have different shapes: {source_lab.shape} vs {target_lab.shape}. Resizing target to match source.")
+            pil_target_lab_rgb = Image.fromarray(self.lab_to_rgb_optimized(target_lab))
+            pil_target_lab_resized_rgb = pil_target_lab_rgb.resize((source_lab.shape[1], source_lab.shape[0]), Image.Resampling.LANCZOS)
+            target_lab_resized_rgb_np = np.array(pil_target_lab_resized_rgb)
+            target_lab = self.rgb_to_lab_optimized(target_lab_resized_rgb_np)
+
+        original_dtype = source_lab.dtype
+        source_lab_f = source_lab.astype(np.float32, copy=False)
+        target_lab_f = target_lab.astype(np.float32, copy=False)
+        
+        result_lab_f = np.copy(source_lab_f)
+        
+        # Default weights are handled by the config, here we expect weights to be passed.
+        w_l = weights.get('L', 0.5) # Default to 0.5 if a specific channel weight is missing
+        w_a = weights.get('a', 0.5)
+        w_b = weights.get('b', 0.5)
+
+        result_lab_f[:,:,0] = source_lab_f[:,:,0] * (1 - w_l) + target_lab_f[:,:,0] * w_l
+        result_lab_f[:,:,1] = source_lab_f[:,:,1] * (1 - w_a) + target_lab_f[:,:,1] * w_a
+        result_lab_f[:,:,2] = source_lab_f[:,:,2] * (1 - w_b) + target_lab_f[:,:,2] * w_b
+        
+        return result_lab_f.astype(original_dtype, copy=False)
 
     def adaptive_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
         if source_lab.shape != target_lab.shape:
@@ -139,7 +168,14 @@ class LABColorTransfer:
         t_mean, t_std = self._calculate_stats(tgt)
         l_src, a_src, b_src = src[:, :, 0], src[:, :, 1], src[:, :, 2]
         l_tgt = tgt[:, :, 0]
-        l_src_matched = histogram_matching(l_src, l_tgt)
+        # Create temporary 3-channel LAB images for histogram matching L channel
+        temp_source_lab_for_l = np.zeros_like(src) # Use 'src' which is source_lab.astype(np.float64)
+        temp_target_lab_for_l = np.zeros_like(tgt) # Use 'tgt' which is target_lab.astype(np.float64)
+        temp_source_lab_for_l[:,:,0] = l_src
+        temp_target_lab_for_l[:,:,0] = l_tgt
+        # Match only the L channel
+        matched_l_temp_source = histogram_matching(temp_source_lab_for_l, temp_target_lab_for_l, channels=['L'])
+        l_src_matched = matched_l_temp_source[:,:,0] # Extract the matched L channel
         a_res = np.empty_like(a_src)
         if s_std[1] < 1e-6:
             a_res = a_src + (t_mean[1] - s_mean[1])

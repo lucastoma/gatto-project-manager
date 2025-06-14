@@ -154,7 +154,7 @@ from functools import lru_cache
 from typing import Optional, Dict, List
 
 from .config import LABTransferConfig
-from .metrics import calculate_delta_e_lab
+from .metrics import calculate_delta_e_lab, histogram_matching
 from .logger import get_logger
 from .gpu_core import LABColorTransferGPU
 
@@ -193,230 +193,134 @@ class LABColorTransfer:
         """
         Convert an RGB image array to LAB color space with caching.
         """
-        # The array's bytes are used as a key, which requires the array to be hashable.
-        # A simple way is to convert it to a read-only bytes string.
+        if not rgb_array.flags['C_CONTIGUOUS']:
+            rgb_array = np.ascontiguousarray(rgb_array)
         return self._rgb_to_lab_cached(rgb_array.tobytes(), rgb_array.shape)
 
     def lab_to_rgb_optimized(self, lab_array: np.ndarray) -> np.ndarray:
         """
-        Convert a LAB image array back to RGB color space.
+        Convert a LAB image array back to RGB uint8 format.
         """
+        if lab_array.dtype != np.float64:
+            lab_array = lab_array.astype(np.float64)
         rgb_result = skimage.color.lab2rgb(lab_array)
-        # Convert to 0-255 range and uint8 type, clipping to ensure validity.
         return (np.clip(rgb_result, 0, 1) * 255).astype(np.uint8)
 
-    def _transfer_channel_stats(self, source_channel: np.ndarray, target_channel: np.ndarray) -> np.ndarray:
-        """
-        Helper to apply statistical transfer to a single channel.
-        """
-        source_mean, source_std = np.mean(source_channel), np.std(source_channel)
-        target_mean, target_std = np.mean(target_channel), np.std(target_channel)
-        
-        # Avoid division by zero for flat channels
-        if source_std < 1e-6:
-            return source_channel + (target_mean - source_mean)
-            
-        result_channel = (source_channel - source_mean) * (target_std / source_std) + target_mean
-        return result_channel
+    def _calculate_stats(self, lab_image: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
+        """Calculates mean and std dev for each channel of a LAB image."""
+        lab_image_f64 = lab_image.astype(np.float64)
+        mean = np.mean(lab_image_f64, axis=(0, 1))
+        std = np.std(lab_image_f64, axis=(0, 1))
+        return mean, std
 
     def basic_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray) -> np.ndarray:
-        """
-        Performs statistical transfer on all LAB channels.
-        Dispatches to GPU if available and configured.
-        """
-        if self.gpu_transfer:
-            self.logger.info("Using GPU for basic LAB transfer.")
-            return self.gpu_transfer.basic_lab_transfer_gpu(source_lab, target_lab)
-
-        # Validate input shapes – basic transfer must operate on same-sized images in public API.
         if source_lab.shape != target_lab.shape:
             raise ValueError("Source and target must have the same shape")
-
         original_dtype = source_lab.dtype
+        s_mean, s_std = self._calculate_stats(source_lab)
+        t_mean, t_std = self._calculate_stats(target_lab)
         src = source_lab.astype(np.float64, copy=False)
-        tgt = target_lab.astype(np.float64, copy=False)
-
         result = np.empty_like(src)
         for i in range(3):
-            result[..., i] = self._transfer_channel_stats(src[..., i], tgt[..., i])
+            if s_std[i] < 1e-6:
+                result[..., i] = src[..., i] + (t_mean[i] - s_mean[i])
+            else:
+                std_ratio = t_std[i] / s_std[i]
+                result[..., i] = (src[..., i] - s_mean[i]) * std_ratio + t_mean[i]
         return result.astype(original_dtype, copy=False)
 
-    def linear_blend_lab(self, source_lab: np.ndarray, target_lab: np.ndarray, weights: Dict[str, float]) -> np.ndarray:
-        """
-        Performs a linear blend (interpolation) between the source and target images
-        in LAB space, using independent weights for each channel. This is not a
-        statistical transfer but a direct mixing of color values.
-
-        Args:
-            source_lab: Source image in LAB space.
-            target_lab: Target image in LAB space.
-            weights: Dictionary of weights {'L': float, 'a': float, 'b': float}.
-                     Each weight is between 0 (use source) and 1 (use target).
-
-        Returns:
-            The blended image in LAB space.
-        """
-        # Validate input shapes and dtype
+    def linear_blend_lab(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
+        weights = kwargs.get('weights', {})
         if source_lab.shape != target_lab.shape:
             raise ValueError("Source and target must have the same shape")
-        if source_lab.dtype != np.float64 or target_lab.dtype != np.float64:
-            raise ValueError("Input arrays must be of type float64")
-        
-        original_dtype = source_lab.dtype
-        l_weight = weights.get('L', 0.5)
-        a_weight = weights.get('a', 0.5)
-        b_weight = weights.get('b', 0.5)
-
-        result = np.zeros_like(source_lab)
-        result[..., 0] = source_lab[..., 0] * (1 - l_weight) + target_lab[..., 0] * l_weight
-        result[..., 1] = source_lab[..., 1] * (1 - a_weight) + target_lab[..., 1] * a_weight
-        result[..., 2] = source_lab[..., 2] * (1 - b_weight) + target_lab[..., 2] * b_weight
-        return result.astype(original_dtype, copy=False)
-
-    def selective_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, mask: Optional[np.ndarray] = None, selective_channels: List[str] = None, blend_factor: float = 1.0) -> np.ndarray:
-        """
-        Performs statistical transfer on color channels (a, b) only,
-        preserving the luminance (L) of the source image.
-        """
-        if self.gpu_transfer:
-            self.logger.info("Using GPU for selective LAB transfer.")
-            # GPU implementation needs to be updated to handle these parameters
-            return self.gpu_transfer.selective_lab_transfer_gpu(source_lab, target_lab)
-
-        if source_lab.shape != target_lab.shape:
-            raise ValueError("Source and target must have the same shape")
-
         original_dtype = source_lab.dtype
         src = source_lab.astype(np.float64, copy=False)
-        tgt = target_lab.astype(np.float64, copy=False)
-        
-        transferred_lab = src.copy()
-        
-        # Default to ['a', 'b'] if not provided
-        if selective_channels is None:
-            selective_channels = ['a', 'b']
-        channel_map = {'L': 0, 'a': 1, 'b': 2}
-
-        # Perform statistical transfer only on selected channels
-        for ch_name in selective_channels:
-            idx = channel_map.get(ch_name)
-            if idx is not None:
-                transferred_lab[..., idx] = self._transfer_channel_stats(src[..., idx], tgt[..., idx])
-
-        # If no mask is provided, return the fully blended transfer
-        if mask is None:
-            return transferred_lab.astype(original_dtype, copy=False)
-
-        # Ensure mask is a 2D boolean array
-        if mask.ndim != 2 or mask.dtype != bool:
-             mask = (mask > 128) # Convert from uint8 to boolean if needed
-
-        # Blend based on mask
-        result = src.copy()
-        # Apply blending only where mask is True
-        result[mask] = src[mask] * (1 - blend_factor) + transferred_lab[mask] * blend_factor
-            
-        return result.astype(original_dtype, copy=False)
-
-    def weighted_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, weights: tuple = (1.0, 1.0, 1.0)) -> np.ndarray:
-        """
-        Performs a weighted statistical transfer. A weight of 1.0 is a full
-        transfer, while 0.0 leaves the source channel unchanged.
-        """
-        if self.gpu_transfer:
-            self.logger.info("Using GPU for weighted LAB transfer.")
-            return self.gpu_transfer.weighted_lab_transfer_gpu(source_lab, target_lab, weights=weights)
-
-        if source_lab.shape != target_lab.shape:
-            raise ValueError("Source and target must have the same shape")
-
-        original_dtype = source_lab.dtype
-        src = source_lab.astype(np.float64, copy=False)
-        
-        # Get the fully transferred image first
-        transferred_lab = self.basic_lab_transfer(src, target_lab)
-
+        s_mean, s_std = self._calculate_stats(src)
+        t_mean, t_std = self._calculate_stats(target_lab)
+        w = np.array([weights.get('L', 0.5), weights.get('a', 0.5), weights.get('b', 0.5)])
+        blended_mean = s_mean * (1 - w) + t_mean * w
+        blended_std = s_std * (1 - w) + t_std * w
         result = np.empty_like(src)
-        # Blend source with the fully transferred version
-        for i, weight in enumerate(weights):
-            result[..., i] = src[..., i] * (1 - weight) + transferred_lab[..., i] * weight
-            
+        for i in range(3):
+            if s_std[i] < 1e-6:
+                result[..., i] = src[..., i] + (blended_mean[i] - s_mean[i])
+            else:
+                std_ratio = blended_std[i] / s_std[i]
+                result[..., i] = (src[..., i] - s_mean[i]) * std_ratio + blended_mean[i]
         return result.astype(original_dtype, copy=False)
 
-    def adaptive_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, num_segments: int = 3, delta_e_threshold: float = 5.0, min_segment_size_perc: float = 0.01) -> np.ndarray:
-        """
-        Adaptive LAB transfer based on luminance segmentation. Matches statistics
-        between corresponding luminance zones of the source and target images.
-        """
-        if self.gpu_transfer:
-            self.logger.info("Using GPU for adaptive LAB transfer.")
-            return self.gpu_transfer.adaptive_lab_transfer_gpu(source_lab, target_lab)
+    def selective_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
+        mask = kwargs.get('mask')
+        selective_channels = kwargs.get('selective_channels')
+        blend_factor = kwargs.get('blend_factor', 1.0)
+        if not (source_lab.shape[:2] == target_lab.shape[:2] == mask.shape[:2]):
+            raise ValueError("Source, target, and mask must have the same height and width")
+        original_dtype = source_lab.dtype
+        result_lab = source_lab.astype(np.float64, copy=True)
+        s_mean, s_std = self._calculate_stats(source_lab)
+        t_mean, t_std = self._calculate_stats(target_lab)
+        mask_bool = mask > 128 if mask.dtype == np.uint8 else mask > 0.5
+        if mask_bool.ndim == 3:
+            mask_bool = mask_bool[..., 0]
+        channel_map = {'L': 0, 'a': 1, 'b': 2}
+        channels_to_process = [channel_map[c] for c in (selective_channels or ['L', 'a', 'b']) if c in channel_map]
+        for i in channels_to_process:
+            if np.all(~mask_bool):
+                continue
+            source_channel = source_lab[..., i]
+            if s_std[i] < 1e-6:
+                transferred_channel = source_channel + (t_mean[i] - s_mean[i])
+            else:
+                std_ratio = t_std[i] / s_std[i]
+                transferred_channel = (source_channel - s_mean[i]) * std_ratio + t_mean[i]
+            blended_channel = (transferred_channel * blend_factor) + (source_channel * (1 - blend_factor))
+            np.copyto(result_lab[..., i], blended_channel, where=mask_bool)
+        return result_lab.astype(original_dtype, copy=False)
 
+    def adaptive_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
         if source_lab.shape != target_lab.shape:
             raise ValueError("Source and target must have the same shape")
-
         original_dtype = source_lab.dtype
         src = source_lab.astype(np.float64, copy=False)
         tgt = target_lab.astype(np.float64, copy=False)
-        result = src.copy()
+        s_mean, s_std = self._calculate_stats(src)
+        t_mean, t_std = self._calculate_stats(tgt)
+        l_src, a_src, b_src = src[:, :, 0], src[:, :, 1], src[:, :, 2]
+        l_tgt = tgt[:, :, 0]
+        l_src_matched = histogram_matching(l_src, l_tgt)
+        a_res = np.empty_like(a_src)
+        if s_std[1] < 1e-6:
+            a_res = a_src + (t_mean[1] - s_mean[1])
+        else:
+            a_res = (a_src - s_mean[1]) * (t_std[1] / s_std[1]) + t_mean[1]
+        b_res = np.empty_like(b_src)
+        if s_std[2] < 1e-6:
+            b_res = b_src + (t_mean[2] - s_mean[2])
+        else:
+            b_res = (b_src - s_mean[2]) * (t_std[2] / s_std[2]) + t_mean[2]
+        result_lab = np.stack([l_src_matched, a_res, b_res], axis=-1)
+        return result_lab.astype(original_dtype, copy=False)
 
-        src_l, tgt_l = src[..., 0], tgt[..., 0]
-        min_segment_size = int(src_l.size * min_segment_size_perc)
+    def hybrid_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
+        adaptive_result = self.adaptive_lab_transfer(source_lab, target_lab)
+        delta_e = calculate_delta_e_lab(source_lab, adaptive_result)
+        threshold = self.config.delta_e_threshold
+        blend_mask = np.clip(delta_e / threshold, 0, 1)[:, :, np.newaxis]
+        basic_result = self.basic_lab_transfer(source_lab, target_lab)
+        final_result = (basic_result * blend_mask) + (adaptive_result * (1 - blend_mask))
+        return final_result
 
-        # Define luminance segments based on percentiles
-        percentiles = np.linspace(0, 100, num_segments + 1)
-        src_thresholds = np.percentile(src_l, percentiles[1:-1])
-        tgt_thresholds = np.percentile(tgt_l, percentiles[1:-1])
-
-        src_masks = np.digitize(src_l, src_thresholds)
-        tgt_masks = np.digitize(tgt_l, tgt_thresholds)
-
-        # Process each corresponding segment
-        for i in range(num_segments):
-            src_mask = (src_masks == i)
-            tgt_mask = (tgt_masks == i)
-
-            if np.sum(src_mask) < min_segment_size or not np.any(tgt_mask):
-                continue
-
-            # Transfer stats for each channel within the segment
-            for ch in range(3):
-                src_segment = src[src_mask, ch]
-                tgt_segment = tgt[tgt_mask, ch]
-                transferred_segment = self._transfer_channel_stats(src_segment, tgt_segment)
-                result[src_mask, ch] = transferred_segment
-
-        return result.astype(original_dtype, copy=False)
-
-    def weighted_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, weights: Dict[str, float]) -> np.ndarray:
-        """Weighted LAB transfer with channel-specific weights"""
-        # Validate weights
-        for channel in ['L', 'a', 'b']:
-            if channel not in weights:
-                raise ValueError(f"Missing weight for channel: {channel}")
-            if not (0 <= weights[channel] <= 1):
-                raise ValueError(f"Weight for channel {channel} must be between 0 and 1")
-        
-        # Validate input shapes and dtype
-        if source_lab.shape != target_lab.shape:
-            raise ValueError("Source and target must have the same shape")
-        if source_lab.dtype != np.float64 or target_lab.dtype != np.float64:
-            raise ValueError("Input arrays must be of type float64")
-        
-        return self.linear_blend_lab(source_lab, target_lab, weights)
-
-    def process_large_image(self, source_img: np.ndarray, target_img: np.ndarray, tile_size: int = 64, overlap: int = 16, method: str = 'adaptive') -> np.ndarray:
-        """High-level helper that processes full-resolution RGB or LAB images.
-        Currently processes the entire image at once (no real tiling) but keeps the
-        signature required by tests. Supports `adaptive` or `basic` methods.
+    def process_image(self, source_img: np.ndarray, target_img: np.ndarray, method: str, **kwargs) -> np.ndarray:
         """
-        # Basic shape sanity check
+        Main entry point for processing images.
+        Handles color space conversions, selects CPU/GPU implementation,
+        and routes to the correct transfer method.
+        """
         if source_img.shape != target_img.shape:
             raise ValueError("Source and target must have the same shape")
         if source_img.ndim != 3 or source_img.shape[2] != 3:
             raise ValueError("Images must be (H, W, 3)")
 
-        # Accept RGB uint8 or float images as well as LAB float64; convert as needed
         is_rgb = source_img.dtype == np.uint8
         if is_rgb:
             src_lab = self.rgb_to_lab_optimized(source_img)
@@ -425,40 +329,99 @@ class LABColorTransfer:
             src_lab = source_img.astype(np.float64, copy=False)
             tgt_lab = target_img.astype(np.float64, copy=False)
 
-        # Choose processing method
-        if method == 'adaptive':
-            result_lab = self.adaptive_lab_transfer(src_lab, tgt_lab)
-        elif method == 'basic':
-            result_lab = self.basic_lab_transfer(src_lab, tgt_lab)
-        else:
-            raise ValueError("invalid_method")
+        impl = self
+        use_gpu = self.gpu_transfer is not None
+        transfer_func_name = f"{method}_lab_transfer"
 
-        # Convert back to original space if inputs were RGB
+        if use_gpu and hasattr(self.gpu_transfer, transfer_func_name):
+            self.logger.info(f"Attempting to use GPU for method: {method}")
+            impl = self.gpu_transfer
+        else:
+            if use_gpu:
+                self.logger.warning(f"Method '{method}' not available on GPU. Falling back to CPU.")
+            self.logger.info(f"Using CPU for method: {method}")
+
+        transfer_func = getattr(impl, transfer_func_name, None)
+        if not transfer_func:
+            raise ValueError(f"Invalid or unsupported method: {method}")
+
+        try:
+            result_lab = transfer_func(src_lab, tgt_lab, **kwargs)
+        except Exception as e:
+            if impl is self.gpu_transfer:
+                self.logger.error(f"GPU processing failed for method '{method}': {e}. Falling back to CPU.")
+                cpu_transfer_func = getattr(self, transfer_func_name)
+                result_lab = cpu_transfer_func(src_lab, tgt_lab, **kwargs)
+            else:
+                self.logger.error(f"CPU processing failed for method '{method}': {e}")
+                raise e
+
         if is_rgb:
             return self.lab_to_rgb_optimized(result_lab)
         return result_lab
 
+    def process_large_image(self, source_img: np.ndarray, target_img: np.ndarray, method: str, **kwargs) -> np.ndarray:
+        """
+        Process large images by tiling, applying the selected transfer method to each tile.
+        """
+        tile_size = self.config.tile_size
+        overlap = self.config.overlap
+        h, w, _ = source_img.shape
+        
+        result_img = np.zeros((h, w, 3), dtype=np.float64)
+        weight_map = np.zeros((h, w, 1), dtype=np.float32)
+
+        for y in range(0, h, tile_size - overlap):
+            for x in range(0, w, tile_size - overlap):
+                src_tile = source_img[y:y+tile_size, x:x+tile_size]
+                tgt_tile = target_img[y:y+tile_size, x:x+tile_size]
+                
+                if src_tile.shape[0] < tile_size or src_tile.shape[1] < tile_size:
+                    # Handle edge tiles that are smaller than tile_size
+                    # A simple approach is to process them as is
+                    pass
+
+                processed_tile_lab = self.process_image(src_tile, tgt_tile, method=method, **kwargs)
+                
+                # Create a weight mask for blending
+                tile_weight = self.blend_tile_overlap(np.ones_like(processed_tile_lab, dtype=np.float32), overlap)
+
+                # Add the processed tile to the result image, weighted by the blend mask
+                th, tw, _ = processed_tile_lab.shape
+                result_img[y:y+th, x:x+tw] += processed_tile_lab * tile_weight
+                weight_map[y:y+th, x:x+tw] += tile_weight
+
+        # Normalize the result by the weight map to average overlapping areas
+        # Avoid division by zero
+        weight_map[weight_map == 0] = 1
+        result_img /= weight_map
+
+        return self.lab_to_rgb_optimized(result_img)
+
     def blend_tile_overlap(self, tile: np.ndarray, overlap_size: int) -> np.ndarray:
         """Apply linear alpha blending to tile edges based on overlap size"""
         if overlap_size == 0:
-            return tile
+            return np.ones_like(tile, dtype=np.float32)
             
-        blended = tile.astype(np.float32)
+        blended = np.ones_like(tile, dtype=np.float32)
         h, w, _ = blended.shape
         
-        # Vertical edges
-        if overlap_size > 0 and h > 1:
-            alpha = np.linspace(0, 1, overlap_size)[:, np.newaxis, np.newaxis]
-            blended[:overlap_size] *= alpha
-            blended[-overlap_size:] *= alpha[::-1]
+        # Create a linear gradient for one edge
+        if overlap_size > 0:
+            alpha_h = np.linspace(0, 1, overlap_size)
+            alpha_v = np.linspace(0, 1, overlap_size)
             
-        # Horizontal edges
-        if overlap_size > 0 and w > 1:
-            alpha = np.linspace(0, 1, overlap_size)[np.newaxis, :, np.newaxis]
-            blended[:, :overlap_size] *= alpha
-            blended[:, -overlap_size:] *= alpha[::-1]
+            # Apply to horizontal edges
+            if w > overlap_size * 2:
+                blended[:, :overlap_size] *= alpha_h[np.newaxis, :, np.newaxis]
+                blended[:, -overlap_size:] *= alpha_h[::-1][np.newaxis, :, np.newaxis]
             
-        return blended.astype(tile.dtype)
+            # Apply to vertical edges
+            if h > overlap_size * 2:
+                blended[:overlap_size, :] *= alpha_v[:, np.newaxis, np.newaxis]
+                blended[-overlap_size:, :] *= alpha_v[::-1][:, np.newaxis, np.newaxis]
+                
+        return blended
 
 --- END app\algorithms\algorithm_05_lab_transfer\core.py ---
 
@@ -503,7 +466,6 @@ class LABColorTransferGPU:
         Initializes OpenCL context, queue, and compiles the kernel.
         """
         try:
-            # Find a GPU device
             platform = cl.get_platforms()[0]
             devices = platform.get_devices(device_type=cl.device_type.GPU)
             if not devices:
@@ -515,127 +477,146 @@ class LABColorTransferGPU:
             properties = cl.command_queue_properties.PROFILING_ENABLE
             self.queue = cl.CommandQueue(self.context, properties=properties)
             
-            # Load and compile the kernel
             kernel_path = os.path.join(os.path.dirname(__file__), 'kernels.cl')
             with open(kernel_path, 'r') as f:
                 kernel_code = f.read()
             
             self.program = cl.Program(self.context, kernel_code).build()
             self.logger.info("OpenCL initialized and kernel compiled successfully.")
-
         except Exception as e:
-            self.logger.error(f"Failed to initialize OpenCL: {e}")
-            self.context = None # Ensure we fallback to CPU
+            self.logger.error(f"OpenCL initialization failed: {e}")
+            self.context = None
 
-    def is_gpu_available(self) -> bool:
-        """Check if GPU context is successfully initialized."""
+    def is_gpu_available(self):
         return self.context is not None
 
-    def _calculate_histogram_gpu(self, lab_image_buf: 'cl.Buffer', total_pixels: int) -> np.ndarray:
-        """Helper to calculate luminance histogram on the GPU."""
-        hist_bins = 101
-        host_hist = np.zeros(hist_bins, dtype=np.int32)
-        hist_buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=host_hist)
+    def _calculate_stats(self, lab_image_buf, total_pixels):
+        """
+        Calculates mean and std dev for a LAB image buffer on the GPU using parallel reduction.
+        """
+        mf = cl.mem_flags
+        work_group_size = 256
+        num_groups = (total_pixels + work_group_size - 1) // work_group_size
+        global_size = num_groups * work_group_size
 
-        kernel = self.program.calculate_histogram
-        kernel(self.queue, (total_pixels,), None, lab_image_buf, hist_buf, np.int32(total_pixels))
-        cl.enqueue_copy(self.queue, host_hist, hist_buf).wait()
-        return host_hist
+        partial_sums_buf = cl.Buffer(self.context, mf.WRITE_ONLY, num_groups * 6 * 4)
+        local_sums = cl.LocalMemory(work_group_size * 6 * 4)
 
-    def _calculate_stats(self, lab_image: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Calculates mean and std dev for each channel of a LAB image."""
-        # Ensure calculation is done on float64 for precision, like in the CPU version
-        lab_image_f64 = lab_image.astype(np.float64)
-        mean = np.mean(lab_image_f64, axis=(0, 1))
-        std = np.std(lab_image_f64, axis=(0, 1))
-        return mean, std
+        kernel = self.program.stats_partial_reduce
+        kernel(self.queue, (global_size,), (work_group_size,),
+               lab_image_buf, partial_sums_buf, local_sums, np.int32(total_pixels))
 
-    def _unified_lab_transfer_gpu(self, source_lab: np.ndarray, target_lab: np.ndarray, 
-                                    weights: tuple = (1.0, 1.0, 1.0), selective_mode: bool = False) -> np.ndarray:
-        """Internal method to run the unified OpenCL kernel."""
-        if not self.is_gpu_available():
-            raise RuntimeError("GPU not available. Cannot perform GPU transfer.")
+        partial_sums = np.empty((num_groups, 6), dtype=np.float32)
+        cl.enqueue_copy(self.queue, partial_sums, partial_sums_buf).wait()
 
+        final_sums = np.sum(partial_sums, axis=0)
+        
+        mean = np.array([final_sums[0], final_sums[2], final_sums[4]]) / total_pixels
+        
+        mean_sq = mean**2
+        var = np.array([
+            (final_sums[1] / total_pixels) - mean_sq[0],
+            (final_sums[3] / total_pixels) - mean_sq[1],
+            (final_sums[5] / total_pixels) - mean_sq[2]
+        ])
+        var = np.maximum(var, 0)
+        std = np.sqrt(var)
+
+        return mean.astype(np.float32), std.astype(np.float32)
+
+    def basic_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
+        mf = cl.mem_flags
+        source_lab_f32 = source_lab.astype(np.float32)
+        target_lab_f32 = target_lab.astype(np.float32)
         h, w, _ = source_lab.shape
         total_pixels = h * w
 
-        s_mean, s_std = self._calculate_stats(source_lab)
-        t_mean, t_std = self._calculate_stats(target_lab)
-
-        source_lab_f32 = source_lab.astype(np.float32)
-        result_lab_f32 = np.empty_like(source_lab_f32)
-
-        mf = cl.mem_flags
         source_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=source_lab_f32)
-        result_buf = cl.Buffer(self.context, mf.WRITE_ONLY, result_lab_f32.nbytes)
+        target_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=target_lab_f32)
+        result_buf = cl.Buffer(self.context, mf.WRITE_ONLY, source_lab_f32.nbytes)
 
-        kernel = self.program.unified_lab_transfer
-        kernel(self.queue, (total_pixels,), None,
-               source_buf, result_buf,
-               np.float32(s_mean[0]), np.float32(s_std[0]), np.float32(t_mean[0]), np.float32(t_std[0]),
-               np.float32(s_mean[1]), np.float32(s_std[1]), np.float32(t_mean[1]), np.float32(t_std[1]),
-               np.float32(s_mean[2]), np.float32(s_std[2]), np.float32(t_mean[2]), np.float32(t_std[2]),
-               np.float32(weights[0]), np.float32(weights[1]), np.float32(weights[2]),
-               np.int32(1 if selective_mode else 0),
-               np.int32(total_pixels))
+        s_mean, s_std = self._calculate_stats(source_buf, total_pixels)
+        t_mean, t_std = self._calculate_stats(target_buf, total_pixels)
 
+        self.program.basic_transfer(self.queue, (total_pixels,), None, 
+                                    source_buf, result_buf, 
+                                    cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=s_mean),
+                                    cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=s_std),
+                                    cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=t_mean),
+                                    cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=t_std),
+                                    np.int32(total_pixels))
+
+        result_lab_f32 = np.empty_like(source_lab_f32)
         cl.enqueue_copy(self.queue, result_lab_f32, result_buf).wait()
         return result_lab_f32.astype(source_lab.dtype)
 
-    def basic_lab_transfer_gpu(self, source_lab: np.ndarray, target_lab: np.ndarray) -> np.ndarray:
-        """GPU-accelerated basic LAB color transfer."""
-        return self._unified_lab_transfer_gpu(source_lab, target_lab)
+    def selective_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
+        mask = kwargs.get('mask')
+        if mask is None:
+            raise ValueError("Mask is required for selective transfer on GPU.")
+        
+        selective_channels = kwargs.get('selective_channels', ['L', 'a', 'b'])
+        blend_factor = float(kwargs.get('blend_factor', 1.0))
 
-    def selective_lab_transfer_gpu(self, source_lab: np.ndarray, target_lab: np.ndarray) -> np.ndarray:
-        """GPU-accelerated selective transfer (preserves source L channel)."""
-        return self._unified_lab_transfer_gpu(source_lab, target_lab, selective_mode=True)
-
-    def weighted_lab_transfer_gpu(self, source_lab: np.ndarray, target_lab: np.ndarray, 
-                                  weights: tuple = (1.0, 1.0, 1.0)) -> np.ndarray:
-        """GPU-accelerated weighted transfer."""
-        return self._unified_lab_transfer_gpu(source_lab, target_lab, weights=weights)
-
-    def adaptive_lab_transfer_gpu(self, source_lab: np.ndarray, target_lab: np.ndarray) -> np.ndarray:
-        """
-        Performs adaptive transfer by segmenting the image based on luminance.
-        """
-        if not self.is_gpu_available():
-            raise RuntimeError("GPU not available. Cannot perform GPU transfer.")
-
-        h, w, _ = source_lab.shape
-        total_pixels = h * w
         mf = cl.mem_flags
-
-        # --- Create buffers for source and target images ---
         source_lab_f32 = source_lab.astype(np.float32)
         target_lab_f32 = target_lab.astype(np.float32)
+        h, w, _ = source_lab.shape
+        total_pixels = h * w
+
+        if mask.shape[:2] != (h, w):
+            raise ValueError("Mask must have the same dimensions as the source image.")
+        if mask.ndim == 3:
+            mask = mask[:, :, 0]
+        mask_u8 = mask.astype(np.uint8)
+
         source_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=source_lab_f32)
         target_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=target_lab_f32)
+        mask_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=mask_u8)
+        result_buf = cl.Buffer(self.context, mf.WRITE_ONLY, source_lab_f32.nbytes)
 
-        # --- Calculate histograms and percentiles ---
-        source_hist = self._calculate_histogram_gpu(source_buf, total_pixels)
-        target_hist = self._calculate_histogram_gpu(target_buf, total_pixels)
+        s_mean, s_std = self._calculate_stats(source_buf, total_pixels)
+        t_mean, t_std = self._calculate_stats(target_buf, total_pixels)
 
-        def get_percentiles(hist):
-            cdf = np.cumsum(hist)
-            p33 = np.searchsorted(cdf, cdf[-1] * 0.33)
-            p66 = np.searchsorted(cdf, cdf[-1] * 0.66)
-            return float(p33), float(p66)
+        process_l = 1 if 'L' in selective_channels else 0
+        process_a = 1 if 'a' in selective_channels else 0
+        process_b = 1 if 'b' in selective_channels else 0
 
-        s_p33, s_p66 = get_percentiles(source_hist)
-        t_p33, t_p66 = get_percentiles(target_hist)
-        self.logger.info(f"Source thresholds: {s_p33:.2f}, {s_p66:.2f}")
-        self.logger.info(f"Target thresholds: {t_p33:.2f}, {t_p66:.2f}")
+        self.program.selective_transfer(self.queue, (total_pixels,), None,
+                                        source_buf, result_buf, mask_buf,
+                                        cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=s_mean),
+                                        cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=s_std),
+                                        cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=t_mean),
+                                        cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=t_std),
+                                        np.float32(blend_factor),
+                                        np.int32(process_l), np.int32(process_a), np.int32(process_b),
+                                        np.int32(total_pixels))
 
-        # --- Create segmentation masks on GPU ---
-        source_mask_buf = cl.Buffer(self.context, mf.READ_WRITE, total_pixels * np.dtype(np.int32).itemsize)
-        target_mask_buf = cl.Buffer(self.context, mf.READ_WRITE, total_pixels * np.dtype(np.int32).itemsize)
+        result_lab_f32 = np.empty_like(source_lab_f32)
+        cl.enqueue_copy(self.queue, result_lab_f32, result_buf).wait()
+        return result_lab_f32.astype(source_lab.dtype)
 
-        mask_kernel = self.program.create_segmentation_mask
+    def adaptive_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
+        mf = cl.mem_flags
+        source_lab_f32 = source_lab.astype(np.float32)
+        target_lab_f32 = target_lab.astype(np.float32)
+        h, w, _ = source_lab.shape
+        total_pixels = h * w
+
+        source_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=source_lab_f32)
+        target_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=target_lab_f32)
+        source_mask_buf = cl.Buffer(self.context, mf.READ_WRITE, total_pixels * 4)
+        target_mask_buf = cl.Buffer(self.context, mf.READ_WRITE, total_pixels * 4)
+
+        l_source = source_lab[:, :, 0].ravel()
+        l_target = target_lab[:, :, 0].ravel()
+        s_p33, s_p66 = np.percentile(l_source, [33, 66])
+        t_p33, t_p66 = np.percentile(l_target, [33, 66])
+
+        mask_kernel = self.program.create_luminance_mask
         mask_kernel(self.queue, (total_pixels,), None, source_buf, source_mask_buf, np.float32(s_p33), np.float32(s_p66), np.int32(total_pixels))
         mask_kernel(self.queue, (total_pixels,), None, target_buf, target_mask_buf, np.float32(t_p33), np.float32(t_p66), np.int32(total_pixels))
         
-        # --- Calculate stats for each segment (Hybrid approach) ---
         source_mask = np.empty(total_pixels, dtype=np.int32)
         target_mask = np.empty(total_pixels, dtype=np.int32)
         cl.enqueue_copy(self.queue, source_mask, source_mask_buf).wait()
@@ -655,7 +636,6 @@ class LABColorTransferGPU:
         s_stats = _calculate_segment_stats(source_lab_f32, source_mask)
         t_stats = _calculate_segment_stats(target_lab_f32, target_mask)
 
-        # --- Apply segmented transfer on GPU ---
         s_stats_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=s_stats)
         t_stats_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=t_stats)
         result_buf = cl.Buffer(self.context, mf.WRITE_ONLY, source_lab_f32.nbytes)
@@ -665,7 +645,6 @@ class LABColorTransferGPU:
                         source_buf, source_mask_buf, result_buf, 
                         s_stats_buf, t_stats_buf, np.int32(total_pixels))
 
-        # Read result back to host
         result_lab_f32 = np.empty_like(source_lab_f32)
         cl.enqueue_copy(self.queue, result_lab_f32, result_buf).wait()
 
@@ -675,17 +654,77 @@ class LABColorTransferGPU:
 
 --- START app\algorithms\algorithm_05_lab_transfer\kernels.cl ---
 /*
- * OpenCL Kernels for LAB Color Transfer
+ * OpenCL Kernels for LAB Color Transfer - Refactored
  */
 
-__kernel void unified_lab_transfer(
+// --- Kernel for Statistical Calculation (Parallel Reduction) ---
+
+/*
+ * Pass 1: Map and Partial Reduce
+ * Each work-group calculates the sum and sum-of-squares for a portion of the image.
+ * The partial results are stored in an intermediate buffer, which is then summed on the host.
+ */
+__kernel void stats_partial_reduce(
+    __global const float* lab_image,
+    __global float* partial_sums, // Output buffer for partial results [group0_sum_l, group0_sum_sq_l, ...]
+    __local float* local_sums,   // Local memory for reduction within a work-group
+    const int total_pixels)
+{
+    int local_id = get_local_id(0);
+    int group_id = get_group_id(0);
+    int group_size = get_local_size(0);
+    int global_id = get_global_id(0);
+
+    // Each work-item initializes its local memory slot for 6 values (sum and sum_sq for L, a, b)
+    for (int i = 0; i < 6; ++i) {
+        local_sums[local_id * 6 + i] = 0.0f;
+    }
+
+    // Each work-item processes multiple pixels in a strided loop
+    for (int i = global_id; i < total_pixels; i += get_global_size(0)) {
+        int pixel_index = i * 3;
+        float l = lab_image[pixel_index + 0];
+        float a = lab_image[pixel_index + 1];
+        float b = lab_image[pixel_index + 2];
+        
+        local_sums[local_id * 6 + 0] += l;
+        local_sums[local_id * 6 + 1] += l * l;
+        local_sums[local_id * 6 + 2] += a;
+        local_sums[local_id * 6 + 3] += a * a;
+        local_sums[local_id * 6 + 4] += b;
+        local_sums[local_id * 6 + 5] += b * b;
+    }
+
+    barrier(CLK_LOCAL_MEM_FENCE);
+
+    // Perform reduction in local memory
+    for (int offset = group_size / 2; offset > 0; offset /= 2) {
+        if (local_id < offset) {
+            for (int i = 0; i < 6; ++i) {
+                local_sums[local_id * 6 + i] += local_sums[(local_id + offset) * 6 + i];
+            }
+        }
+        barrier(CLK_LOCAL_MEM_FENCE);
+    }
+
+    // The first work-item in the group writes the group's result to global memory
+    if (local_id == 0) {
+        for (int i = 0; i < 6; ++i) {
+            partial_sums[group_id * 6 + i] = local_sums[i];
+        }
+    }
+}
+
+
+// --- Kernel for Basic Color Transfer ---
+
+__kernel void basic_transfer(
     __global const float* source_lab,
     __global float* result_lab,
-    const float s_mean_l, const float s_std_l, const float t_mean_l, const float t_std_l,
-    const float s_mean_a, const float s_std_a, const float t_mean_a, const float t_std_a,
-    const float s_mean_b, const float s_std_b, const float t_mean_b, const float t_std_b,
-    const float weight_l, const float weight_a, const float weight_b, // Weights for weighted transfer
-    const int selective_mode, // Flag for selective transfer (1 = preserve L)
+    __global const float* s_mean,
+    __global const float* s_std,
+    __global const float* t_mean,
+    __global const float* t_std,
     const int total_pixels)
 {
     int gid = get_global_id(0);
@@ -693,62 +732,20 @@ __kernel void unified_lab_transfer(
 
     int index = gid * 3;
 
-    // L channel
-    float l_s = source_lab[index + 0];
-    if (selective_mode == 1) {
-        result_lab[index + 0] = l_s; // Preserve L channel
-    } else {
-        float std_ratio_l = (s_std_l > 1e-6f) ? (t_std_l / s_std_l) : 1.0f;
-        float l_t = (l_s - s_mean_l) * std_ratio_l + t_mean_l;
-        result_lab[index + 0] = l_s * (1.0f - weight_l) + l_t * weight_l;
+    for (int i = 0; i < 3; ++i) {
+        float s_pixel = source_lab[index + i];
+        float std_ratio = (s_std[i] > 1e-6f) ? (t_std[i] / s_std[i]) : 1.0f;
+        result_lab[index + i] = (s_pixel - s_mean[i]) * std_ratio + t_mean[i];
     }
-
-    // a channel
-    float a_s = source_lab[index + 1];
-    float std_ratio_a = (s_std_a > 1e-6f) ? (t_std_a / s_std_a) : 1.0f;
-    float a_t = (a_s - s_mean_a) * std_ratio_a + t_mean_a;
-    result_lab[index + 1] = a_s * (1.0f - weight_a) + a_t * weight_a;
-
-    // b channel
-    float b_s = source_lab[index + 2];
-    float std_ratio_b = (s_std_b > 1e-6f) ? (t_std_b / s_std_b) : 1.0f;
-    float b_t = (b_s - s_mean_b) * std_ratio_b + t_mean_b;
-    result_lab[index + 2] = b_s * (1.0f - weight_b) + b_t * weight_b;
 }
 
-/*
- * Calculates a histogram for the L channel of a LAB image.
- * The histogram has a fixed size (e.g., 101 bins for L values 0-100).
- * The histogram buffer must be initialized to zeros before calling this kernel.
- */
-__kernel void calculate_histogram(
-    __global const float* source_lab,
-    __global int* histogram,
-    const int total_pixels)
-{
-    int gid = get_global_id(0);
 
-    if (gid >= total_pixels) {
-        return;
-    }
-
-    // We only care about the L channel, which is at index gid * 3
-    float l_value = source_lab[gid * 3];
-
-    // Map L value [0, 100] to an integer bin index [0, 100]
-    int bin_index = (int)clamp(l_value, 0.0f, 100.0f);
-
-    // Atomically increment the histogram bin
-    // This ensures correctness when multiple threads write to the same bin
-    atomic_inc(&histogram[bin_index]);
-}
+// --- Kernels for Hybrid/Segmented Transfer ---
 
 /*
- * Creates a segmentation mask based on luminance thresholds.
- * For each pixel, it outputs an integer (0, 1, or 2) corresponding
- * to the luminance segment (dark, mid, bright).
+ * Creates a 3-segment mask based on L-channel percentiles.
  */
-__kernel void create_segmentation_mask(
+__kernel void create_luminance_mask(
     __global const float* lab_image,
     __global int* mask,
     const float threshold1, // e.g., 33rd percentile
@@ -756,10 +753,7 @@ __kernel void create_segmentation_mask(
     const int total_pixels)
 {
     int gid = get_global_id(0);
-
-    if (gid >= total_pixels) {
-        return;
-    }
+    if (gid >= total_pixels) return;
 
     float l_value = lab_image[gid * 3];
 
@@ -774,30 +768,22 @@ __kernel void create_segmentation_mask(
 
 /*
  * Applies color transfer based on pre-calculated segment statistics.
- * For each pixel, it identifies its segment, looks up the corresponding
- * source and target stats, and applies the color transfer formula.
  */
 __kernel void apply_segmented_transfer(
     __global const float* source_lab,
-    __global const int* source_mask, // Mask for the source image
-    __global float* result_lab,      // Output buffer
-    __global const float* s_stats,   // Source stats [seg0_L_mean, seg0_L_std, seg0_a_mean, ...]
-    __global const float* t_stats,   // Target stats [seg0_L_mean, seg0_L_std, seg0_a_mean, ...]
+    __global const int* source_mask,
+    __global float* result_lab,
+    __global const float* s_stats,   // Source stats [seg0_L_mean, seg0_L_std, ...]
+    __global const float* t_stats,   // Target stats [seg0_L_mean, seg0_L_std, ...]
     const int total_pixels)
 {
     int gid = get_global_id(0);
-    if (gid >= total_pixels) {
-        return;
-    }
+    if (gid >= total_pixels) return;
 
     int segment_index = source_mask[gid];
     int pixel_index = gid * 3;
+    int stats_base_index = segment_index * 6; // 6 stats per segment (mean/std for L,a,b)
 
-    // Each segment has 3 channels (L, a, b), and each channel has 2 stats (mean, std).
-    // So, each segment's stats block has 3 * 2 = 6 floats.
-    int stats_base_index = segment_index * 6;
-
-    // Process each channel (L, a, b)
     for (int i = 0; i < 3; ++i) {
         int stats_offset = stats_base_index + i * 2;
         
@@ -810,6 +796,69 @@ __kernel void apply_segmented_transfer(
         float std_ratio = (s_std > 1e-6f) ? (t_std / s_std) : 1.0f;
 
         result_lab[pixel_index + i] = (pixel_val - s_mean) * std_ratio + t_mean;
+    }
+}
+
+// --- Kernel for Selective Color Transfer ---
+
+/*
+ * Applies selective color transfer based on a mask, blend factor, and selected channels.
+ */
+__kernel void selective_transfer(
+    __global const float* source_lab,
+    __global float* result_lab,
+    __global const uchar* mask, // Mask (0-255), single channel
+    __global const float* s_mean,
+    __global const float* s_std,
+    __global const float* t_mean,
+    __global const float* t_std,
+    const float blend_factor,
+    const int process_l, // Flag to process L channel
+    const int process_a, // Flag to process a channel
+    const int process_b, // Flag to process b channel
+    const int total_pixels)
+{
+    int gid = get_global_id(0);
+    if (gid >= total_pixels) return;
+
+    int index = gid * 3;
+    
+    // If mask value is low, just copy the source pixel to the result
+    if (mask[gid] < 128) {
+        result_lab[index + 0] = source_lab[index + 0];
+        result_lab[index + 1] = source_lab[index + 1];
+        result_lab[index + 2] = source_lab[index + 2];
+        return;
+    }
+
+    // Process L channel
+    float s_pixel_l = source_lab[index + 0];
+    if (process_l == 1) {
+        float std_ratio_l = (s_std[0] > 1e-6f) ? (t_std[0] / s_std[0]) : 1.0f;
+        float transferred_pixel_l = (s_pixel_l - s_mean[0]) * std_ratio_l + t_mean[0];
+        result_lab[index + 0] = (transferred_pixel_l * blend_factor) + (s_pixel_l * (1.0f - blend_factor));
+    } else {
+        result_lab[index + 0] = s_pixel_l;
+    }
+
+    // Process a channel
+    float s_pixel_a = source_lab[index + 1];
+    if (process_a == 1) {
+        float std_ratio_a = (s_std[1] > 1e-6f) ? (t_std[1] / s_std[1]) : 1.0f;
+        float transferred_pixel_a = (s_pixel_a - s_mean[1]) * std_ratio_a + t_mean[1];
+        result_lab[index + 1] = (transferred_pixel_a * blend_factor) + (s_pixel_a * (1.0f - blend_factor));
+    } else {
+        result_lab[index + 1] = s_pixel_a;
+    }
+
+    // Process b channel
+    float s_pixel_b = source_lab[index + 2];
+    if (process_b == 1) {
+        float std_ratio_b = (s_std[2] > 1e-6f) ? (t_std[2] / s_std[2]) : 1.0f;
+        float transferred_pixel_b = (s_pixel_b - s_mean[2]) * std_ratio_b + t_mean[2];
+        result_lab[index + 2] = (transferred_pixel_b * blend_factor) + (s_pixel_b * (1.0f - blend_factor));
+    } else {
+        result_lab[index + 2] = s_pixel_b;
     }
 }
 
@@ -1199,4 +1248,609 @@ class ImageBatchProcessor:
         return results
 
 --- END app\algorithms\algorithm_05_lab_transfer\processor.py ---
+
+--- START app\algorithms\algorithm_05_lab_transfer\tests\__init__.py ---
+# Package initialization file for tests
+
+--- END app\algorithms\algorithm_05_lab_transfer\tests\__init__.py ---
+
+--- START app\algorithms\algorithm_05_lab_transfer\tests\conftest.py ---
+import pytest
+import numpy as np
+from app.algorithms.algorithm_05_lab_transfer.core import LABColorTransfer
+from app.algorithms.algorithm_05_lab_transfer.config import LABTransferConfig
+
+@pytest.fixture(scope="session")
+def sample_images():
+    """Provides a pair of sample RGB images for testing."""
+    source_rgb = (np.random.rand(100, 100, 3) * 255).astype(np.uint8)
+    target_rgb = (np.random.rand(100, 100, 3) * 255).astype(np.uint8)
+    return source_rgb, target_rgb
+
+@pytest.fixture(scope="module")
+def cpu_transfer_instance():
+    """Provides a LABColorTransfer instance forced to use CPU."""
+    config = LABTransferConfig(use_gpu=False)
+    return LABColorTransfer(config=config)
+
+@pytest.fixture(scope="module")
+def gpu_transfer_instance():
+    """Provides a LABColorTransfer instance in strict GPU mode.
+
+    If GPU initialization fails, the test using this fixture will be skipped.
+    """
+    try:
+        config = LABTransferConfig(use_gpu=True)
+        instance = LABColorTransfer(config=config, strict_gpu=True)
+        if not instance.gpu_transfer:
+             pytest.skip("GPU not available or initialization failed, skipping strict GPU test.")
+        return instance
+    except RuntimeError as e:
+        pytest.skip(f"Skipping GPU test due to initialization failure: {e}")
+
+--- END app\algorithms\algorithm_05_lab_transfer\tests\conftest.py ---
+
+--- START app\algorithms\algorithm_05_lab_transfer\tests\regenerate_test_images.py ---
+"""
+Helper script to regenerate test images in the correct format.
+"""
+import numpy as np
+import os
+
+def create_test_images():
+    """Create test images and save them as .npy files."""
+    # Create test_images directory if it doesn't exist
+    os.makedirs('test_images', exist_ok=True)
+    
+    # Sample 1: Gradient image
+    x = np.linspace(0, 100, 100)
+    y = np.linspace(0, 100, 100)
+    X, Y = np.meshgrid(x, y)
+    sample1 = np.stack([X, Y, 100 - X], axis=-1)  # LAB-like values
+    
+    # Sample 2: Random noise with different distribution
+    np.random.seed(42)
+    sample2 = np.random.normal(loc=50, scale=30, size=(100, 100, 3)).clip(0, 100)
+    
+    # Save as numpy arrays without pickling
+    np.save('test_images/sample1.npy', sample1, allow_pickle=False)
+    np.save('test_images/sample2.npy', sample2, allow_pickle=False)
+    
+    print("Test images regenerated successfully!")
+
+if __name__ == "__main__":
+    create_test_images()
+
+--- END app\algorithms\algorithm_05_lab_transfer\tests\regenerate_test_images.py ---
+
+--- START app\algorithms\algorithm_05_lab_transfer\tests\test_gpu_acceleration.py ---
+"""
+Tests for OpenCL GPU acceleration.
+"""
+import numpy as np
+import pytest
+import time
+
+from app.algorithms.algorithm_05_lab_transfer.config import LABTransferConfig
+from app.algorithms.algorithm_05_lab_transfer.core import LABColorTransfer
+from app.algorithms.algorithm_05_lab_transfer.gpu_core import LABColorTransferGPU
+
+try:
+    import pyopencl
+    GPU_AVAILABLE = True
+except ImportError:
+    GPU_AVAILABLE = False
+
+# Mark all tests in this module to be skipped if pyopencl is not installed
+pytestmark = pytest.mark.skipif(not GPU_AVAILABLE, reason="pyopencl not found, skipping GPU tests")
+
+@pytest.fixture
+def sample_images():
+    """Provide sample source and target images for testing."""
+    source = np.random.randint(0, 256, (256, 256, 3), dtype=np.uint8)
+    target = np.random.randint(0, 256, (256, 256, 3), dtype=np.uint8)
+    return source, target
+
+class TestGPUAcceleration:
+
+    def test_gpu_cpu_equivalence(self, sample_images):
+        """Verify that GPU and CPU results are numerically close."""
+        source_rgb, target_rgb = sample_images
+
+        # Run with CPU
+        config_cpu = LABTransferConfig(use_gpu=False)
+        transfer_cpu = LABColorTransfer(config_cpu)
+        source_lab_cpu = transfer_cpu.rgb_to_lab_optimized(source_rgb)
+        target_lab_cpu = transfer_cpu.rgb_to_lab_optimized(target_rgb)
+        result_cpu = transfer_cpu.basic_lab_transfer(source_lab_cpu, target_lab_cpu)
+
+        # Run with GPU
+        config_gpu = LABTransferConfig(use_gpu=True)
+        transfer_gpu = LABColorTransfer(config_gpu)
+        
+        # Check if GPU was actually initialized
+        if not transfer_gpu.gpu_transfer:
+            pytest.skip("GPU context not available, cannot run equivalence test.")
+
+        source_lab_gpu = transfer_gpu.rgb_to_lab_optimized(source_rgb)
+        target_lab_gpu = transfer_gpu.rgb_to_lab_optimized(target_rgb)
+        result_gpu = transfer_gpu.basic_lab_transfer(source_lab_gpu, target_lab_gpu)
+
+        # Compare results
+        assert np.allclose(result_cpu, result_gpu, atol=1e-4), \
+            "GPU and CPU results should be nearly identical."
+
+    def test_fallback_to_cpu(self, sample_images, monkeypatch):
+        """Test that processing falls back to CPU if GPU init fails."""
+        # Mock the LABColorTransferGPU.__init__ to simulate an initialization failure
+        def mock_init_fails(self, *args, **kwargs):
+            raise RuntimeError("Simulated GPU initialization failure")
+        monkeypatch.setattr(LABColorTransferGPU, '__init__', mock_init_fails)
+
+        source_rgb, target_rgb = sample_images
+        config_gpu = LABTransferConfig(use_gpu=True)
+        transfer = LABColorTransfer(config_gpu)
+
+        # Ensure it fell back
+        assert transfer.gpu_transfer is None, "Should have fallen back to CPU."
+
+        # Ensure it still processes correctly on the CPU
+        source_lab = transfer.rgb_to_lab_optimized(source_rgb)
+        target_lab = transfer.rgb_to_lab_optimized(target_rgb)
+        result = transfer.basic_lab_transfer(source_lab, target_lab)
+        assert result is not None
+        assert result.shape == source_lab.shape
+
+--- END app\algorithms\algorithm_05_lab_transfer\tests\test_gpu_acceleration.py ---
+
+--- START app\algorithms\algorithm_05_lab_transfer\tests\test_lab_transfer.py ---
+import numpy as np
+import pytest
+from app.algorithms.algorithm_05_lab_transfer.core import LABColorTransfer
+from app.algorithms.algorithm_05_lab_transfer.metrics import calculate_delta_e
+
+class TestLABTransfer:
+    @pytest.fixture
+    def lab_transfer(self):
+        return LABColorTransfer()
+
+    def test_basic_transfer(self, lab_transfer):
+        """Test basic LAB transfer matches mean/std of target."""
+        source = np.random.rand(100, 100, 3) * 100
+        target = np.random.rand(100, 100, 3) * 100
+        
+        result = lab_transfer.basic_lab_transfer(source, target)
+        
+        # Verify mean/std matches target within tolerance
+        for i in range(3):
+            assert np.isclose(np.mean(result[:,:,i]), np.mean(target[:,:,i]), rtol=0.01)
+            assert np.isclose(np.std(result[:,:,i]), np.std(target[:,:,i]), rtol=0.01)
+
+    def test_selective_transfer(self, lab_transfer):
+        """Test selective transfer preserves source L channel."""
+        source = np.random.rand(100, 100, 3) * 100
+        target = np.random.rand(100, 100, 3) * 100
+        
+        result = lab_transfer.selective_lab_transfer(source, target)
+        
+        # Verify L channel unchanged
+        assert np.allclose(result[:,:,0], source[:,:,0])
+        # Verify a/b channels changed
+        assert not np.allclose(result[:,:,1:], source[:,:,1:])
+
+    def test_weighted_transfer(self, lab_transfer):
+        """Test weighted transfer with custom channel weights."""
+        source = np.random.rand(100, 100, 3) * 100
+        target = np.random.rand(100, 100, 3) * 100
+        weights = {'L': 0.5, 'a': 0.8, 'b': 0.2}
+        
+        result = lab_transfer.weighted_lab_transfer(source, target, weights)
+        
+        # Verify L channel is partially transferred (weight=0.5)
+        assert not np.allclose(result[:,:,0], source[:,:,0])
+        assert not np.allclose(result[:,:,0], lab_transfer.basic_lab_transfer(source, target)[:,:,0])
+        
+        # Verify a channel is heavily transferred (weight=0.8)
+        assert np.isclose(np.mean(result[:,:,1]), np.mean(target[:,:,1]), rtol=0.1)
+        
+        # Verify b channel is minimally transferred (weight=0.2)
+        assert np.isclose(np.mean(result[:,:,2]), 
+                         np.mean(source[:,:,2]) * 0.8 + np.mean(target[:,:,2]) * 0.2, 
+                         rtol=0.1)
+
+    def test_adaptive_transfer(self, lab_transfer):
+        """Test adaptive transfer segments by luminance."""
+        # Create test image with distinct luminance regions
+        source = np.zeros((100, 100, 3))
+        source[:33] = 30   # Dark region
+        source[33:66] = 60 # Mid region
+        source[66:] = 90   # Bright region
+        
+        target = np.random.rand(100, 100, 3) * 100
+        
+        result = lab_transfer.adaptive_lab_transfer(source, target)
+        
+        # Verify each region was processed differently
+        dark_stats = [np.mean(result[:33,:,i]) for i in range(3)]
+        mid_stats = [np.mean(result[33:66,:,i]) for i in range(3)]
+        bright_stats = [np.mean(result[66:,:,i]) for i in range(3)]
+        
+        assert not np.allclose(dark_stats, mid_stats, rtol=0.1)
+        assert not np.allclose(mid_stats, bright_stats, rtol=0.1)
+
+    def test_tile_blending(self, lab_transfer):
+        """Test tile blending smooths overlaps."""
+        # Create test tile with sharp edges
+        tile = np.zeros((100, 100, 3))
+        tile[:50] = 1.0  # Top half
+        
+        blended = lab_transfer.blend_tile_overlap(tile, overlap_size=10)
+        
+        # Verify edges are smoothed
+        assert not np.allclose(blended[45:55], tile[45:55])
+        # Verify center is unchanged
+        assert np.allclose(blended[10:-10, 10:-10], tile[10:-10, 10:-10])
+
+    def test_ciede2000_metric(self):
+        """Test CIEDE2000 calculation matches expected behavior."""
+        # Identical colors should have delta=0
+        lab1 = np.array([[[50, 0, 0]]])
+        lab2 = np.array([[[50, 0, 0]]])
+        assert calculate_delta_e(lab1, lab2)[0,0] == 0
+        
+        # Different colors should have delta>0
+        lab3 = np.array([[[50, 10, 10]]])
+        assert calculate_delta_e(lab1, lab3)[0,0] > 0
+
+--- END app\algorithms\algorithm_05_lab_transfer\tests\test_lab_transfer.py ---
+
+--- START app\algorithms\algorithm_05_lab_transfer\tests\test_lab_transfer_comprehensive.py ---
+"""
+Comprehensive tests for LAB color transfer endpoints and methods.
+"""
+import numpy as np
+import pytest
+from app.algorithms.algorithm_05_lab_transfer.core import LABColorTransfer
+from app.algorithms.algorithm_05_lab_transfer.metrics import calculate_delta_e, histogram_matching
+import time
+import os
+
+class TestCoreMethods:
+    """Expanded tests for core transfer methods."""
+    @pytest.fixture
+    def transfer(self):
+        return LABColorTransfer()
+    
+    @pytest.fixture
+    def test_images(self):
+        """Generate various test image combinations."""
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        sample1_path = os.path.join(test_dir, 'test_images', 'sample1.npy')
+        sample2_path = os.path.join(test_dir, 'test_images', 'sample2.npy')
+
+        return {
+            'random': (np.random.rand(100, 100, 3) * 100, np.random.rand(100, 100, 3) * 100),
+            'extreme': (np.zeros((50, 50, 3)), np.ones((50, 50, 3)) * 100),
+            'small': (np.random.rand(2, 2, 3) * 100, np.random.rand(2, 2, 3) * 100),
+            'real_sample': (np.load(sample1_path), np.load(sample2_path))
+        }
+    
+    def test_basic_transfer_variations(self, transfer, test_images):
+        """Test basic transfer handles all image types."""
+        for name, (source, target) in test_images.items():
+            if name == 'real_sample':
+                pytest.importorskip('numpy')  # Skip if test images not available
+            result = transfer.basic_lab_transfer(source, target)
+            assert result.shape == source.shape
+            assert not np.allclose(result, source)  # Should change the image
+    
+    def test_weighted_transfer_validation(self, transfer):
+        """Test weighted transfer handles invalid weights."""
+        source = np.random.rand(10, 10, 3)
+        target = np.random.rand(10, 10, 3)
+        
+        # Test partial weights
+        with pytest.raises(ValueError):
+            transfer.weighted_lab_transfer(source, target, {'L': 0.5})
+            
+        # Test invalid weight sums
+        with pytest.raises(ValueError):
+            transfer.weighted_lab_transfer(source, target, {'L': 2.0, 'a': -1.0, 'b': 0.0})
+    
+    def test_selective_transfer_edge_cases(self, transfer):
+        """Test selective transfer with edge cases."""
+        # Single pixel
+        source = np.array([[[50, 0, 0]]])
+        target = np.array([[[50, 10, 10]]])
+        result = transfer.selective_lab_transfer(source, target)
+        assert np.allclose(result[0,0,0], 50)  # L preserved
+        assert not np.allclose(result[0,0,1:], 0)  # a/b changed
+        
+        # All same luminance
+        source = np.full((10, 10, 3), 50)
+        target = np.full((10, 10, 3), 70)
+        result = transfer.selective_lab_transfer(source, target)
+        assert np.allclose(result[:,:,0], 50)
+    
+    def test_adaptive_transfer_regions(self, transfer):
+        """Test adaptive transfer properly segments regions."""
+        # Create test image with clear luminance boundaries
+        source = np.zeros((100, 100, 3))
+        source[:30] = 30   # Dark
+        source[30:70] = 60 # Medium
+        source[70:] = 90   # Bright
+        
+        target = np.random.rand(100, 100, 3) * 100
+        result = transfer.adaptive_lab_transfer(source, target)
+        
+        # Verify each region was processed differently
+        dark = result[:30].mean(axis=(0,1))
+        medium = result[30:70].mean(axis=(0,1))
+        bright = result[70:].mean(axis=(0,1))
+        
+        assert not np.allclose(dark, medium, atol=5)
+        assert not np.allclose(medium, bright, atol=5)
+
+class TestUtilityFunctions:
+    """Tests for utility functions like conversions and blending."""
+    @pytest.fixture
+    def transfer(self):
+        return LABColorTransfer()
+    
+    def test_rgb_lab_conversion_accuracy(self, transfer):
+        """Test RGB<->LAB conversions maintain color integrity."""
+        # Known color values
+        test_colors = [
+            ([0, 0, 0], [0, 0, 0]),  # Black
+            ([255, 255, 255], [100, 0, 0]),  # White
+            ([255, 0, 0], [53.24, 80.09, 67.20]),  # Red
+            ([0, 255, 0], [87.74, -86.18, 83.18]),  # Green
+            ([0, 0, 255], [32.30, 79.19, -107.86])  # Blue
+        ]
+        
+        for rgb, expected_lab in test_colors:
+            rgb_array = np.array(rgb, dtype=np.uint8).reshape(1, 1, 3)
+            
+            # Test RGB->LAB
+            lab_result = transfer.rgb_to_lab_optimized(rgb_array)
+            assert np.allclose(lab_result[0,0], expected_lab, atol=0.1)
+            
+            # Test LAB->RGB roundtrip
+            rgb_roundtrip = transfer.lab_to_rgb_optimized(lab_result)
+            assert np.allclose(rgb_roundtrip[0,0], rgb, atol=1)
+    
+    def test_tile_blending_edge_cases(self, transfer):
+        """Test tile blending handles edge cases."""
+        # Test small tile with large overlap
+        small_tile = np.random.rand(5, 5, 3)
+        blended = transfer.blend_tile_overlap(small_tile, overlap_size=3)
+        assert blended.shape == small_tile.shape
+        
+        # Test zero overlap
+        tile = np.random.rand(10, 10, 3)
+        assert np.allclose(transfer.blend_tile_overlap(tile, overlap_size=0), tile)
+        
+        # Test full overlap (should still work)
+        blended = transfer.blend_tile_overlap(tile, overlap_size=5)
+        assert not np.allclose(blended, tile)
+    
+    def test_large_image_processing(self, transfer):
+        """Test large image processing handles various sizes."""
+        # Test exact tile size
+        source = np.random.rand(512, 512, 3) * 100
+        target = np.random.rand(512, 512, 3) * 100
+        result = transfer.process_large_image(source, target, tile_size=512, overlap=32)
+        assert result.shape == source.shape
+        
+        # Test non-multiple size
+        source = np.random.rand(500, 600, 3) * 100
+        target = np.random.rand(500, 600, 3) * 100
+        result = transfer.process_large_image(source, target, tile_size=256, overlap=32)
+        assert result.shape == source.shape
+
+class TestMetrics:
+    """Detailed validation of color difference metrics."""
+    def test_ciede2000_known_values(self):
+        """Test CIEDE2000 against known color difference values."""
+        # Test cases from CIEDE2000 paper and standard implementations
+        test_cases = [
+            # Lab1, Lab2, expected delta
+            ([50, 2.6772, -79.7751], [50, 0, -82.7485], 2.0425),  # Blue pair
+            ([50, 3.1571, -77.2803], [50, 0, -82.7485], 2.8615),  
+            ([50, 2.8361, -74.0200], [50, 0, -82.7485], 3.4412),
+            ([50, -1.3802, -84.2814], [50, 0, -82.7485], 1.0000),  # Exact 1.0 diff
+            ([50, -1.1848, -84.8006], [50, 0, -82.7485], 1.0000)
+        ]
+        
+        for lab1, lab2, expected in test_cases:
+            lab1_arr = np.array(lab1).reshape(1, 1, 3)
+            lab2_arr = np.array(lab2).reshape(1, 1, 3)
+            delta = calculate_delta_e(lab1_arr, lab2_arr)
+            assert np.isclose(delta[0,0], expected, atol=0.0001)
+    
+    def test_histogram_matching_precision(self):
+        """Test histogram matching produces expected distributions."""
+        # Create test images with known histograms
+        source = np.zeros((100, 100, 3))
+        # Make source L-channel non-uniform, e.g., linear from 20 to 70
+        source[:,:,0] = np.linspace(20, 70, 10000).reshape(100, 100)
+        # source[:,:,1:] = 0 # a and b channels are already zero from np.zeros
+
+        target = np.zeros((100, 100, 3))
+        target[:,:,0] = np.linspace(0, 100, 10000).reshape(100, 100)  # Linear L for target
+        # target[:,:,1:] = 0 # a and b channels are already zero from np.zeros
+        
+        matched = histogram_matching(source, target) # By default, matches L, a, b
+        
+        # Verify L channel matches target distribution
+        hist_range = (0, 100)  # L-channel values are typically in [0, 100]
+        source_hist = np.histogram(source[:,:,0].ravel(), bins=10, range=hist_range)[0]
+        target_hist = np.histogram(target[:,:,0].ravel(), bins=10, range=hist_range)[0]
+        matched_hist = np.histogram(matched[:,:,0].ravel(), bins=10, range=hist_range)[0]
+        
+        # Should match target histogram, not source
+        assert not np.allclose(matched_hist, source_hist, atol=5)
+        assert np.allclose(matched_hist, target_hist, atol=5)
+    
+    def test_metrics_performance(self):
+        """Benchmark metrics performance on large images."""
+        large1 = np.random.rand(1000, 1000, 3) * 100
+        large2 = np.random.rand(1000, 1000, 3) * 100
+        
+        # Time CIEDE2000
+        start = time.time()
+        delta_map = calculate_delta_e(large1, large2)
+        ciede_time = time.time() - start
+        assert ciede_time < 2.0  # Should process 1MP image in <2s
+        
+        # Time histogram matching
+        start = time.time()
+        matched = histogram_matching(large1, large2)
+        hist_time = time.time() - start
+        assert hist_time < 1.0  # Should process 1MP image in <1s
+
+class TestIntegration:
+    """End-to-end processing tests."""
+    @pytest.fixture
+    def transfer(self):
+        return LABColorTransfer()
+    
+    def test_end_to_end_processing(self, transfer):
+        """Test complete workflow from RGB input to RGB output."""
+        # Create test RGB images (0-255 range)
+        source_rgb = (np.random.rand(100, 100, 3) * 255).astype(np.uint8)
+        target_rgb = (np.random.rand(100, 100, 3) * 255).astype(np.uint8)
+        
+        # Process using all steps
+        result_rgb = transfer.process_large_image(
+            source_rgb, 
+            target_rgb,
+            method='adaptive',
+            tile_size=64,
+            overlap=16
+        )
+        
+        # Verify valid output
+        assert result_rgb.dtype == np.uint8
+        assert np.all(result_rgb >= 0)
+        assert np.all(result_rgb <= 255)
+        assert not np.allclose(result_rgb, source_rgb)
+    
+    def test_batch_processing(self, transfer):
+        """Test processing multiple source-target pairs."""
+        sources = [(np.random.rand(50, 50, 3) * 255).astype(np.uint8) for _ in range(3)]
+        targets = [(np.random.rand(50, 50, 3) * 255).astype(np.uint8) for _ in range(3)]
+        
+        results = []
+        for src, tgt in zip(sources, targets):
+            results.append(transfer.basic_lab_transfer(src, tgt))
+        
+        # Verify all processed correctly
+        assert len(results) == 3
+        for res in results:
+            assert res.shape == (50, 50, 3)
+    
+    def test_error_handling(self, transfer):
+        """Test proper error handling for invalid inputs."""
+        # Test shape mismatch
+        with pytest.raises(ValueError):
+            transfer.basic_lab_transfer(
+                np.random.rand(10, 10, 3),
+                np.random.rand(20, 20, 3)
+            )
+            
+        # Test invalid dtype
+        with pytest.raises(ValueError):
+            transfer.weighted_lab_transfer(
+                np.random.rand(10, 10, 3).astype(np.float32),
+                np.random.rand(10, 10, 3),
+                {'L': 0.5, 'a': 0.5, 'b': 0.5}
+            )
+            
+        # Test invalid method
+        with pytest.raises(ValueError):
+            transfer.process_large_image(
+                np.random.rand(100, 100, 3),
+                np.random.rand(100, 100, 3),
+                method='invalid_method'
+            )
+
+--- END app\algorithms\algorithm_05_lab_transfer\tests\test_lab_transfer_comprehensive.py ---
+
+--- START app\algorithms\algorithm_05_lab_transfer\tests\test_processing_modes.py ---
+import pytest
+import numpy as np
+
+# Map test mode names to actual method names in the core class
+METHOD_MAP = {
+    "basic": "basic_lab_transfer",
+    "linear_blend": "weighted_lab_transfer",
+    "selective": "selective_lab_transfer",
+    "adaptive": "adaptive_lab_transfer",
+    "hybrid": "hybrid_lab_transfer",
+}
+
+# Define test cases for CPU with specific parameters
+cpu_mode_test_cases = [
+    ("basic", {}),
+    ("hybrid", {}), 
+    ("linear_blend", {'weights': {'L': 0.5, 'a': 0.7, 'b': 0.3}}),
+    ("selective", {'selective_channels': ['a', 'b'], 'blend_factor': 0.5}),
+    ("adaptive", {'num_segments': 4, 'delta_e_threshold': 10.0, 'min_segment_size_perc': 0.01}),
+]
+
+# Define test cases for GPU. Note the differences:
+# - 'linear_blend' and 'hybrid' are not implemented on GPU.
+# - 'adaptive' on GPU does not take parameters as it uses a different segmentation method.
+gpu_mode_test_cases = [
+    ("basic", {}),
+    ("selective", {'selective_channels': ['L', 'b'], 'blend_factor': 0.8}),
+    ("adaptive", {}), # GPU adaptive uses luminance segmentation and takes no params
+]
+
+@pytest.mark.parametrize("mode, params", cpu_mode_test_cases)
+def test_all_modes_on_cpu(cpu_transfer_instance, sample_images, mode, params):
+    """Test all processing modes on a CPU instance."""
+    source_rgb, target_rgb = sample_images
+    source_lab = cpu_transfer_instance.rgb_to_lab_optimized(source_rgb)
+    target_lab = cpu_transfer_instance.rgb_to_lab_optimized(target_rgb)
+
+    method_name = METHOD_MAP[mode]
+    transfer_method = getattr(cpu_transfer_instance, method_name)
+
+    if mode == 'selective':
+        mask = (np.random.rand(source_lab.shape[0], source_lab.shape[1]) > 0.5).astype(np.uint8) * 255
+        result_lab = transfer_method(source_lab, target_lab, mask=mask, **params)
+    elif params:
+        result_lab = transfer_method(source_lab, target_lab, **params)
+    else:
+        result_lab = transfer_method(source_lab, target_lab)
+
+    assert result_lab is not None
+    assert result_lab.shape == source_lab.shape
+    assert result_lab.dtype == source_lab.dtype
+
+@pytest.mark.parametrize("mode, params", gpu_mode_test_cases)
+def test_all_modes_on_gpu(gpu_transfer_instance, sample_images, mode, params):
+    """Test all processing modes on a strict GPU instance."""
+    source_rgb, target_rgb = sample_images
+    source_lab = gpu_transfer_instance.rgb_to_lab_optimized(source_rgb)
+    target_lab = gpu_transfer_instance.rgb_to_lab_optimized(target_rgb)
+
+    method_name = METHOD_MAP[mode]
+    # In strict_gpu mode, this will get the method from LABColorTransferGPU
+    transfer_method = getattr(gpu_transfer_instance.gpu_processor, method_name)
+
+    if mode == 'selective':
+        mask = (np.random.rand(source_lab.shape[0], source_lab.shape[1]) > 0.5).astype(np.uint8) * 255
+        result_lab = transfer_method(source_lab, target_lab, mask=mask, **params)
+    elif params:
+        result_lab = transfer_method(source_lab, target_lab, **params)
+    else:
+        result_lab = transfer_method(source_lab, target_lab)
+
+    assert result_lab is not None
+    assert result_lab.shape == source_lab.shape
+
+--- END app\algorithms\algorithm_05_lab_transfer\tests\test_processing_modes.py ---
 
