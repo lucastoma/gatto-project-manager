@@ -4,6 +4,7 @@ import yaml
 from pathlib import Path
 import os
 import json # Added for history
+import fnmatch
 
 CONFIG_FILE_NAME = "context_filters.yaml"
 HISTORY_FILE_NAME = "context_history.json"
@@ -13,11 +14,13 @@ class QuickContextCollectorApp:
     def __init__(self, root):
         self.root = root
         self.root.title("Quick Context Collector")
-        self.root.geometry("500x300")
+        # Adjust initial size to accommodate new elements
+        self.root.geometry("500x350")
 
         self.selected_directory = tk.StringVar()
         self.selected_filter_name = tk.StringVar()
         self.selected_history_entry = tk.StringVar() # For the new history combobox
+        self.selected_exclude_pattern = tk.StringVar(value="None") # For the new exclude combobox
         self.save_to_central_dir = tk.BooleanVar(value=True) # For the new Checkbutton
         self.last_output_path = None # To store the path of the last generated file
         self.filters = {}
@@ -44,94 +47,69 @@ class QuickContextCollectorApp:
         tk.Label(root, text="Filter:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
         self.filter_combobox = ttk.Combobox(root, textvariable=self.selected_filter_name, state="readonly", width=47)
         self.filter_combobox.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
-        # self.filter_combobox.bind("<<ComboboxSelected>>", self.on_filter_selected)
+
+        # Exclude Pattern Selection
+        tk.Label(root, text="Exclude:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        self.exclude_combobox = ttk.Combobox(root, textvariable=self.selected_exclude_pattern, state="readonly", width=47)
+        self.exclude_combobox['values'] = ["None", "test", "legacy", "test & legacy"]
+        self.exclude_combobox.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
 
         # Save Location Checkbutton
         self.save_to_central_dir_checkbutton = tk.Checkbutton(root, text="Save to central export directory (.doc-gen/export)", variable=self.save_to_central_dir)
-        self.save_to_central_dir_checkbutton.grid(row=3, column=1, padx=5, pady=5, sticky="w")
+        self.save_to_central_dir_checkbutton.grid(row=4, column=1, padx=5, pady=5, sticky="w")
 
         # Action Buttons Frame
         action_buttons_frame = tk.Frame(root)
-        action_buttons_frame.grid(row=4, column=1, padx=5, pady=10, sticky="ew") # Adjusted pady
+        action_buttons_frame.grid(row=5, column=1, padx=5, pady=10, sticky="ew")
         action_buttons_frame.grid_columnconfigure(0, weight=1)
         action_buttons_frame.grid_columnconfigure(1, weight=1)
 
         self.collect_button = tk.Button(action_buttons_frame, text="Collect Context", command=self.collect_context, height=2, width=15)
-        self.collect_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew") # pady within frame
+        self.collect_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
 
         self.copy_button = tk.Button(action_buttons_frame, text="Copy Output", command=self.copy_output_to_clipboard, height=2, width=15)
-        self.copy_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew") # pady within frame
+        self.copy_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
 
         # Status Bar (optional)
         self.status_label = tk.Label(root, text="Ready", bd=1, relief=tk.SUNKEN, anchor=tk.W)
-        self.status_label.grid(row=5, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
+        self.status_label.grid(row=6, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
 
         # Configure grid column weights for resizing
         root.grid_columnconfigure(1, weight=1)
 
+        # Initial Load
         self.load_filters()
-        self.update_filter_combobox() # Ensure filters are loaded before trying to match history
-        self.load_history() # Load history and apply the most recent selection
-
-    def browse_directory(self):
-        # Determine workspace root (parent of the .doc-gen directory where the script resides)
-        script_dir = Path(__file__).parent
-        workspace_root = script_dir.parent
-        
-        directory = filedialog.askdirectory(initialdir=str(workspace_root))
-        if directory:
-            self.selected_directory.set(directory)
-            self.update_status(f"Selected directory: {directory}")
+        self.load_history()
 
     def load_filters(self):
         try:
-            script_dir = Path(__file__).parent
-            config_path = script_dir / CONFIG_FILE_NAME
-            if config_path.exists():
-                with open(config_path, "r", encoding="utf-8") as f:
-                    loaded_config = yaml.safe_load(f)
-                    if loaded_config and "filters" in loaded_config:
-                        self.filters = loaded_config["filters"]
-                        self.update_status(f"Loaded {len(self.filters)} filters from {CONFIG_FILE_NAME}")
-                    else:
-                        self.filters = {"All Files (*.*)": {"patterns": ["*.*"], "description": "All files"}}
-                        self.update_status("Config file format error or no filters. Using default 'All Files'.")
-            else:
-                self.filters = {"All Files (*.*)": {"patterns": ["*.*"], "description": "All files"}}
-                self.update_status(f"{CONFIG_FILE_NAME} not found. Using default 'All Files'.")
+            config_path = self.script_dir / CONFIG_FILE_NAME
+            with open(config_path, "r", encoding="utf-8") as f:
+                self.filters = yaml.safe_load(f).get("filters", {})
+                self.filter_combobox['values'] = list(self.filters.keys())
+                self.update_status(f"Loaded {len(self.filters)} filters from {CONFIG_FILE_NAME}")
         except Exception as e:
-            self.filters = {"All Files (*.*)": {"patterns": ["*.*"], "description": "All files"}}
-            self.update_status(f"Error loading filters: {e}. Using default 'All Files'.")
-            print(f"Error loading filters: {e}")
+            messagebox.showerror("Error", f"Could not load or parse {CONFIG_FILE_NAME}:\n{e}")
+            self.root.quit()
 
-    def update_filter_combobox(self):
-        filter_names = list(self.filters.keys())
-        self.filter_combobox['values'] = filter_names
-        if filter_names:
-            self.selected_filter_name.set(filter_names[0])
-
-    # def on_filter_selected(self, event):
-    #     selected_name = self.selected_filter_name.get()
-    #     if selected_name in self.filters:
-    #         # Potentially update UI or log description
-    #         description = self.filters[selected_name].get("description", "No description")
-    #         self.update_status(f"Selected filter: {selected_name} ({description})")
-    #     pass
+    def browse_directory(self):
+        # Start browsing from the workspace root directory
+        initial_dir = self.workspace_root
+        directory = filedialog.askdirectory(initialdir=initial_dir, title="Select a Directory")
+        if directory:
+            self.selected_directory.set(directory)
 
     def collect_context(self):
         directory_str = self.selected_directory.get()
         filter_name = self.selected_filter_name.get()
 
-        if not directory_str:
-            self.update_status("Error: Please select a directory.")
-            return
-        if not filter_name or filter_name not in self.filters:
-            self.update_status("Error: Please select a valid filter.")
+        if not directory_str or not filter_name:
+            self.update_status("Please select a directory and a filter first.")
             return
 
         target_dir = Path(directory_str)
         if not target_dir.is_dir():
-            self.update_status(f"Error: Invalid directory: {directory_str}")
+            self.update_status(f"Error: Directory not found at {target_dir}")
             return
 
         selected_filter_patterns = self.filters[filter_name].get("patterns", ["*.*"])
@@ -139,46 +117,58 @@ class QuickContextCollectorApp:
 
         if self.save_to_central_dir.get():
             central_export_dir = self.workspace_root / ".doc-gen" / "export"
-            central_export_dir.mkdir(parents=True, exist_ok=True) # Ensure central export directory exists
+            central_export_dir.mkdir(parents=True, exist_ok=True)
             output_path = central_export_dir / base_output_filename
         else:
             output_path = target_dir / base_output_filename
 
-        # Save current selection to history before processing
         self.save_history(directory_str, filter_name)
 
-        self.update_status(f"Collecting context... Filter: {filter_name}")
-        collected_content = []
-        file_count = 0
-
         try:
-            for pattern in selected_filter_patterns:
-                for filepath in target_dir.rglob(pattern):
-                    if filepath.is_file():
-                        try:
-                            with open(filepath, "r", encoding="utf-8", errors="ignore") as f:
-                                content = f.read()
-                            collected_content.append(f"\n--- File: {filepath.relative_to(target_dir)} ---\n")
-                            collected_content.append(content)
-                            file_count += 1
-                        except Exception as e:
-                            collected_content.append(f"\n--- Error reading file: {filepath.relative_to(target_dir)}: {e} ---\n")
-            
-            if collected_content:
-                with open(output_path, "w", encoding="utf-8") as outfile:
-                    outfile.write("Collected context from directory: " + str(target_dir) + "\n")
-                    outfile.write("Filter used: " + filter_name + "\n")
-                    outfile.write("Patterns: " + str(selected_filter_patterns) + "\n")
-                    outfile.write("Total files processed: " + str(file_count) + "\n")
-                    outfile.write("="*80 + "\n")
-                    outfile.write("".join(collected_content))
-                self.last_output_path = output_path # Store the path of the generated file
-                self.update_status(f"Successfully collected {file_count} files to {output_path.name}")
-            else:
-                self.update_status(f"No files found matching the filter in {target_dir.name}")
+            self.update_status(f"Collecting context... Filter: {filter_name}")
 
+            exclude_option = self.selected_exclude_pattern.get()
+            exclude_dirs = {'__pycache__', '.git', '.svn', 'node_modules', '.venv', 'venv'}
+            if exclude_option == "test":
+                exclude_dirs.update(['test', 'tests'])
+            elif exclude_option == "legacy":
+                exclude_dirs.add('legacy')
+            elif exclude_option == "test & legacy":
+                exclude_dirs.update(['test', 'tests', 'legacy'])
+
+            found_files = []
+            for root, dirs, files in os.walk(target_dir):
+                dirs[:] = [d for d in dirs if d.lower() not in exclude_dirs]
+                
+                for filename in files:
+                    for pattern in selected_filter_patterns:
+                        if fnmatch.fnmatch(filename, pattern):
+                            found_files.append(Path(root) / filename)
+                            break
+            
+            found_files = sorted(list(set(found_files)))
+
+            if not found_files:
+                self.update_status(f"No files found matching the filter in {target_dir.name}")
+                return
+
+            all_content = ""
+            for file_path in found_files:
+                try:
+                    relative_path = file_path.relative_to(self.workspace_root)
+                    all_content += f"--- START {relative_path} ---\n"
+                    all_content += file_path.read_text(encoding='utf-8', errors='ignore')
+                    all_content += f"\n--- END {relative_path} ---\n\n"
+                except Exception as e:
+                    all_content += f"--- ERROR reading {file_path}: {e} ---\n\n"
+            
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(all_content)
+            self.last_output_path = output_path
+            self.update_status(f"Successfully collected {len(found_files)} files to {output_path.name}")
+            print(f"Successfully collected {len(found_files)} files to {output_path}")
         except Exception as e:
-            self.last_output_path = None # Reset on error
+            self.last_output_path = None
             self.update_status(f"Error during collection: {e}")
             print(f"Error during collection: {e}")
 
@@ -190,16 +180,9 @@ class QuickContextCollectorApp:
     def update_history_combobox(self):
         display_entries = [self.format_history_entry_display(entry) for entry in self.history]
         self.history_combobox['values'] = display_entries
-        if display_entries:
-            # Optionally, set the combobox to the most recent entry's display string
-            # self.selected_history_entry.set(display_entries[0]) 
-            # However, it might be better to leave it blank or with a placeholder initially
-            # and let the auto-load fill the main fields.
-            pass 
 
     def on_history_selected(self, event):
         selected_display_text = self.selected_history_entry.get()
-        # Find the original history entry that matches the display text
         for entry in self.history:
             if self.format_history_entry_display(entry) == selected_display_text:
                 if Path(entry.get("directory", "")).is_dir() and \
@@ -217,7 +200,7 @@ class QuickContextCollectorApp:
                 with open(self.history_file_path, "r", encoding="utf-8") as f:
                     self.history = json.load(f)
                     if not isinstance(self.history, list):
-                        self.history = [] # Ensure history is a list
+                        self.history = []
             else:
                  self.history = []
         except Exception as e:
@@ -225,9 +208,8 @@ class QuickContextCollectorApp:
             self.update_status(f"Error loading history file: {e}. Starting with empty history.")
             print(f"Error loading history file: {e}")
 
-        self.update_history_combobox() # Populate the history combobox
+        self.update_history_combobox()
 
-        # Apply the most recent valid history item to main fields
         if self.history:
             most_recent = self.history[0]
             if Path(most_recent.get("directory", "")).is_dir() and \
@@ -241,20 +223,19 @@ class QuickContextCollectorApp:
 
     def save_history(self, directory_str, filter_name_str):
         if not directory_str or not filter_name_str:
-            return # Do not save empty or invalid entries
+            return
 
         new_entry = {"directory": directory_str, "filter_name": filter_name_str}
         
-        # Remove existing identical entry to move it to the top
         self.history = [entry for entry in self.history if not (entry.get("directory") == directory_str and entry.get("filter_name") == filter_name_str)]
         
         self.history.insert(0, new_entry)
-        self.history = self.history[:MAX_HISTORY_ITEMS] # Keep only the top N items
+        self.history = self.history[:MAX_HISTORY_ITEMS]
 
         try:
             with open(self.history_file_path, "w", encoding="utf-8") as f:
                 json.dump(self.history, f, indent=2)
-            self.update_history_combobox() # Refresh history combobox after saving
+            self.update_history_combobox()
         except Exception as e:
             self.update_status(f"Error saving history: {e}")
             print(f"Error saving history: {e}")
@@ -278,7 +259,7 @@ class QuickContextCollectorApp:
 
     def update_status(self, message):
         self.status_label.config(text=message)
-        print(message) # Also print to console for debugging
+        print(message)
 
 if __name__ == "__main__":
     root = tk.Tk()

@@ -12,7 +12,11 @@ class LABTransferConfig:
         method: str = 'basic',
         channel_weights: Optional[Dict[str, float]] = None,
         selective_channels: Optional[List[str]] = None,
+        blend_factor: float = 0.5,
         adaptation_method: str = 'none',
+        num_segments: int = 16,
+        delta_e_threshold: float = 12.0,
+        min_segment_size_perc: float = 0.01,
         tile_size: int = 512,
         overlap: int = 64,
         use_gpu: bool = False
@@ -25,9 +29,13 @@ class LABTransferConfig:
         
         # Parameters for 'selective' method
         self.selective_channels = selective_channels or ['a', 'b']
-        
-        # Parameters for 'adaptive' method (currently one type)
+        self.blend_factor = blend_factor
+
+        # Parameters for 'adaptive' method
         self.adaptation_method = adaptation_method
+        self.num_segments = num_segments
+        self.delta_e_threshold = delta_e_threshold
+        self.min_segment_size_perc = min_segment_size_perc
 
         # Parameters for large image processing
         self.tile_size = tile_size
@@ -42,22 +50,38 @@ class LABTransferConfig:
         """
         # Added 'hybrid' and 'linear_blend', removed 'weighted'
         valid_methods = ['basic', 'linear_blend', 'selective', 'adaptive', 'hybrid']
-        valid_adapt = ['none', 'luminance'] # Simplified to implemented methods
+        valid_adapt = ['none', 'luminance']  # Simplified to implemented methods
         errors = []
 
         if self.method not in valid_methods:
             errors.append(f"Invalid method: '{self.method}'. Must be one of {valid_methods}")
 
         if self.adaptation_method not in valid_adapt:
-            errors.append(f"Invalid adaptation_method: '{self.adaptation_method}'. Must be one of {valid_adapt}")
-        
+            errors.append(
+                f"Invalid adaptation_method: '{self.adaptation_method}'. Must be one of {valid_adapt}")
+
         for ch in self.selective_channels:
             if ch not in ['L', 'a', 'b']:
-                errors.append(f"Invalid channel in selective_channels: '{ch}'")
-        
-        for w in self.channel_weights.values():
-            if not (0.0 <= w <= 1.0):
-                errors.append(f"Channel weight must be between 0 and 1, but got {w}")
+                errors.append(f"Invalid channel in selective_channels: '{ch}'. Must be 'L', 'a', or 'b'.")
+
+        if not (0.0 <= self.blend_factor <= 1.0):
+            errors.append(f"Invalid blend_factor: {self.blend_factor}. Must be between 0.0 and 1.0.")
+
+        if self.channel_weights:
+            for ch, w in self.channel_weights.items():
+                if ch not in ['L', 'a', 'b']:
+                    errors.append(f"Invalid channel in channel_weights: '{ch}'.")
+                if not (0.0 <= w <= 1.0):
+                    errors.append(f"Invalid weight for channel '{ch}': {w}. Must be between 0.0 and 1.0.")
+
+        if not (isinstance(self.num_segments, int) and self.num_segments > 0):
+            errors.append(f"Invalid num_segments: {self.num_segments}. Must be a positive integer.")
+
+        if not (isinstance(self.delta_e_threshold, (int, float)) and self.delta_e_threshold >= 0):
+            errors.append(f"Invalid delta_e_threshold: {self.delta_e_threshold}. Must be a non-negative number.")
+
+        if not (0.0 <= self.min_segment_size_perc <= 1.0):
+            errors.append(f"Invalid min_segment_size_perc: {self.min_segment_size_perc}. Must be between 0.0 and 1.0.")
 
         if errors:
-            raise ValueError('Invalid configuration: ' + '; '.join(errors))
+            raise ValueError("Configuration errors: " + "; ".join(errors))
