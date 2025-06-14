@@ -50,6 +50,14 @@ filters:
       - "*.scala"
       - "*.sh"
       - "*.ps1"
+      - "*.ts"
+      - "*.tsx"
+      - "*.jsx"
+      - "*.json"
+      - "*.yaml"
+      - "*.yml"
+      - "*.ini"
+      - "*.xml"
 
   All Files (*.*):
     description: "Collects all files in the directory (use with caution)."
