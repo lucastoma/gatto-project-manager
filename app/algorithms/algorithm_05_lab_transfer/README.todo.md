@@ -1,6 +1,6 @@
 ---
 version: "1.0"
-last_updated: 2025-06-10
+last_updated: 2025-06-14
 author: lucastoma
 type: roadmap
 priority_system: "1-5"
@@ -11,7 +11,7 @@ tags:
   - planning
   - tasks
 aliases:
-  - "[[Nazwa modułu - TODO]]"
+  - "[[LAB Color Transfer - TODO]]"
   - "todo"
   - "roadmap"
 links:
@@ -21,64 +21,47 @@ cssclasses:
   - todo-template
 ---
 
-# TODO - [[Nazwa modułu]]
+# Plan: Pełna akceleracja GPU i eliminacja ryzyk dla algorithm_05_lab_transfer
 
-## Priorytet 1 (Krytyczne) 🔴
-- [ ] **[[Fix bug VAL003]]** 
-  - **Opis:** validator nie obsługuje null values
-  - **Impact:** Critical - blokuje production
-  - **Deadline:** 2025-06-15
-  - **Assignee:** [[lucastoma]]
-  - **Dependencies:** brak
-  - **Effort:** 4h
+## Notes
+- Moduł jest solidny, dobrze przetestowany, z mechanizmem fallback CPU.
+- Zaimplementowano logowanie GPU i wyciszono ostrzeżenia PyOpenCL.
+- Implementacja `adaptive_lab_transfer` na GPU została ukończona przy użyciu podejścia hybrydowego.
+- Zaimplementowano akcelerację `selective` i `weighted` transferu przy użyciu jednego, uniwersalnego kernela `unified_lab_transfer`.
+- Główna klasa `LABColorTransfer` została zaktualizowana, aby delegować wywołania do metod GPU.
+- Rozwiązano błędy `ModuleNotFoundError`, `NameError` i `FileNotFoundError`, zapewniając stabilne działanie modułu i testów niezależnie od środowiska.
+- Ostrzeżenie `UserWarning` zostało skutecznie wyciszone.
+- Wszystkie testy przechodzą pomyślnie w obu konfiguracjach środowiska, potwierdzając pełną sprawność i odporność modułu.
+- Projekt został pomyślnie zakończony.
 
-## Priorytet 2 (Ważne) 🟡
-- [ ] **[[Add async support]]**
-  - **Opis:** obsługa 1000+ requestów/sec
-  - **API change:** `async def process()` 
-  - **Backward compatibility:** Keep sync version
-  - **Deadline:** 2025-07-01
-  - **Effort:** 1 tydzień
+## Task List
 
-## Priorytet 3 (Nice to have) 🟢
-- [ ] **[[Custom validation rules]]**
-  - **User story:** Admin wants custom validation rules
-  - **Interface:** `add_rule(name, function)`
-  - **Priority:** Medium
-  - **Dependencies:** [[RuleEngine]] module
-
-## Backlog 📋
-### Pomysły do przemyślenia
-- [[Batch processing]] - przetwarzanie grupowe
-- [[Caching layer]] - warstwa cache'owania wyników  
-- [[Metrics collection]] - zbieranie metryk użycia
-
-### Zgłoszone bugi 🐛
-- [ ] **[[Memory leak bug]]** - tracked in [[issue #123]]
-- [ ] **[[Performance degradation]]** with files >50MB
-- [ ] **[[Thread safety]]** issues in multi-threaded environment
-
-## Done ✅
-- [x] **[[Implementacja podstawowej funkcjonalności]]** (2025-05-15) by [[lucastoma]]
-- [x] **[[Testy jednostkowe]]** (2025-05-20) by [[lucastoma]]
-- [x] **[[Documentation]]** (2025-06-01) by [[lucastoma]]
-
-## Blocked 🚫
-- [ ] **[[Integration with SystemX]]**
-  - **Powód:** czeka na [[API v2]] from team X
-  - **Blocker:** External dependency
-  - **Next step:** Follow up with [[TeamX]]
-  - **Last update:** 2025-06-05
-
-## Breaking Changes Planned ⚠️
-### v2.0 (planowane: Q4 2025)
-- Constructor will require `config` parameter (currently optional)
-- `[[process()]]` will return different error format
-- Removal of deprecated `[[validate_old()]]` method
-
----
-
-## Metadata
-**Last review:** 2025-06-10 by [[lucastoma]]
-**Next review:** 2025-06-17
-**Related projects:** [[ProjectA]], [[ProjectB]]
+- [x] Przeniesienie i integracja kodu oraz testów do app/algorithms/algorithm_05_lab_transfer
+- [x] Aktualizacja importów na bezwzględne
+- [x] Weryfikacja poprawności przez pytest (wszystkie testy przechodzą)
+- [x] Dodanie brakujących plików **init**.py (potwierdzono istnienie)
+- [x] Wyciszenie ostrzeżenia PyOpenCL (safe_sync)
+- [x] Dodanie szczegółowego logowania GPU w gpu_core.py
+- [x] Implementacja akceleracji GPU dla `adaptive_lab_transfer`
+  - [x] Stworzenie kerneli OpenCL do histogramu, segmentacji i transferu
+  - [x] Implementacja metody `adaptive_lab_transfer_gpu` w `gpu_core.py`
+- [x] Implementacja akceleracji GPU dla `selective_lab_transfer` i `weighted_lab_transfer`
+  - [x] Stworzenie uniwersalnego kernela `unified_lab_transfer` w `kernels.cl`
+  - [x] Implementacja metod `selective_lab_transfer_gpu` i `weighted_lab_transfer_gpu` w `gpu_core.py`
+- [x] Naprawa błędu `AttributeError: '_calculate_stats'` w `gpu_core.py`
+  - [x] Dodanie brakującej metody `_calculate_stats` do klasy `LABColorTransferGPU`.
+- [x] Rozwiązanie problemu z brakującą zależnością `pyopencl`.
+  - [x] Zastosowano opcjonalny import, aby moduł działał bez `pyopencl`.
+- [x] Refaktoryzacja testów do obsługi trybu GPU/CPU dla wszystkich metod
+  - [x] Integracja wywołań GPU w głównej klasie `LABColorTransfer` w `core.py`
+  - [x] Uruchomienie testów i weryfikacja poprawności (CPU vs GPU)
+- [x] Naprawa błędów i ostrzeżeń
+  - [x] Zlokalizowanie i naprawa błędu `NameError: name 'cl' is not defined` w `gpu_core.py`.
+  - [x] Poprawne wyciszenie ostrzeżenia `UserWarning` dotyczącego `safe_sync`.
+- [x] Naprawa błędu `FileNotFoundError` w testach
+  - [x] Poprawienie ścieżek do plików testowych (`.npy`), aby były niezależne od katalogu roboczego.
+- [x] Końcowa weryfikacja jakości i stabilności w obu środowiskach (z `pyopencl` i bez).
+## Uwagi końcowe
+- Moduł jest gotowy do użycia produkcyjnego.
+- Wszystkie zaplanowane funkcjonalności zostały zaimplementowane i przetestowane.
+- Kod jest dobrze udokumentowany i zawiera komentarze wyjaśniające kluczowe elementy implementacji.

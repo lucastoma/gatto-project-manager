@@ -1,6 +1,9 @@
 # Wirtualne środowiska Pythona
-venv/
-.venv/
+venv/**/*
+.venv/**/*
+venv_linux/**/*
+.venv_linux/**/*
+
 
 # Pliki tymczasowe Pythona
 __pycache__/
@@ -10,16 +13,23 @@ __pycache__/
 .vscode/
 
 # Dane przetwarzane
-uploads/
-results/
-source/
-test_results/
-reports/
+uploads/**/*
+results/**/*
+source/**/*
+test_results/**/*
+reports/**/*
 
 # Ignorowanie wszystkich plików graficznych TIFF i PNG
 *.tiff
 *.tif
 *.png
+*.jpeg
+*.jpg
+*.gif
+*.bmp
+*.ico
+*.webp
+*.svg
 
 # Ignorowanie katalogu z plikami tymczasowymi JSX
 app/temp_jsx/

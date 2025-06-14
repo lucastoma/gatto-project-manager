@@ -1,0 +1,371 @@
+<!DOCTYPE html>
+<html lang="pl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Test Transferu Kolorów LAB - Algorytm 05</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <style>
+        body { font-family: 'Inter', sans-serif; }
+        .card {
+            background-color: white;
+            border-radius: 0.75rem;
+            padding: 1.5rem;
+            box-shadow: 0 4px 6px -1px rgb(0 0 0 / 0.1), 0 2px 4px -2px rgb(0 0 0 / 0.1);
+            border: 1px solid #e5e7eb;
+        }
+        .upload-area {
+            border: 2px dashed #d1d5db;
+            transition: all 0.2s;
+            min-height: 150px; /* Ensure a minimum height */
+            display: flex;
+            flex-direction: column;
+            align-items: center;
+            justify-content: center;
+        }
+        .upload-area:hover {
+            border-color: #3b82f6;
+            background-color: #eff6ff;
+        }
+        .loader {
+            border: 4px solid #f3f4f6;
+            border-top: 4px solid #3b82f6;
+            border-radius: 50%;
+            width: 40px;
+            height: 40px;
+            animation: spin 1s linear infinite;
+        }
+        @keyframes spin {
+            0% { transform: rotate(0deg); }
+            100% { transform: rotate(360deg); }
+        }
+        .param-section { display: none; } /* Hidden by default */
+        .param-section.active { display: block; } /* Shown when active */
+    </style>
+</head>
+<body class="bg-gray-100 text-gray-800">
+
+    <div class="container mx-auto p-4 md:p-8">
+        <header class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">Panel Testowy Transferu Kolorów LAB</h1>
+            <p class="text-lg text-gray-600 mt-2">Wizualne testowanie parametrów algorytmu `algorithm_05_lab_transfer`.</p>
+        </header>
+
+        <form id="transfer-form" class="grid grid-cols-1 lg:grid-cols-3 gap-8">
+            
+            <!-- Lewa kolumna: Pliki i Główne Parametry -->
+            <div class="lg:col-span-1 flex flex-col gap-8">
+                <div class="card">
+                    <h2 class="text-xl font-semibold mb-4">Pliki Wejściowe</h2>
+                    <!-- Source Image -->
+                    <div>
+                        <label for="source-image-upload" class="block text-sm font-medium text-gray-700 mb-1">Obraz Źródłowy</label>
+                        <div id="source-upload-area" class="upload-area p-4 rounded-md text-center cursor-pointer">
+                            <input type="file" id="source-image-upload" name="source_image" accept="image/*" class="hidden">
+                            <img id="source-image-preview" src="#" alt="Podgląd obrazu źródłowego" class="max-w-full max-h-48 mx-auto mb-2 hidden"/>
+                            <p id="source-upload-text">Kliknij lub przeciągnij obraz</p>
+                        </div>
+                    </div>
+                    <!-- Target/Reference Image -->
+                    <div class="mt-4">
+                        <label for="target-image-upload" class="block text-sm font-medium text-gray-700 mb-1">Obraz Docelowy/Referencyjny</label>
+                        <div id="target-upload-area" class="upload-area p-4 rounded-md text-center cursor-pointer">
+                            <input type="file" id="target-image-upload" name="target_image" accept="image/*" class="hidden">
+                            <img id="target-image-preview" src="#" alt="Podgląd obrazu docelowego" class="max-w-full max-h-48 mx-auto mb-2 hidden"/>
+                            <p id="target-upload-text">Kliknij lub przeciągnij obraz</p>
+                        </div>
+                    </div>
+                    <!-- Mask Image (Conditional) -->
+                    <div id="mask-image-section" class="mt-4 param-section">
+                        <label for="mask-image-upload" class="block text-sm font-medium text-gray-700 mb-1">Obraz Maski (dla trybu 'selective')</label>
+                        <div id="mask-upload-area" class="upload-area p-4 rounded-md text-center cursor-pointer">
+                            <input type="file" id="mask-image-upload" name="mask_image" accept="image/*" class="hidden">
+                            <img id="mask-image-preview" src="#" alt="Podgląd obrazu maski" class="max-w-full max-h-48 mx-auto mb-2 hidden"/>
+                            <p id="mask-upload-text">Kliknij lub przeciągnij obraz</p>
+                        </div>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <h2 class="text-xl font-semibold mb-4">Ustawienia Globalne</h2>
+                    <div class="space-y-3">
+                        <div>
+                            <label for="use-gpu" class="flex items-center">
+                                <input type="checkbox" id="use-gpu" name="use_gpu" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500">
+                                <span class="ml-2 text-sm text-gray-700">Użyj GPU</span>
+                            </label>
+                        </div>
+                        <div>
+                            <label for="tile-size" class="block text-sm font-medium text-gray-700">Rozmiar Kafelka (Tile Size)</label>
+                            <input type="number" id="tile-size" name="tile_size" value="512" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="overlap" class="block text-sm font-medium text-gray-700">Nakładka (Overlap)</label>
+                            <input type="number" id="overlap" name="overlap" value="64" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Środkowa kolumna: Parametry Algorytmu -->
+            <div class="lg:col-span-1 flex flex-col gap-8">
+                <div class="card">
+                    <h2 class="text-xl font-semibold mb-4">Parametry Algorytmu</h2>
+                    <div>
+                        <label for="transfer-method" class="block text-sm font-medium text-gray-700">Metoda Transferu</label>
+                        <select id="transfer-method" name="method" class="mt-1 block w-full p-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                            <option value="basic">Basic</option>
+                            <option value="linear_blend">Linear Blend (Weighted)</option>
+                            <option value="selective">Selective</option>
+                            <option value="adaptive">Adaptive</option>
+                            <option value="hybrid">Hybrid</option>
+                        </select>
+                    </div>
+
+                    <!-- Parametry dla 'Linear Blend' -->
+                    <div id="params-linear-blend" class="param-section mt-4 space-y-3">
+                        <h3 class="text-md font-semibold text-gray-700">Parametry Linear Blend</h3>
+                        <div>
+                            <label for="weight-l" class="block text-sm font-medium text-gray-700">Waga L* (0.0 - 1.0)</label>
+                            <input type="number" id="weight-l" name="weight_l" value="0.5" step="0.01" min="0" max="1" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="weight-a" class="block text-sm font-medium text-gray-700">Waga a* (0.0 - 1.0)</label>
+                            <input type="number" id="weight-a" name="weight_a" value="0.5" step="0.01" min="0" max="1" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="weight-b" class="block text-sm font-medium text-gray-700">Waga b* (0.0 - 1.0)</label>
+                            <input type="number" id="weight-b" name="weight_b" value="0.5" step="0.01" min="0" max="1" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Parametry dla 'Selective' -->
+                    <div id="params-selective" class="param-section mt-4 space-y-3">
+                        <h3 class="text-md font-semibold text-gray-700">Parametry Selective</h3>
+                        <div>
+                            <label class="block text-sm font-medium text-gray-700">Kanały do transferu selektywnego</label>
+                            <div class="mt-1 space-y-1">
+                                <label class="flex items-center"><input type="checkbox" name="selective_channels" value="L" class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"> <span class="ml-2">L*</span></label>
+                                <label class="flex items-center"><input type="checkbox" name="selective_channels" value="a" checked class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"> <span class="ml-2">a*</span></label>
+                                <label class="flex items-center"><input type="checkbox" name="selective_channels" value="b" checked class="h-4 w-4 text-blue-600 border-gray-300 rounded focus:ring-blue-500"> <span class="ml-2">b*</span></label>
+                            </div>
+                        </div>
+                        <div>
+                            <label for="blend-factor" class="block text-sm font-medium text-gray-700">Współczynnik Mieszania (Blend Factor)</label>
+                            <input type="number" id="blend-factor" name="blend_factor" value="0.5" step="0.01" min="0" max="1" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+
+                    <!-- Parametry dla 'Adaptive' -->
+                    <div id="params-adaptive" class="param-section mt-4 space-y-3">
+                        <h3 class="text-md font-semibold text-gray-700">Parametry Adaptive</h3>
+                        <div>
+                            <label for="adaptation-method" class="block text-sm font-medium text-gray-700">Metoda Adaptacji</label>
+                            <select id="adaptation-method" name="adaptation_method" class="mt-1 block w-full p-2 border border-gray-300 bg-white rounded-md shadow-sm focus:outline-none focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                                <option value="none">None</option>
+                                <option value="luminance">Luminance</option>
+                            </select>
+                        </div>
+                        <div>
+                            <label for="num-segments" class="block text-sm font-medium text-gray-700">Liczba Segmentów</label>
+                            <input type="number" id="num-segments" name="num_segments" value="5" min="1" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="delta-e-threshold" class="block text-sm font-medium text-gray-700">Próg Delta E</label>
+                            <input type="number" id="delta-e-threshold" name="delta_e_threshold" value="10.0" step="0.1" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                        <div>
+                            <label for="min-segment-size-perc" class="block text-sm font-medium text-gray-700">Min. Rozmiar Segmentu (%)</label>
+                            <input type="number" id="min-segment-size-perc" name="min_segment_size_perc" value="1.0" step="0.1" min="0" max="100" class="mt-1 block w-full p-2 border border-gray-300 rounded-md shadow-sm focus:ring-blue-500 focus:border-blue-500 sm:text-sm">
+                        </div>
+                    </div>
+                    
+                    <!-- Parametry dla 'Hybrid' (może być puste lub zawierać specyficzne opcje, jeśli zostaną zidentyfikowane) -->
+                    <div id="params-hybrid" class="param-section mt-4 space-y-3">
+                        <h3 class="text-md font-semibold text-gray-700">Parametry Hybrid</h3>
+                        <p class="text-sm text-gray-500">Tryb hybrydowy może używać kombinacji ustawień lub domyślnych wartości. Dodatkowe opcje pojawią się tutaj, jeśli będą dostępne.</p>
+                    </div>
+                </div>
+
+                <div class="card">
+                    <button type="submit" id="process-button" class="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold py-3 px-4 rounded-md shadow-sm focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-blue-500 transition duration-150 ease-in-out">
+                        Przetwarzaj Obraz
+                    </button>
+                    <div id="loader" class="loader mx-auto mt-4 hidden"></div>
+                    <p id="status-message" class="mt-2 text-sm text-center"></p>
+                </div>
+            </div>
+
+            <!-- Prawa kolumna: Podgląd Wyniku -->
+            <div class="lg:col-span-1 flex flex-col gap-8">
+                <div class="card">
+                    <h2 class="text-xl font-semibold mb-4">Podgląd Wyniku</h2>
+                    <div id="result-upload-area" class="upload-area p-4 rounded-md bg-gray-50">
+                        <img id="result-image-preview" src="#" alt="Podgląd obrazu wynikowego" class="max-w-full max-h-96 mx-auto hidden"/>
+                        <p id="result-upload-text" class="text-gray-500">Wynik pojawi się tutaj</p>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <script>
+        document.addEventListener('DOMContentLoaded', function () {
+            const transferMethodSelect = document.getElementById('transfer-method');
+            const allParamSections = document.querySelectorAll('.param-section');
+            const maskImageSection = document.getElementById('mask-image-section');
+
+            function updateParamSections() {
+                const selectedMethod = transferMethodSelect.value;
+                allParamSections.forEach(section => section.classList.remove('active'));
+                
+                const activeSectionId = `params-${selectedMethod}`;
+                const activeSection = document.getElementById(activeSectionId);
+                if (activeSection) {
+                    activeSection.classList.add('active');
+                }
+
+                if (selectedMethod === 'selective') {
+                    maskImageSection.classList.add('active');
+                } else {
+                    maskImageSection.classList.remove('active');
+                }
+            }
+
+            transferMethodSelect.addEventListener('change', updateParamSections);
+            // Initialize sections based on default selection
+            updateParamSections();
+
+            // Image Upload and Preview Logic (Simplified - needs expansion for each input)
+            function setupImageUpload(inputId, previewId, textId, areaId) {
+                const input = document.getElementById(inputId);
+                const preview = document.getElementById(previewId);
+                const text = document.getElementById(textId);
+                const area = document.getElementById(areaId);
+
+                area.addEventListener('click', () => input.click());
+                area.addEventListener('dragover', (event) => {
+                    event.preventDefault();
+                    area.classList.add('border-blue-500', 'bg-blue-50');
+                });
+                area.addEventListener('dragleave', () => {
+                    area.classList.remove('border-blue-500', 'bg-blue-50');
+                });
+                area.addEventListener('drop', (event) => {
+                    event.preventDefault();
+                    area.classList.remove('border-blue-500', 'bg-blue-50');
+                    if (event.dataTransfer.files && event.dataTransfer.files[0]) {
+                        input.files = event.dataTransfer.files;
+                        displayImage(input.files[0], preview, text);
+                    }
+                });
+                input.addEventListener('change', function(event) {
+                    if (event.target.files && event.target.files[0]) {
+                        displayImage(event.target.files[0], preview, text);
+                    }
+                });
+            }
+
+            function displayImage(file, previewElement, textElement) {
+                const reader = new FileReader();
+                reader.onload = function(e) {
+                    previewElement.src = e.target.result;
+                    previewElement.classList.remove('hidden');
+                    textElement.classList.add('hidden');
+                }
+                reader.readAsDataURL(file);
+            }
+
+            setupImageUpload('source-image-upload', 'source-image-preview', 'source-upload-text', 'source-upload-area');
+            setupImageUpload('target-image-upload', 'target-image-preview', 'target-upload-text', 'target-upload-area');
+            setupImageUpload('mask-image-upload', 'mask-image-preview', 'mask-upload-text', 'mask-upload-area');
+
+            // Form Submission Logic (Placeholder)
+            const form = document.getElementById('transfer-form');
+            const processButton = document.getElementById('process-button');
+            const loader = document.getElementById('loader');
+            const statusMessage = document.getElementById('status-message');
+            const resultImagePreview = document.getElementById('result-image-preview');
+            const resultUploadText = document.getElementById('result-upload-text');
+
+            form.addEventListener('submit', async function(event) {
+                event.preventDefault();
+                loader.classList.remove('hidden');
+                statusMessage.textContent = 'Przetwarzanie...';
+                processButton.disabled = true;
+                resultImagePreview.classList.add('hidden');
+                resultUploadText.classList.remove('hidden');
+                resultUploadText.textContent = 'Przetwarzanie...';
+
+                const formData = new FormData(form);
+                // Convert min_segment_size_perc to 0-1 range if needed
+                const minSegPercInput = document.getElementById('min-segment-size-perc');
+                if (minSegPercInput && formData.has('min_segment_size_perc')) {
+                    formData.set('min_segment_size_perc', parseFloat(minSegPercInput.value) / 100.0);
+                }
+                
+                // Collect channel_weights for linear_blend
+                if (document.getElementById('transfer-method').value === 'linear_blend'){
+                    const weights = {
+                        'L': parseFloat(document.getElementById('weight-l').value),
+                        'a': parseFloat(document.getElementById('weight-a').value),
+                        'b': parseFloat(document.getElementById('weight-b').value)
+                    };
+                    formData.append('channel_weights_json', JSON.stringify(weights));
+                    // Remove individual weights if they were added by name
+                    formData.delete('weight_l');
+                    formData.delete('weight_a');
+                    formData.delete('weight_b');
+                }
+
+                // Collect selective_channels
+                if (document.getElementById('transfer-method').value === 'selective'){
+                    const selectedChannels = [];
+                    document.querySelectorAll('input[name="selective_channels"]:checked').forEach(cb => {
+                        selectedChannels.push(cb.value);
+                    });
+                    formData.append('selective_channels_json', JSON.stringify(selectedChannels));
+                    formData.delete('selective_channels'); // remove individual checkbox values if any
+                }
+
+
+                try {
+                    // Replace with your actual API endpoint
+                    const response = await fetch('/webview/run_algorithm_05_lab_transfer', { 
+                        method: 'POST',
+                        body: formData
+                    });
+
+                    if (!response.ok) {
+                        const errorData = await response.json().catch(() => ({ detail: 'Unknown server error' }));
+                        throw new Error(errorData.error || errorData.detail || `HTTP error! status: ${response.status}`);
+                    }
+
+                    const result = await response.json();
+                    if (result.processed_image_url) {
+                        resultImagePreview.src = result.processed_image_url + '?t=' + new Date().getTime(); // Cache buster
+                        resultImagePreview.classList.remove('hidden');
+                        resultUploadText.classList.add('hidden');
+                        statusMessage.textContent = 'Przetwarzanie zakończone!';
+                    } else if (result.error) {
+                        throw new Error(result.error);
+                    }
+                } catch (error) {
+                    console.error('Processing error:', error);
+                    statusMessage.textContent = `Błąd: ${error.message}`;
+                    resultUploadText.textContent = 'Błąd przetwarzania.';
+                    resultImagePreview.classList.add('hidden');
+                    resultUploadText.classList.remove('hidden');
+                } finally {
+                    loader.classList.add('hidden');
+                    processButton.disabled = false;
+                }
+            });
+        });
+    </script>
+
+</body>
+</html>

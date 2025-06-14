@@ -229,6 +229,19 @@ class EnhancedServerManager:
             )
             return config_python
 
+        # Check for Linux venv first if on Linux
+        if os.name == 'posix' and os.uname().sysname == 'Linux':
+            linux_venv = Path("venv_linux")
+            if linux_venv.exists() and linux_venv.is_dir():
+                python_exe = linux_venv / "bin" / "python"
+                if python_exe.exists():
+                    self.log_event(
+                        f"Linux virtual environment detected: {linux_venv}", "SUCCESS"
+                    )
+                    self.log_event(f"Using Linux venv Python: {python_exe}", "INFO")
+                    return str(python_exe)
+
+        # Fall back to standard venv paths
         venv_paths = [Path("venv"), Path(".venv"), Path("env"), Path(".env")]
         for venv_path in venv_paths:
             if venv_path.exists() and venv_path.is_dir():
@@ -430,21 +443,28 @@ class EnhancedServerManager:
             )
             return False
 
+        # Ensure the startup command uses the correct Python executable path
+        if not self.startup_command or len(self.startup_command) == 0:
+            self.startup_command = [self.python_executable, "run_server.py"]
+        elif self.startup_command[0].endswith('python.exe'):
+            # Replace Windows python.exe with the detected Python executable
+            self.startup_command[0] = self.python_executable
+
         self.log_event(f"Starting server... Command: {' '.join(self.startup_command)}")
         env = os.environ.copy()
         env["FLASK_ENV"] = self.environment
+        env["PYTHONUNBUFFERED"] = "1"  # Ensure Python output is not buffered
 
-        # --- FIX: Define OS-specific arguments to detach the process ---
+        # Define OS-specific arguments to detach the process
         kwargs = {}
         if os.name == "nt":
             # On Windows, DETACHED_PROCESS creates a new process
             # without a console and independent of the parent.
-            kwargs["creationflags"] = subprocess.DETACHED_PROCESS
+            kwargs["creationflags"] = subprocess.DETACHED_PROCESS | subprocess.CREATE_NEW_PROCESS_GROUP
         else:
             # On Unix, os.setsid makes the process a session leader,
             # detaching it from the controlling terminal.
-            kwargs["preexec_fn"] = os.setsid  # pylint: disable=no-member
-        # --- END FIX ---
+            kwargs["start_new_session"] = True  # More modern approach than preexec_fn
 
         try:
             with open(self.server_log_file, "ab") as log_out, open(

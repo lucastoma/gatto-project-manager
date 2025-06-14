@@ -1,0 +1,134 @@
+Collected context from directory: D:\projects\gatto-ps-ai-link1\docs
+Filter used: Text & Docs (txt, md, rst)
+Patterns: ['*.txt', '*.md', '*.rst']
+Total files processed: 2
+================================================================================
+
+--- File: docs_context__Text & Docs (txt, md, rst).txt ---
+Collected context from directory: D:\projects\gatto-ps-ai-link1\docs
+Filter used: Text & Docs (txt, md, rst)
+Patterns: ['*.txt', '*.md', '*.rst']
+Total files processed: 1
+================================================================================
+
+--- File: PROCESS.md ---
+---
+version: "1.0"
+last_updated: 2025-06-13
+author: lucastoma
+status: draft
+---
+
+# Documentation Workflow Process
+
+## Purpose
+Ujednolicony proces utrzymywania i synchronizacji trzech plików dokumentacji (`README.md`, `README.concepts.md`, `README.todo.md`). Celem jest jednoźródłowa prawda, zrozumiałość dla ludzi i agentów AI oraz minimalizacja potrzeby analizy kodu.
+
+## Pliki i ich rola
+| Plik | Rola | Zawartość trwała |
+|------|------|------------------|
+| `README.md` | Główny punkt wejścia. Produkcyjna dokumentacja API i Quick-Start. | Wyłącznie informacje zgodne z wdrożonym kodem |
+| `README.concepts.md` | Logika/idea projektu, decyzje architektoniczne, kontekst. | Opis problemu, koncepcje, historia decyzji |
+| `README.todo.md` | Zadania implementacyjne wynikające z Concepts. | Aktualny backlog, status prac |
+
+## Przepływ informacji
+1. **Ideacja** – zapisz pomysł w `README.concepts.md`.
+2. **Derivacja zadań** – stwórz odpowiadające elementy listy w `README.todo.md`, podlinkuj do sekcji w Concepts.
+3. **Implementacja** – realizuj zadania; po ich ukończeniu:
+   * przenieś/udokumentuj efekt w `README.md` (Quick-Start, API, przykłady).
+   * oznacz zadanie jako wykonane (`✓`) i usuń/archiwizuj w TODO.
+   * usuń z Concepts szczegoły implementacyjne, zostawiając kontekst i decyzje.
+4. **Utrzymanie** – przy każdej zmianie kodu aktualizuj odpowiedni plik i datę `last_updated`.
+
+## Zasada jednego źródła prawdy
+* Informacja występuje w **dokładnie jednym** pliku jednocześnie.
+* Gotowy, stabilny interfejs → `README.md`.
+* W toku implementacji → `README.todo.md`.
+* Faza koncepcyjna lub decyzje architektoniczne → `README.concepts.md`.
+
+## Automatyzacja (koncepcyjna)
+* **Script `docs sync`**  
+  – analizuje pliki Markdown, wykonuje kroki migracji, podbija `last_updated`.  
+  – działa w trybie `--check` (dry-run) dla hooka pre-commit.
+* **Pre-commit / CI lint**  
+  – wywołuje `docs sync --check`.  
+  – sprawdza duplikaty nagłówków i reguły zawartości.
+
+*Implementacja skryptu i hooków zostanie zrealizowana po wdrożeniu całego systemu zarządzania dokumentacją.*
+
+## Baner entry-point
+Każdy szablon `README.md` zaczyna się komentarzem:
+```
+<!-- START HERE: primary docs for this module. See docs/PROCESS.md for workflow details -->
+```
+Zapewnia to, że agenci AI trafiają w odpowiednie miejsce.
+
+## Minimalne sekcje plików
+* `README.md`: Quick-Start, API/Public Interface, Examples, Dependencies, Maintainer Notes.
+* `README.concepts.md`: Problem, Główna idea, Decyzje projektowe, Rozważane alternatywy, Następne kroki.
+* `README.todo.md`: Tabela zadań (ID, Task, Priority, Status, Notes).
+
+## Ciągłe doskonalenie
+* Co sprint zbieraj feedback zespołu i agentów.
+* Aktualizuj ten proces, szablony i automatyzację.
+
+--- File: PROCESS.md ---
+---
+version: "1.0"
+last_updated: 2025-06-13
+author: lucastoma
+status: draft
+---
+
+# Documentation Workflow Process
+
+## Purpose
+Ujednolicony proces utrzymywania i synchronizacji trzech plików dokumentacji (`README.md`, `README.concepts.md`, `README.todo.md`). Celem jest jednoźródłowa prawda, zrozumiałość dla ludzi i agentów AI oraz minimalizacja potrzeby analizy kodu.
+
+## Pliki i ich rola
+| Plik | Rola | Zawartość trwała |
+|------|------|------------------|
+| `README.md` | Główny punkt wejścia. Produkcyjna dokumentacja API i Quick-Start. | Wyłącznie informacje zgodne z wdrożonym kodem |
+| `README.concepts.md` | Logika/idea projektu, decyzje architektoniczne, kontekst. | Opis problemu, koncepcje, historia decyzji |
+| `README.todo.md` | Zadania implementacyjne wynikające z Concepts. | Aktualny backlog, status prac |
+
+## Przepływ informacji
+1. **Ideacja** – zapisz pomysł w `README.concepts.md`.
+2. **Derivacja zadań** – stwórz odpowiadające elementy listy w `README.todo.md`, podlinkuj do sekcji w Concepts.
+3. **Implementacja** – realizuj zadania; po ich ukończeniu:
+   * przenieś/udokumentuj efekt w `README.md` (Quick-Start, API, przykłady).
+   * oznacz zadanie jako wykonane (`✓`) i usuń/archiwizuj w TODO.
+   * usuń z Concepts szczegoły implementacyjne, zostawiając kontekst i decyzje.
+4. **Utrzymanie** – przy każdej zmianie kodu aktualizuj odpowiedni plik i datę `last_updated`.
+
+## Zasada jednego źródła prawdy
+* Informacja występuje w **dokładnie jednym** pliku jednocześnie.
+* Gotowy, stabilny interfejs → `README.md`.
+* W toku implementacji → `README.todo.md`.
+* Faza koncepcyjna lub decyzje architektoniczne → `README.concepts.md`.
+
+## Automatyzacja (koncepcyjna)
+* **Script `docs sync`**  
+  – analizuje pliki Markdown, wykonuje kroki migracji, podbija `last_updated`.  
+  – działa w trybie `--check` (dry-run) dla hooka pre-commit.
+* **Pre-commit / CI lint**  
+  – wywołuje `docs sync --check`.  
+  – sprawdza duplikaty nagłówków i reguły zawartości.
+
+*Implementacja skryptu i hooków zostanie zrealizowana po wdrożeniu całego systemu zarządzania dokumentacją.*
+
+## Baner entry-point
+Każdy szablon `README.md` zaczyna się komentarzem:
+```
+<!-- START HERE: primary docs for this module. See docs/PROCESS.md for workflow details -->
+```
+Zapewnia to, że agenci AI trafiają w odpowiednie miejsce.
+
+## Minimalne sekcje plików
+* `README.md`: Quick-Start, API/Public Interface, Examples, Dependencies, Maintainer Notes.
+* `README.concepts.md`: Problem, Główna idea, Decyzje projektowe, Rozważane alternatywy, Następne kroki.
+* `README.todo.md`: Tabela zadań (ID, Task, Priority, Status, Notes).
+
+## Ciągłe doskonalenie
+* Co sprint zbieraj feedback zespołu i agentów.
+* Aktualizuj ten proces, szablony i automatyzację.

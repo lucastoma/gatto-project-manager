@@ -1,126 +1,175 @@
 ---
 version: "1.0"
-last_updated: 2025-06-10
-author: lucastoma
+last_updated: 2025-06-14
+author: lucastoma & Cascade
 type: concepts
-implementation_status: planning
+implementation_status: stable
 auto_cleanup: true
 tags:
   - concepts
-  - planning
   - design
+  - lab_color
+  - gpu_acceleration
 aliases:
-  - "[[Nazwa modułu - Concepts]]"
-  - "concepts"
+  - "LAB Color Transfer - Concepts"
+  - "algorithm_05_lab_transfer_concepts"
 links:
   - "[[README]]"
   - "[[README.todo]]"
 cssclasses:
-  - concepts-template
+  - concepts
 ---
 
-# Concepts - [[Nazwa modułu]]
+# Concepts - LAB Color Transfer
 
-## Główna idea
-Ogólny opis koncepcji - co chcemy osiągnąć i dlaczego.
+## Core Concept
 
-## Problem do rozwiązania
-- **Kontekst:** Jaka sytuacja/potrzeba
-- **Pain points:** Co obecnie nie działa
-- **Success criteria:** Jak poznamy że się udało
+### Color Transfer in LAB Space
+LAB color space is used for color transfer due to its perceptual uniformity, which means that numerical changes in color values correspond to consistent changes in visual perception. This makes it ideal for color transfer operations where natural-looking results are desired.
 
-## Podejście koncepcyjne
-### Algorytm (wysokopoziomowy)
-```
-1. Pobierz dane wejściowe
-2. Zastosuj transformację X
-3. Waliduj według reguł Y  
-4. Zwróć wynik + metadata
-```
+### Key Components
+1. **Color Space Conversion**: RGB to LAB and back
+2. **Statistical Transfer**: Matching color statistics between images
+3. **Adaptive Processing**: Localized color transfer for better results
+4. **GPU Acceleration**: OpenCL-based acceleration for performance
+5. **Fallback Mechanism**: CPU implementation when GPU is unavailable
 
-### Kluczowe decyzje projektowe
-- **Wybór A vs B:** Dlaczego idziemy w kierunku A
-- **Trade-offs:** Co zyskujemy, co tracimy
-- **Założenia:** Na czym bazujemy (może się zmienić)
+## Problem Statement
 
-## Szkic implementacji
-### Struktura danych
-```python
-# Wejście
-InputData = {
-    'user_id': int,
-    'payload': dict,
-    'options': list
-}
+### Context
+Color transfer is a fundamental operation in image processing, used in applications like photo enhancement, style transfer, and color correction. The challenge is to perform this operation efficiently while maintaining high visual quality.
 
-# Wyjście  
-Result = {
-    'status': str,  # success|error|warning
-    'data': dict,
-    'errors': list
-}
-```
+### Technical Challenges
+- **Performance**: Large images require efficient processing
+- **Quality**: Results should be visually pleasing and artifact-free
+- **Compatibility**: Must work across different hardware configurations
+- **Flexibility**: Support for various transfer methods and configurations
 
-### Pseudokod/logika
-```python
-def main_process(input_data):
-    # 1. Walidacja wejścia
-    if not validate_input(input_data):
-        return error_result
-    
-    # 2. Główna logika
-    processed = transform_data(input_data.payload)
-    
-    # 3. Post-processing
-    result = finalize(processed, input_data.options)
-    
-    return result
-```
+## Design Approach
 
-### Komponenty do zbudowania
-- [ ] `[[InputValidator]]` - walidacja danych wejściowych
-- [ ] `[[DataTransformer]]` - główna logika przetwarzania  
-- [ ] `[[ResultFormatter]]` - formatowanie odpowiedzi
-- [ ] `[[ErrorHandler]]` - obsługa błędów
+### Algorithm Overview
+1. **Input Validation**: Verify image formats and dimensions
+2. **Color Space Conversion**: Convert RGB to LAB color space
+3. **Transfer Execution**: Apply selected transfer method (basic/adaptive/selective/weighted)
+4. **Post-Processing**: Handle edge cases and final adjustments
+5. **Output**: Convert back to RGB and return result
 
-## Integracje i zależności
-- **Potrzebuje:** [[ModuleX]] dla operacji Y
-- **Dostarcza:** Interface Z dla systemów downstream
-- **Komunikacja:** HTTP API + async callbacks
+### Key Design Decisions
 
-## Rozważane alternatywy
-### Podejście 1: Synchroniczne
-- Plusy: prostsze, łatwiejsze debug
-- Minusy: wolniejsze dla dużych zbiorów
+#### 1. LAB Color Space Usage
+- **Why LAB?**: Perceptually uniform, separates luminance and color information
+- **Alternative**: Could have used other color spaces like YCbCr or HSV
+- **Trade-off**: LAB conversion is more computationally expensive but provides better results
 
-### Podejście 2: Asynchroniczne (WYBRANE)
-- Plusy: skalowalność, wydajność
-- Minusy: złożoność, trudniejszy debug
+#### 2. GPU Acceleration
+- **Implementation**: OpenCL for cross-platform GPU support
+- **Fallback**: Automatic CPU fallback when GPU is unavailable
+- **Performance**: 5-10x speedup on supported hardware
 
-## Potencjalne problemy
-- **Performance:** Może być wąskie gardło przy >1000 req/s
-- **Memory:** Duże obiekty mogą powodować leaks
-- **Concurrency:** Race conditions w shared state
+#### 3. Configuration System
+- **Flexible**: Parameters can be adjusted per operation
+- **Sensible Defaults**: Works well out of the box
+- **Extensible**: Easy to add new parameters
 
-## Następne kroki
-1. **Prototyp** `[[InputValidator]]` - validate basic concept
-2. **Spike** performance test z sample data  
-3. **Design review** z zespołem X
-4. **Implementation** w kolejności: validator → transformer → formatter
+## Implementation Details
 
----
+### Core Classes
 
-## Migration tracking
-### Zaimplementowane (→ [[README]])
-- [ ] Brak jeszcze
+#### LABColorTransfer
+- **Responsibility**: Main orchestrator for color transfer operations
+- **Key Features**:
+  - Multiple transfer methods (basic, adaptive, selective, weighted)
+  - GPU/CPU execution path selection
+  - Configuration management
 
-### Do usunięcia po implementacji
-Gdy component będzie w [[README]] sekcja 2, usuń z concepts:
-- Szczegóły API
-- Konkretne sygnatury metod  
-- Error codes
+#### LABColorTransferGPU
+- **Responsibility**: GPU-accelerated implementations
+- **Key Features**:
+  - OpenCL kernel management
+  - Memory optimization
+  - Error handling and fallback
 
-### Zostaje w concepts na stałe
-- Ogólna koncepcja/filozofia
-- Historia decyzji projektowych
-- Alternatywy które odrzuciliśmy
+#### ImageProcessor
+- **Responsibility**: Image I/O and batch processing
+- **Key Features**:
+  - Multiple input formats (file path, numpy array, PIL Image)
+  - Batch processing support
+  - Progress tracking
+
+### Data Flow
+1. **Input Handling**: Load and validate input images
+2. **Pre-processing**: Convert to appropriate format (numpy array)
+3. **Transfer Execution**: Apply selected color transfer method
+4. **Post-processing**: Handle edge cases, convert back to output format
+5. **Result**: Return processed image(s)
+
+## Performance Considerations
+
+### Memory Management
+- **Optimization**: Batch processing with fixed-size chunks
+- **Limitation**: Large images may require significant GPU memory
+
+### GPU Acceleration
+- **Kernel Optimization**: Tuned for common image sizes
+- **Memory Transfer**: Minimized between host and device
+
+## Integration Points
+
+### Dependencies
+- **Core**: NumPy, Pillow, scikit-image
+- **GPU**: PyOpenCL (optional)
+- **Testing**: pytest, pytest-cov
+
+### API Design
+- **Synchronous API**: Simple, blocking operations
+- **Batch Processing**: For handling multiple images efficiently
+- **Error Handling**: Comprehensive exception hierarchy
+
+## Alternative Approaches Considered
+
+### 1. Pure CPU Implementation
+- **Pros**: Simpler, no external dependencies
+- **Cons**: Significantly slower for large images
+
+### 2. CUDA Instead of OpenCL
+- **Pros**: Potentially better performance on NVIDIA GPUs
+- **Cons**: Less portable, limited to NVIDIA hardware
+
+### 3. Alternative Color Spaces
+- **YCbCr**: Simpler conversion, but less perceptual uniformity
+- **HSV**: Intuitive color representation, but worse for statistical transfer
+
+## Known Limitations
+
+### Performance
+- Large images may cause memory pressure on GPU
+- Initial OpenCL context creation adds overhead for single operations
+
+### Quality
+- Some artifacts may appear with very different source/target images
+- Limited control over local adjustments in basic modes
+
+## Future Enhancements
+
+### Planned Improvements
+1. **Advanced Segmentation**: Better region-aware transfer
+2. **Interactive Preview**: Real-time parameter adjustment
+3. **Hybrid CPU/GPU**: Better load balancing
+4. **Additional Color Spaces**: Support for more color models
+
+### Research Directions
+- Deep learning-based color transfer
+- Content-aware parameter optimization
+- Temporal coherence for video processing
+
+## Migration Notes
+
+### Stable API Components
+- Core transfer methods
+- Configuration system
+- Basic image processing utilities
+
+### Evolving Components
+- GPU acceleration internals
+- Advanced processing modes
+- Helper classes and utilities

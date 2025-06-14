@@ -2,6 +2,10 @@
 trigger: always_on
 ---
 
-## "repomix-docker-linux"
+## "repomix-docker-linux" and "filesystem" paths
 
-When using the "repomix-docker-linux" MCP server, always provide Linux-style absolute paths (e.g. /workspace/...) as arguments for codebase directory or file paths. The root of the mounted workspace is always /workspace inside the container, regardless of the host system path.
+When using the "repomix-docker-linux" or "filesystem" use only relative paths. Use also only linux style paths as all MCP are docker mounted.
+
+vs code project root is accesible at {"path": "/workspace"}
+
+any file is accessible at {"path": "/workspace/file-path"}

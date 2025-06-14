@@ -16,7 +16,7 @@ class LABColorTransfer:
     It now uses scikit-image for robust color conversions and includes
     optimized and refactored transfer methods.
     """
-    def __init__(self, config: LABTransferConfig = None):
+    def __init__(self, config: LABTransferConfig = None, strict_gpu: bool = False):
         self.logger = get_logger()
         self.config = config or LABTransferConfig()
         self.gpu_transfer = None
@@ -24,11 +24,15 @@ class LABColorTransfer:
             try:
                 self.gpu_transfer = LABColorTransferGPU()
                 if not self.gpu_transfer.is_gpu_available():
-                    self.logger.warning("GPU requested, but OpenCL initialization failed. Falling back to CPU.")
-                    self.gpu_transfer = None
+                    self.logger.warning("GPU requested, but OpenCL initialization failed.")
+                    if strict_gpu:
+                        raise RuntimeError("Strict GPU mode failed: GPU not available or OpenCL initialization failed.")
+                    self.gpu_transfer = None # Fallback to CPU
             except Exception as e:
-                self.logger.error(f"Failed to initialize GPU context: {e}. Falling back to CPU.")
-                self.gpu_transfer = None
+                self.logger.error(f"Failed to initialize GPU context: {e}.")
+                if strict_gpu:
+                    raise RuntimeError(f"Strict GPU mode failed during context initialization: {e}")
+                self.gpu_transfer = None # Fallback to CPU
 
     @staticmethod
     @lru_cache(maxsize=16)
@@ -121,13 +125,14 @@ class LABColorTransfer:
         result[..., 2] = source_lab[..., 2] * (1 - b_weight) + target_lab[..., 2] * b_weight
         return result.astype(original_dtype, copy=False)
 
-    def selective_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray) -> np.ndarray:
+    def selective_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, mask: Optional[np.ndarray] = None, selective_channels: List[str] = None, blend_factor: float = 1.0) -> np.ndarray:
         """
         Performs statistical transfer on color channels (a, b) only,
         preserving the luminance (L) of the source image.
         """
         if self.gpu_transfer:
             self.logger.info("Using GPU for selective LAB transfer.")
+            # GPU implementation needs to be updated to handle these parameters
             return self.gpu_transfer.selective_lab_transfer_gpu(source_lab, target_lab)
 
         if source_lab.shape != target_lab.shape:
@@ -137,10 +142,31 @@ class LABColorTransfer:
         src = source_lab.astype(np.float64, copy=False)
         tgt = target_lab.astype(np.float64, copy=False)
         
+        transferred_lab = src.copy()
+        
+        # Default to ['a', 'b'] if not provided
+        if selective_channels is None:
+            selective_channels = ['a', 'b']
+        channel_map = {'L': 0, 'a': 1, 'b': 2}
+
+        # Perform statistical transfer only on selected channels
+        for ch_name in selective_channels:
+            idx = channel_map.get(ch_name)
+            if idx is not None:
+                transferred_lab[..., idx] = self._transfer_channel_stats(src[..., idx], tgt[..., idx])
+
+        # If no mask is provided, return the fully blended transfer
+        if mask is None:
+            return transferred_lab.astype(original_dtype, copy=False)
+
+        # Ensure mask is a 2D boolean array
+        if mask.ndim != 2 or mask.dtype != bool:
+             mask = (mask > 128) # Convert from uint8 to boolean if needed
+
+        # Blend based on mask
         result = src.copy()
-        # Transfer stats for 'a' and 'b' channels
-        for i in [1, 2]:
-            result[..., i] = self._transfer_channel_stats(src[..., i], tgt[..., i])
+        # Apply blending only where mask is True
+        result[mask] = src[mask] * (1 - blend_factor) + transferred_lab[mask] * blend_factor
             
         return result.astype(original_dtype, copy=False)
 
@@ -169,7 +195,7 @@ class LABColorTransfer:
             
         return result.astype(original_dtype, copy=False)
 
-    def adaptive_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray) -> np.ndarray:
+    def adaptive_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, num_segments: int = 3, delta_e_threshold: float = 5.0, min_segment_size_perc: float = 0.01) -> np.ndarray:
         """
         Adaptive LAB transfer based on luminance segmentation. Matches statistics
         between corresponding luminance zones of the source and target images.
@@ -187,27 +213,22 @@ class LABColorTransfer:
         result = src.copy()
 
         src_l, tgt_l = src[..., 0], tgt[..., 0]
+        min_segment_size = int(src_l.size * min_segment_size_perc)
 
         # Define luminance segments based on percentiles
-        src_thresholds = np.percentile(src_l, [33, 66])
-        tgt_thresholds = np.percentile(tgt_l, [33, 66])
+        percentiles = np.linspace(0, 100, num_segments + 1)
+        src_thresholds = np.percentile(src_l, percentiles[1:-1])
+        tgt_thresholds = np.percentile(tgt_l, percentiles[1:-1])
 
-        src_masks = [
-            src_l < src_thresholds[0],
-            (src_l >= src_thresholds[0]) & (src_l < src_thresholds[1]),
-            src_l >= src_thresholds[1]
-        ]
-        tgt_masks = [
-            tgt_l < tgt_thresholds[0],
-            (tgt_l >= tgt_thresholds[0]) & (tgt_l < tgt_thresholds[1]),
-            tgt_l >= tgt_thresholds[1]
-        ]
+        src_masks = np.digitize(src_l, src_thresholds)
+        tgt_masks = np.digitize(tgt_l, tgt_thresholds)
 
         # Process each corresponding segment
-        for i in range(3):
-            src_mask, tgt_mask = src_masks[i], tgt_masks[i]
+        for i in range(num_segments):
+            src_mask = (src_masks == i)
+            tgt_mask = (tgt_masks == i)
 
-            if not np.any(src_mask) or not np.any(tgt_mask):
+            if np.sum(src_mask) < min_segment_size or not np.any(tgt_mask):
                 continue
 
             # Transfer stats for each channel within the segment
