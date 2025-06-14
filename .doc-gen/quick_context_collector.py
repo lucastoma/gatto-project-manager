@@ -6,8 +6,8 @@ import os
 import json # Added for history
 import fnmatch
 
-CONFIG_FILE_NAME = "context_filters.yaml"
-HISTORY_FILE_NAME = "context_history.json"
+CONFIG_FILE_NAME = "config/context_filters.yaml"
+HISTORY_FILE_NAME = "config/context_history.json"
 MAX_HISTORY_ITEMS = 5
 
 class QuickContextCollectorApp:

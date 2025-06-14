@@ -38,7 +38,6 @@ class LABColorTransferGPU:
         Initializes OpenCL context, queue, and compiles the kernel.
         """
         try:
-            # Find a GPU device
             platform = cl.get_platforms()[0]
             devices = platform.get_devices(device_type=cl.device_type.GPU)
             if not devices:
@@ -50,127 +49,104 @@ class LABColorTransferGPU:
             properties = cl.command_queue_properties.PROFILING_ENABLE
             self.queue = cl.CommandQueue(self.context, properties=properties)
             
-            # Load and compile the kernel
             kernel_path = os.path.join(os.path.dirname(__file__), 'kernels.cl')
             with open(kernel_path, 'r') as f:
                 kernel_code = f.read()
             
             self.program = cl.Program(self.context, kernel_code).build()
             self.logger.info("OpenCL initialized and kernel compiled successfully.")
-
         except Exception as e:
-            self.logger.error(f"Failed to initialize OpenCL: {e}")
-            self.context = None # Ensure we fallback to CPU
+            self.logger.error(f"OpenCL initialization failed: {e}")
+            self.context = None
 
-    def is_gpu_available(self) -> bool:
-        """Check if GPU context is successfully initialized."""
+    def is_gpu_available(self):
         return self.context is not None
 
-    def _calculate_histogram_gpu(self, lab_image_buf: 'cl.Buffer', total_pixels: int) -> np.ndarray:
-        """Helper to calculate luminance histogram on the GPU."""
-        hist_bins = 101
-        host_hist = np.zeros(hist_bins, dtype=np.int32)
-        hist_buf = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY | cl.mem_flags.COPY_HOST_PTR, hostbuf=host_hist)
+    def _calculate_stats(self, lab_image_buf, total_pixels):
+        """
+        Calculates mean and std dev for a LAB image buffer on the GPU using parallel reduction.
+        """
+        mf = cl.mem_flags
+        work_group_size = 256
+        num_groups = (total_pixels + work_group_size - 1) // work_group_size
+        global_size = num_groups * work_group_size
 
-        kernel = self.program.calculate_histogram
-        kernel(self.queue, (total_pixels,), None, lab_image_buf, hist_buf, np.int32(total_pixels))
-        cl.enqueue_copy(self.queue, host_hist, hist_buf).wait()
-        return host_hist
+        partial_sums_buf = cl.Buffer(self.context, mf.WRITE_ONLY, num_groups * 6 * 4)
+        local_sums = cl.LocalMemory(work_group_size * 6 * 4)
 
-    def _calculate_stats(self, lab_image: np.ndarray) -> tuple[np.ndarray, np.ndarray]:
-        """Calculates mean and std dev for each channel of a LAB image."""
-        # Ensure calculation is done on float64 for precision, like in the CPU version
-        lab_image_f64 = lab_image.astype(np.float64)
-        mean = np.mean(lab_image_f64, axis=(0, 1))
-        std = np.std(lab_image_f64, axis=(0, 1))
-        return mean, std
+        kernel = self.program.stats_partial_reduce
+        kernel(self.queue, (global_size,), (work_group_size,),
+               lab_image_buf, partial_sums_buf, local_sums, np.int32(total_pixels))
 
-    def _unified_lab_transfer_gpu(self, source_lab: np.ndarray, target_lab: np.ndarray, 
-                                    weights: tuple = (1.0, 1.0, 1.0), selective_mode: bool = False) -> np.ndarray:
-        """Internal method to run the unified OpenCL kernel."""
-        if not self.is_gpu_available():
-            raise RuntimeError("GPU not available. Cannot perform GPU transfer.")
+        partial_sums = np.empty((num_groups, 6), dtype=np.float32)
+        cl.enqueue_copy(self.queue, partial_sums, partial_sums_buf).wait()
 
+        final_sums = np.sum(partial_sums, axis=0)
+        
+        mean = np.array([final_sums[0], final_sums[2], final_sums[4]]) / total_pixels
+        
+        mean_sq = mean**2
+        var = np.array([
+            (final_sums[1] / total_pixels) - mean_sq[0],
+            (final_sums[3] / total_pixels) - mean_sq[1],
+            (final_sums[5] / total_pixels) - mean_sq[2]
+        ])
+        var = np.maximum(var, 0)
+        std = np.sqrt(var)
+
+        return mean.astype(np.float32), std.astype(np.float32)
+
+    def basic_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
+        mf = cl.mem_flags
+        source_lab_f32 = source_lab.astype(np.float32)
+        target_lab_f32 = target_lab.astype(np.float32)
         h, w, _ = source_lab.shape
         total_pixels = h * w
 
-        s_mean, s_std = self._calculate_stats(source_lab)
-        t_mean, t_std = self._calculate_stats(target_lab)
-
-        source_lab_f32 = source_lab.astype(np.float32)
-        result_lab_f32 = np.empty_like(source_lab_f32)
-
-        mf = cl.mem_flags
         source_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=source_lab_f32)
-        result_buf = cl.Buffer(self.context, mf.WRITE_ONLY, result_lab_f32.nbytes)
+        target_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=target_lab_f32)
+        result_buf = cl.Buffer(self.context, mf.WRITE_ONLY, source_lab_f32.nbytes)
 
-        kernel = self.program.unified_lab_transfer
-        kernel(self.queue, (total_pixels,), None,
-               source_buf, result_buf,
-               np.float32(s_mean[0]), np.float32(s_std[0]), np.float32(t_mean[0]), np.float32(t_std[0]),
-               np.float32(s_mean[1]), np.float32(s_std[1]), np.float32(t_mean[1]), np.float32(t_std[1]),
-               np.float32(s_mean[2]), np.float32(s_std[2]), np.float32(t_mean[2]), np.float32(t_std[2]),
-               np.float32(weights[0]), np.float32(weights[1]), np.float32(weights[2]),
-               np.int32(1 if selective_mode else 0),
-               np.int32(total_pixels))
+        s_mean, s_std = self._calculate_stats(source_buf, total_pixels)
+        t_mean, t_std = self._calculate_stats(target_buf, total_pixels)
 
+        self.program.basic_transfer(self.queue, (total_pixels,), None, 
+                                    source_buf, result_buf, 
+                                    cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=s_mean),
+                                    cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=s_std),
+                                    cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=t_mean),
+                                    cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=t_std),
+                                    np.int32(total_pixels))
+
+        result_lab_f32 = np.empty_like(source_lab_f32)
         cl.enqueue_copy(self.queue, result_lab_f32, result_buf).wait()
         return result_lab_f32.astype(source_lab.dtype)
 
-    def basic_lab_transfer_gpu(self, source_lab: np.ndarray, target_lab: np.ndarray) -> np.ndarray:
-        """GPU-accelerated basic LAB color transfer."""
-        return self._unified_lab_transfer_gpu(source_lab, target_lab)
+    def adaptive_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
+        self.logger.warning("Adaptive transfer on GPU is not fully implemented. Falling back to basic transfer.")
+        return self.basic_lab_transfer(source_lab, target_lab, **kwargs)
 
-    def selective_lab_transfer_gpu(self, source_lab: np.ndarray, target_lab: np.ndarray) -> np.ndarray:
-        """GPU-accelerated selective transfer (preserves source L channel)."""
-        return self._unified_lab_transfer_gpu(source_lab, target_lab, selective_mode=True)
-
-    def weighted_lab_transfer_gpu(self, source_lab: np.ndarray, target_lab: np.ndarray, 
-                                  weights: tuple = (1.0, 1.0, 1.0)) -> np.ndarray:
-        """GPU-accelerated weighted transfer."""
-        return self._unified_lab_transfer_gpu(source_lab, target_lab, weights=weights)
-
-    def adaptive_lab_transfer_gpu(self, source_lab: np.ndarray, target_lab: np.ndarray) -> np.ndarray:
-        """
-        Performs adaptive transfer by segmenting the image based on luminance.
-        """
-        if not self.is_gpu_available():
-            raise RuntimeError("GPU not available. Cannot perform GPU transfer.")
-
-        h, w, _ = source_lab.shape
-        total_pixels = h * w
+    def hybrid_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
         mf = cl.mem_flags
-
-        # --- Create buffers for source and target images ---
         source_lab_f32 = source_lab.astype(np.float32)
         target_lab_f32 = target_lab.astype(np.float32)
+        h, w, _ = source_lab.shape
+        total_pixels = h * w
+
         source_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=source_lab_f32)
         target_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=target_lab_f32)
+        source_mask_buf = cl.Buffer(self.context, mf.READ_WRITE, total_pixels * 4)
+        target_mask_buf = cl.Buffer(self.context, mf.READ_WRITE, total_pixels * 4)
 
-        # --- Calculate histograms and percentiles ---
-        source_hist = self._calculate_histogram_gpu(source_buf, total_pixels)
-        target_hist = self._calculate_histogram_gpu(target_buf, total_pixels)
+        l_source = source_lab[:, :, 0].ravel()
+        l_target = target_lab[:, :, 0].ravel()
+        s_p33, s_p66 = np.percentile(l_source, [33, 66])
+        t_p33, t_p66 = np.percentile(l_target, [33, 66])
 
-        def get_percentiles(hist):
-            cdf = np.cumsum(hist)
-            p33 = np.searchsorted(cdf, cdf[-1] * 0.33)
-            p66 = np.searchsorted(cdf, cdf[-1] * 0.66)
-            return float(p33), float(p66)
-
-        s_p33, s_p66 = get_percentiles(source_hist)
-        t_p33, t_p66 = get_percentiles(target_hist)
-        self.logger.info(f"Source thresholds: {s_p33:.2f}, {s_p66:.2f}")
-        self.logger.info(f"Target thresholds: {t_p33:.2f}, {t_p66:.2f}")
-
-        # --- Create segmentation masks on GPU ---
-        source_mask_buf = cl.Buffer(self.context, mf.READ_WRITE, total_pixels * np.dtype(np.int32).itemsize)
-        target_mask_buf = cl.Buffer(self.context, mf.READ_WRITE, total_pixels * np.dtype(np.int32).itemsize)
-
-        mask_kernel = self.program.create_segmentation_mask
+        mask_kernel = self.program.create_luminance_mask
         mask_kernel(self.queue, (total_pixels,), None, source_buf, source_mask_buf, np.float32(s_p33), np.float32(s_p66), np.int32(total_pixels))
         mask_kernel(self.queue, (total_pixels,), None, target_buf, target_mask_buf, np.float32(t_p33), np.float32(t_p66), np.int32(total_pixels))
         
-        # --- Calculate stats for each segment (Hybrid approach) ---
         source_mask = np.empty(total_pixels, dtype=np.int32)
         target_mask = np.empty(total_pixels, dtype=np.int32)
         cl.enqueue_copy(self.queue, source_mask, source_mask_buf).wait()
@@ -190,7 +166,6 @@ class LABColorTransferGPU:
         s_stats = _calculate_segment_stats(source_lab_f32, source_mask)
         t_stats = _calculate_segment_stats(target_lab_f32, target_mask)
 
-        # --- Apply segmented transfer on GPU ---
         s_stats_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=s_stats)
         t_stats_buf = cl.Buffer(self.context, mf.READ_ONLY | mf.COPY_HOST_PTR, hostbuf=t_stats)
         result_buf = cl.Buffer(self.context, mf.WRITE_ONLY, source_lab_f32.nbytes)
@@ -200,7 +175,6 @@ class LABColorTransferGPU:
                         source_buf, source_mask_buf, result_buf, 
                         s_stats_buf, t_stats_buf, np.int32(total_pixels))
 
-        # Read result back to host
         result_lab_f32 = np.empty_like(source_lab_f32)
         cl.enqueue_copy(self.queue, result_lab_f32, result_buf).wait()
 
