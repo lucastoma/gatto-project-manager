@@ -33,7 +33,7 @@ __kernel void stats_partial_reduce(
         // and data_offset_pixels points to the start of the segment in compacted buffer.
         // When used for global stats, data_offset_pixels is 0.
         int base_idx_in_relevant_buffer = i + data_offset_pixels;
-        int pixel_index = base_idx_in_relevant_buffer * 3;
+        int pixel_index = base_idx_in_relevant_buffer * 3; // Each pixel has 3 float values (L, a, b)
         float l = lab_image[pixel_index + 0];
         float a = lab_image[pixel_index + 1];
         float b = lab_image[pixel_index + 2];
@@ -46,9 +46,10 @@ __kernel void stats_partial_reduce(
         local_sums[local_id * 6 + 5] += b * b;
     }
 
+    // Barrier to ensure all local sums are computed
     barrier(CLK_LOCAL_MEM_FENCE);
 
-    // Perform reduction in local memory
+    // Reduction within the work-group
     for (int offset = group_size / 2; offset > 0; offset /= 2) {
         if (local_id < offset) {
             for (int i = 0; i < 6; ++i) {
@@ -58,7 +59,7 @@ __kernel void stats_partial_reduce(
         barrier(CLK_LOCAL_MEM_FENCE);
     }
 
-    // The first work-item in the group writes the group's result to global memory
+    // First work-item in each group writes the result to global memory
     if (local_id == 0) {
         for (int i = 0; i < 6; ++i) {
             partial_sums[group_id * 6 + i] = local_sums[i];
@@ -67,219 +68,290 @@ __kernel void stats_partial_reduce(
 }
 
 
-// --- Kernel for Basic Color Transfer ---
-
-__kernel void basic_transfer(
-    __global const float* source_lab,
-    __global float* result_lab,
-    __global const float* s_mean,
-    __global const float* s_std,
-    __global const float* t_mean,
-    __global const float* t_std,
-    const int total_pixels)
-{
-    int gid = get_global_id(0);
-    if (gid >= total_pixels) return;
-
-    int index = gid * 3;
-
-    for (int i = 0; i < 3; ++i) {
-        float s_pixel = source_lab[index + i];
-        float std_ratio = (s_std[i] > 1e-6f) ? (t_std[i] / s_std[i]) : 1.0f;
-        result_lab[index + i] = (s_pixel - s_mean[i]) * std_ratio + t_mean[i];
-    }
-}
-
-
-// --- Kernels for Hybrid/Segmented Transfer ---
+// --- Kernels for Adaptive Transfer (Luminance-based Segmentation) ---
 
 /*
- * Creates a 3-segment mask based on L-channel percentiles.
+ * Kernel 1: Create Luminance Mask
+ * Assigns each pixel to a segment based on its L value.
+ * Output: segment_indices_map (for each pixel, its segment index)
  */
 __kernel void create_luminance_mask(
     __global const float* lab_image,
-    __global int* mask,
-    const float threshold1, // e.g., 33rd percentile
-    const float threshold2, // e.g., 66th percentile
-    const int total_pixels)
-{
-    int gid = get_global_id(0);
-    if (gid >= total_pixels) return;
+    __global int* segment_indices_map,
+    const int num_segments, // Added num_segments argument
+    const int width,
+    const int height
+) {
+    int id = get_global_id(0);
+    int num_pixels = width * height;
 
-    float l_value = lab_image[gid * 3];
-
-    if (l_value <= threshold1) {
-        mask[gid] = 0; // Dark segment
-    } else if (l_value <= threshold2) {
-        mask[gid] = 1; // Mid segment
-    } else {
-        mask[gid] = 2; // Bright segment
-    }
-}
-
-/*
- * Applies color transfer based on pre-calculated segment statistics.
- */
-__kernel void apply_segmented_transfer(
-    __global const float* source_lab,
-    __global const int* source_mask,
-    __global float* result_lab,
-    __global const float* s_stats,   // Source stats [seg0_L_mean, seg0_L_std, ...]
-    __global const float* t_stats,   // Target stats [seg0_L_mean, seg0_L_std, ...]
-    const int total_pixels)
-{
-    int gid = get_global_id(0);
-    if (gid >= total_pixels) return;
-
-    int segment_index = source_mask[gid];
-    int pixel_index = gid * 3;
-    int stats_base_index = segment_index * 6; // 6 stats per segment (mean/std for L,a,b)
-
-    for (int i = 0; i < 3; ++i) {
-        int stats_offset = stats_base_index + i * 2;
-        
-        float s_mean = s_stats[stats_offset + 0];
-        float s_std  = s_stats[stats_offset + 1];
-        float t_mean = t_stats[stats_offset + 0];
-        float t_std  = t_stats[stats_offset + 1];
-
-        float pixel_val = source_lab[pixel_index + i];
-        float std_ratio = (s_std > 1e-6f) ? (t_std / s_std) : 1.0f;
-
-        result_lab[pixel_index + i] = (pixel_val - s_mean) * std_ratio + t_mean;
-    }
-}
-
-// --- Kernel for Selective Color Transfer ---
-
-/*
- * Applies selective color transfer based on a mask, blend factor, and selected channels.
- */
-__kernel void selective_transfer(
-    __global const float* source_lab,
-    __global float* result_lab,
-    __global const uchar* mask, // Mask (0-255), single channel
-    __global const float* s_mean,
-    __global const float* s_std,
-    __global const float* t_mean,
-    __global const float* t_std,
-    const float blend_factor,
-    const int process_l, // Flag to process L channel
-    const int process_a, // Flag to process a channel
-    const int process_b, // Flag to process b channel
-    const int total_pixels)
-{
-    int gid = get_global_id(0);
-    if (gid >= total_pixels) return;
-
-    int index = gid * 3;
-    
-    // If mask value is low, just copy the source pixel to the result
-    if (mask[gid] < 128) {
-        result_lab[index + 0] = source_lab[index + 0];
-        result_lab[index + 1] = source_lab[index + 1];
-        result_lab[index + 2] = source_lab[index + 2];
+    if (id >= num_pixels || num_segments <= 0) { // Added check for num_segments
         return;
     }
 
-    // Process L channel
-    float s_pixel_l = source_lab[index + 0];
-    if (process_l == 1) {
-        float std_ratio_l = (s_std[0] > 1e-6f) ? (t_std[0] / s_std[0]) : 1.0f;
-        float transferred_pixel_l = (s_pixel_l - s_mean[0]) * std_ratio_l + t_mean[0];
-        result_lab[index + 0] = (transferred_pixel_l * blend_factor) + (s_pixel_l * (1.0f - blend_factor));
-    } else {
-        result_lab[index + 0] = s_pixel_l;
-    }
+    float l_value = lab_image[id * 3]; // L channel
 
-    // Process a channel
-    float s_pixel_a = source_lab[index + 1];
-    if (process_a == 1) {
-        float std_ratio_a = (s_std[1] > 1e-6f) ? (t_std[1] / s_std[1]) : 1.0f;
-        float transferred_pixel_a = (s_pixel_a - s_mean[1]) * std_ratio_a + t_mean[1];
-        result_lab[index + 1] = (transferred_pixel_a * blend_factor) + (s_pixel_a * (1.0f - blend_factor));
+    // Dynamic segmentation based on num_segments, assuming L range [0, 100]
+    const float l_min = 0.0f;
+    const float l_max = 100.0f;
+    
+    if (num_segments == 1) {
+        segment_indices_map[id] = 0;
     } else {
-        result_lab[index + 1] = s_pixel_a;
-    }
-
-    // Process b channel
-    float s_pixel_b = source_lab[index + 2];
-    if (process_b == 1) {
-        float std_ratio_b = (s_std[2] > 1e-6f) ? (t_std[2] / s_std[2]) : 1.0f;
-        float transferred_pixel_b = (s_pixel_b - s_mean[2]) * std_ratio_b + t_mean[2];
-        result_lab[index + 2] = (transferred_pixel_b * blend_factor) + (s_pixel_b * (1.0f - blend_factor));
-    } else {
-        result_lab[index + 2] = s_pixel_b;
+        float segment_width = (l_max - l_min) / (float)num_segments;
+        if (segment_width < 0.00001f) { // Avoid division by zero or very small width
+            segment_indices_map[id] = 0; // Default to first segment
+        } else {
+            int segment_index = (int)((l_value - l_min) / segment_width);
+            segment_indices_map[id] = clamp(segment_index, 0, num_segments - 1);
+        }
     }
 }
 
-// --- Kernels for GPU-side Segment Statistics Calculation ---
-
 /*
- * Counts pixels belonging to each segment.
+ * Kernel 2: Count Pixels per Segment
+ * Counts how many pixels fall into each segment.
+ * Output: segment_pixel_counts (array of size N, storing pixel count for each segment)
+ * Host must initialize segment_pixel_counts to zeros.
  */
 __kernel void count_pixels_per_segment(
-    __global const int* segment_mask,      // input: mask identifying segment for each pixel
-    __global int* segment_counts,          // output: array to store counts for each segment (atomic)
-    const int total_image_pixels)
-{
-    int gid = get_global_id(0);
-    if (gid >= total_image_pixels) return;
+    __global const int* segment_indices_map,
+    __global int* segment_pixel_counts,
+    const int num_segments, // Added num_segments argument
+    const int total_pixels
+) {
+    int id = get_global_id(0);
 
-    int segment_id = segment_mask[gid];
-    // Ensure segment_id is valid before atomic operation if necessary, though create_luminance_mask produces 0,1,2.
-    atomic_inc(&segment_counts[segment_id]);
+    if (id >= total_pixels) {
+        return;
+    }
+
+    int segment_idx = segment_indices_map[id];
+
+    // Ensure segment_idx is within bounds [0, num_segments - 1] before atomic operation.
+    if (segment_idx >= 0 && segment_idx < num_segments) {
+        atomic_inc(&segment_pixel_counts[segment_idx]);
+    }
 }
 
 /*
- * Scatters pixel LAB data into a compacted buffer, ordered by segment.
+ * Kernel 3: Calculate Segment Offsets (Exclusive Scan)
+ * Calculates the starting offset for each segment in the compacted data array.
+ * Output: segment_offsets (array of size N, storing start offset for each segment)
+ * This is typically done on the host after K2, or can be a separate kernel if needed.
+ * For simplicity, this step is often handled on the host. If done in a kernel:
  */
-__kernel void scatter_pixels_by_segment(
-    __global const float* source_lab,      // input: original lab image data (full image)
-    __global const int* segment_mask,      // input: mask identifying segment for each pixel
-    __global const int* segment_offsets,   // input: starting offset for each segment in compacted_data
-    __global int* scatter_counters,        // temp: atomic counters for current write pos within each segment block (init to 0)
-    __global float* compacted_lab_data,    // output: lab data reordered by segment
-    const int total_image_pixels)
-{
-    int gid = get_global_id(0);
-    if (gid >= total_image_pixels) return;
-
-    int segment_id = segment_mask[gid];
-    
-    // Get the unique position for this pixel within its segment's block in the compacted_lab_data
-    int local_offset_in_segment = atomic_inc(&scatter_counters[segment_id]);
-    
-    int output_pixel_idx = segment_offsets[segment_id] + local_offset_in_segment;
-    
-    // Copy L, a, b values from source_lab (indexed by gid) to compacted_lab_data (indexed by output_pixel_idx)
-    compacted_lab_data[output_pixel_idx * 3 + 0] = source_lab[gid * 3 + 0];
-    compacted_lab_data[output_pixel_idx * 3 + 1] = source_lab[gid * 3 + 1];
-    compacted_lab_data[output_pixel_idx * 3 + 2] = source_lab[gid * 3 + 2];
+__kernel void calculate_segment_offsets(
+    __global const int* segment_pixel_counts, // Input: counts from K2
+    __global int* segment_offsets,            // Output: offsets
+    const int num_segments
+) {
+    // This kernel is best run as a single work-item or small work-group on host-like logic
+    if (get_global_id(0) == 0) {
+        segment_offsets[0] = 0;
+        for (int i = 1; i < num_segments; ++i) {
+            segment_offsets[i] = segment_offsets[i-1] + segment_pixel_counts[i-1];
+        }
+    }
 }
 
-// --- Kernel for Selective LAB Color Transfer ---
-__kernel void selective_transfer_kernel(__global const float* source_lab,
-                                      __global const float* target_lab,
-                                      __global const uchar* mask,
-                                      __global float* result_lab,
-                                      const int process_L,
-                                      const int process_a,
-                                      const int process_b,
-                                      const float blend_factor,
-                                      const int width,
-                                      const int height) {
+
+/*
+ * Kernel 4: Scatter Pixels by Segment (into a compacted buffer)
+ * Rearranges pixel data so that all pixels belonging to the same segment are contiguous.
+ * Output: compacted_lab_data (LAB data, pixels grouped by segment)
+ *         temp_segment_counters (used to track current write position for each segment)
+ * Host must initialize temp_segment_counters to zeros.
+ */
+__kernel void scatter_pixels_by_segment(
+    __global const float* original_lab_image,
+    __global const int* segment_indices_map,
+    __global const int* segment_offsets,      // Input: offsets from K3
+    __global float* compacted_lab_data,
+    __global int* temp_segment_counters,      // Temp buffer, size N, init to 0 by host
+    const int num_segments,                   // Added num_segments
+    const int width,
+    const int height
+) {
     int id = get_global_id(0);
-    // total_pixels can be derived from width * height, but since we have global_id directly related to pixels,
-    // we can use it up to width*height. The check `id >= num_pixels` handles out-of-bounds.
+    int total_pixels = width * height;
+
+    if (id >= total_pixels) {
+        return;
+    }
+
+    int segment_idx = segment_indices_map[id];
+    if (segment_idx < 0 || segment_idx >= num_segments) return; // Safety check
+
+    // Get the current write position for this segment and increment it atomically
+    int write_pos_in_segment = atomic_inc(&temp_segment_counters[segment_idx]);
+    
+    // Calculate the final write index in the compacted buffer
+    int compacted_idx = segment_offsets[segment_idx] + write_pos_in_segment;
+
+    // Copy L, a, b values
+    compacted_lab_data[compacted_idx * 3 + 0] = original_lab_image[id * 3 + 0];
+    compacted_lab_data[compacted_idx * 3 + 1] = original_lab_image[id * 3 + 1];
+    compacted_lab_data[compacted_idx * 3 + 2] = original_lab_image[id * 3 + 2];
+}
+
+
+/*
+ * Kernel 5: Apply Segmented Transfer
+ * Applies basic statistical transfer independently for each segment.
+ * Uses stats_partial_reduce for calculating stats per segment.
+ * Output: result_lab_image (final processed image)
+ * This kernel is more complex as it orchestrates stats calculation and application.
+ * A simplified version might just apply pre-calculated scale/offset factors.
+ * Here, we assume scale/offset factors (mean_s, std_s, mean_t, std_t for L,a,b for each segment)
+ * are pre-calculated on the host after stats_partial_reduce is run for each segment
+ * on both source and target (compacted) data.
+ */
+__kernel void apply_segmented_transfer(
+    __global const float* source_lab_image, // Original source image
+    __global float* result_lab_image,       // Output image
+    __global const int* segment_indices_map,
+    __global const float* segment_stats_source, // Array: [seg0_meanL_s, seg0_stdL_s, seg0_meanA_s, ..., segN_stdB_s] (6*N floats)
+    __global const float* segment_stats_target, // Array: [seg0_meanL_t, seg0_stdL_t, ..., segN_stdB_t] (6*N floats)
+    const int num_segments,
+    const int width,
+    const int height
+) {
+    int id = get_global_id(0);
+    int total_pixels = width * height;
+
+    if (id >= total_pixels) {
+        return;
+    }
+
+    int segment_idx = segment_indices_map[id];
+    if (segment_idx < 0 || segment_idx >= num_segments) return; // Safety
+
+    int stats_base_idx = segment_idx * 6; // 6 stats per segment (mean_l, std_l, mean_a, std_a, mean_b, std_b)
+
+    float src_l = source_lab_image[id * 3 + 0];
+    float src_a = source_lab_image[id * 3 + 1];
+    float src_b = source_lab_image[id * 3 + 2];
+
+    float mean_l_s = segment_stats_source[stats_base_idx + 0];
+    float std_l_s  = segment_stats_source[stats_base_idx + 1];
+    float mean_a_s = segment_stats_source[stats_base_idx + 2];
+    float std_a_s  = segment_stats_source[stats_base_idx + 3];
+    float mean_b_s = segment_stats_source[stats_base_idx + 4];
+    float std_b_s  = segment_stats_source[stats_base_idx + 5];
+
+    float mean_l_t = segment_stats_target[stats_base_idx + 0];
+    float std_l_t  = segment_stats_target[stats_base_idx + 1];
+    float mean_a_t = segment_stats_target[stats_base_idx + 2];
+    float std_a_t  = segment_stats_target[stats_base_idx + 3];
+    float mean_b_t = segment_stats_target[stats_base_idx + 4];
+    float std_b_t  = segment_stats_target[stats_base_idx + 5];
+
+    // Apply transfer: (val - mean_s) * (std_t / std_s) + mean_t
+    // Add epsilon to std_s to avoid division by zero
+    float epsilon = 1e-6f;
+
+    result_lab_image[id * 3 + 0] = (src_l - mean_l_s) * (std_l_t / (std_l_s + epsilon)) + mean_l_t;
+    result_lab_image[id * 3 + 1] = (src_a - mean_a_s) * (std_a_t / (std_a_s + epsilon)) + mean_a_t;
+    result_lab_image[id * 3 + 2] = (src_b - mean_b_s) * (std_b_t / (std_b_s + epsilon)) + mean_b_t;
+}
+
+
+// --- Kernel for Basic Color Transfer ---
+__kernel void basic_transfer_kernel(
+    __global const float* source_lab,
+    __global float* result_lab,
+    const float src_mean_l, const float src_std_l,
+    const float src_mean_a, const float src_std_a,
+    const float src_mean_b, const float src_std_b,
+    const float tgt_mean_l, const float tgt_std_l,
+    const float tgt_mean_a, const float tgt_std_a,
+    const float tgt_mean_b, const float tgt_std_b,
+    const int width, const int height) {
+    
+    int id = get_global_id(0);
     int num_pixels = width * height;
 
     if (id >= num_pixels) {
         return;
     }
 
-    // Assuming source_lab, target_lab, result_lab are 1D arrays storing 3 floats (L,a,b) per pixel.
-    // Mask is a 1D array storing 1 uchar per pixel.
+    int base_idx = id * 3;
+    float l = source_lab[base_idx + 0];
+    float a = source_lab[base_idx + 1];
+    float b = source_lab[base_idx + 2];
+
+    float epsilon = 1e-6f; // To prevent division by zero
+
+    // Transfer L channel
+    l = (l - src_mean_l) * (tgt_std_l / (src_std_l + epsilon)) + tgt_mean_l;
+    // Transfer a channel
+    a = (a - src_mean_a) * (tgt_std_a / (src_std_a + epsilon)) + tgt_mean_a;
+    // Transfer b channel
+    b = (b - src_mean_b) * (tgt_std_b / (src_std_b + epsilon)) + tgt_mean_b;
+
+    result_lab[base_idx + 0] = l;
+    result_lab[base_idx + 1] = a;
+    result_lab[base_idx + 2] = b;
+}
+
+// --- Kernel for Weighted Color Transfer ---
+__kernel void weighted_transfer_kernel(
+    __global const float* source_lab,
+    __global float* result_lab,
+    const float src_mean_l, const float src_std_l,
+    const float src_mean_a, const float src_std_a,
+    const float src_mean_b, const float src_std_b,
+    const float tgt_mean_l, const float tgt_std_l,
+    const float tgt_mean_a, const float tgt_std_a,
+    const float tgt_mean_b, const float tgt_std_b,
+    const float weight_l, const float weight_a, const float weight_b,
+    const int width, const int height) {
+
+    int id = get_global_id(0);
+    int num_pixels = width * height;
+
+    if (id >= num_pixels) {
+        return;
+    }
+
+    int base_idx = id * 3;
+    float l_s = source_lab[base_idx + 0];
+    float a_s = source_lab[base_idx + 1];
+    float b_s = source_lab[base_idx + 2];
+
+    float epsilon = 1e-6f;
+
+    // Transformed values
+    float l_t = (l_s - src_mean_l) * (tgt_std_l / (src_std_l + epsilon)) + tgt_mean_l;
+    float a_t = (a_s - src_mean_a) * (tgt_std_a / (src_std_a + epsilon)) + tgt_mean_a;
+    float b_t = (b_s - src_mean_b) * (tgt_std_b / (src_std_b + epsilon)) + tgt_mean_b;
+
+    // Weighted average
+    result_lab[base_idx + 0] = (1.0f - weight_l) * l_s + weight_l * l_t;
+    result_lab[base_idx + 1] = (1.0f - weight_a) * a_s + weight_a * a_t;
+    result_lab[base_idx + 2] = (1.0f - weight_b) * b_s + weight_b * b_t;
+}
+
+
+// --- Kernel for Selective Color Transfer ---
+__kernel void selective_transfer_kernel(__global const float* source_lab,
+                                      __global const float* target_lab,
+                                      __global const uchar* mask, // uchar mask
+                                      __global float* result_lab,
+                                      const int process_L, // Boolean flags (0 or 1)
+                                      const int process_a,
+                                      const int process_b,
+                                      const float blend_factor,
+                                      const int width,
+                                      const int height) {
+    int id = get_global_id(0);
+    int num_pixels = width * height;
+
+    if (id >= num_pixels) {
+        return;
+    }
+
     int base_idx = id * 3; 
     uchar mask_value = mask[id];
 
@@ -289,7 +361,7 @@ __kernel void selective_transfer_kernel(__global const float* source_lab,
     float source_a_val = source_lab[base_idx + 1];
     float source_b_val = source_lab[base_idx + 2];
 
-    if (mask_value > 0) { // Apply transfer only in masked area (mask value non-zero)
+    if (mask_value > 0) { 
         float target_L_val = target_lab[base_idx + 0];
         float target_a_val = target_lab[base_idx + 1];
         float target_b_val = target_lab[base_idx + 2];
@@ -311,7 +383,7 @@ __kernel void selective_transfer_kernel(__global const float* source_lab,
         } else {
             final_b = source_b_val;
         }
-    } else { // Outside mask, keep source values
+    } else { 
         final_L = source_L_val;
         final_a = source_a_val;
         final_b = source_b_val;
@@ -321,4 +393,3 @@ __kernel void selective_transfer_kernel(__global const float* source_lab,
     result_lab[base_idx + 1] = final_a;
     result_lab[base_idx + 2] = final_b;
 }
-

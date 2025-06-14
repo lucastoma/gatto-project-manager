@@ -42,3 +42,9 @@ logs/**/*
 
 .doc/**/*
 .history/**/*
+
+
+gatto__filesystem/dist/**/*
+gatto__filesystem/node_modules/**/*
+gatto_filesystem_v2/dist/**/*
+gatto_filesystem_v2/node_modules/**/*
