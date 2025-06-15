@@ -2,12 +2,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { minimatch } from 'minimatch';
 import { lookup as mimeLookup } from 'mime-types';
-import { classifyFileType, FileType } from '../utils/binaryDetect.js';
-import { PerformanceTimer } from '../utils/performance.js';
-import { validatePath } from './security.js';
-import { shouldSkipPath } from '../utils/pathFilter.js';
+import { classifyFileType, FileType } from '../utils/binaryDetect';
+import { PerformanceTimer } from '../utils/performance';
+import { validatePath } from './security';
+import { shouldSkipPath } from '../utils/pathFilter';
 import type { Logger } from 'pino';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 export interface FileInfo {
   size: number;
@@ -147,7 +147,7 @@ export async function searchFiles(
   return results;
 }
 
-import type { DirectoryTreeEntry } from './schemas.js';
+import type { DirectoryTreeEntry } from './schemas';
 
 export async function getDirectoryTree(
   basePath: string,

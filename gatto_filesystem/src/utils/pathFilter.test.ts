@@ -1,7 +1,7 @@
-import { shouldSkipPath } from './pathFilter.js';
-import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+import { shouldSkipPath } from './pathFilter';
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions';
 
-import { Config } from '../server/config.js'; // Import the Config type
+import { Config } from '../server/config'; // Import the Config type
 
 // Define the type for overrides to allow partial nested objects
 type MockConfigOverrides = {

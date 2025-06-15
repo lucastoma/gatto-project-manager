@@ -1,14 +1,15 @@
 ﻿# Projekt: gatto nero mcp no node and dist
 ## Katalog główny: `/home/lukasz/projects/gatto-ps-ai`
-## Łączna liczba unikalnych plików: 24
+## Łączna liczba unikalnych plików: 28
 ---
 ## Grupa: gatto nero mcp no node and dist
 **Opis:** kod gatto nerro mcp filesystem
-**Liczba plików w grupie:** 24
+**Liczba plików w grupie:** 28
 
 ### Lista plików:
 - `index.ts`
 - `src/constants/extensions.ts`
+- `src/e2e/__tests__/filesystem.e2e.test.ts`
 - `src/utils/hintMap.ts`
 - `src/utils/pathFilter.test.ts`
 - `src/utils/__tests__/binaryDetect.test.ts`
@@ -28,9 +29,12 @@
 - `src/core/toolHandlers.ts`
 - `src/core/security.test.ts`
 - `src/core/schemas.ts`
+- `test.cl`
 - `package.json`
+- `debug-e2e.js`
 - `tsconfig.json`
 - `test-filtering.js`
+- `fix-imports.js`
 
 ### Zawartość plików:
 #### Plik: `index.ts`
@@ -59,6 +63,122 @@ export const DEFAULT_ALLOWED_EXTENSIONS: string[] = [
     '*.pm', '*.r', '*.jl', '*.dart', '*.groovy', '*.gradle', '*.nim', '*.zig', '*.v',
     '*.vh', '*.vhd', '*.cl', '*.tex', '*.sty', '*.cls', '*.rst', '*.adoc', '*.asciidoc'
 ];
+```
+#### Plik: `src/e2e/__tests__/filesystem.e2e.test.ts`
+```ts
+import path from 'path';
+import fs from 'fs';
+import type { ChildProcess } from 'child_process';
+
+// Używamy require zamiast import dla SDK, ponieważ TypeScript nie może znaleźć deklaracji typów
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { Client } = require('@modelcontextprotocol/sdk/client');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio');
+
+// Zwiększamy timeout, aby dać czas na kompilację i start serwera
+jest.setTimeout(30000);
+
+describe('MCP Filesystem – E2E (Stdio)', () => {
+  let transport: any; // Używamy any, ponieważ dokładna struktura StdioClientTransport jest nieznana
+  let client: typeof Client;
+
+  beforeAll(async () => {
+    const projectRoot = process.cwd();
+    const serverPath = path.join(projectRoot, 'src/server/index.ts');
+    const tsxBin = path.join(projectRoot, 'node_modules/.bin/tsx');
+    
+    console.log('Project root:', projectRoot);
+    console.log('Server path:', serverPath);
+    console.log('TSX binary path:', tsxBin);
+    console.log('TSX exists:', fs.existsSync(tsxBin));
+
+    // Konfigurujemy nasłuchiwanie stderr bezpośrednio w opcjach transportu
+    const stderrChunks: Buffer[] = [];
+    
+    transport = new StdioClientTransport({
+      command: tsxBin,
+      args: [serverPath],
+      stderr: 'pipe',
+      onStderr: (chunk: Buffer) => {
+        stderrChunks.push(chunk);
+        console.error(`[SERVER STDERR]: ${chunk.toString()}`);
+      }
+    });
+    
+    console.log('Transport created successfully');
+
+    client = new Client({ name: 'e2e-test-client', version: '0.0.0' });
+    await client.connect(transport);
+  });
+
+  afterAll(async () => {
+    try {
+      if (client && client.isConnected) {
+        await client.close();
+      }
+    } catch {/* ignore */ }
+    if (transport?.close) {
+      await transport.close();
+    }
+  });
+
+  it('initializes and lists available tools', async () => {
+    console.log('Client connected successfully. Setting up timeout protection...');
+    
+    // Implementacja race z timeoutem dla bezpieczeństwa
+    async function withTimeout<T>(promise: Promise<T>, timeoutMs: number, name: string): Promise<T> {
+      let timeoutId: NodeJS.Timeout;
+      const timeoutPromise = new Promise<never>((_, reject) => {
+        timeoutId = setTimeout(() => {
+          reject(new Error(`Operation ${name} timed out after ${timeoutMs}ms`));
+        }, timeoutMs);
+      });
+      
+      try {
+        const result = await Promise.race([promise, timeoutPromise]);
+        clearTimeout(timeoutId!);
+        return result as T;
+      } catch (error) {
+        clearTimeout(timeoutId!);
+        console.error(`Error in ${name}:`, error);
+        throw error;
+      }
+    }
+    
+    try {
+      // Sprawdź czy klient jest poprawnie zainicjalizowany
+      console.log('Checking client state before request:', { 
+        isConnected: client.isConnected,
+        transport: transport ? 'Transport exists' : 'Transport is undefined'
+      });
+      
+      console.log('Sending tools/list request with 5s timeout...');
+      const listToolsResp = await withTimeout(
+        client.request('tools/list', {}),
+        5000,
+        'tools/list request'
+      );
+      
+      console.log('Tools response:', JSON.stringify(listToolsResp, null, 2));
+
+      // Poprawiona asercja sprawdzająca pole 'tools' w odpowiedzi
+      const tools = (listToolsResp as any)?.tools;
+      console.log('Tools found:', tools ? tools.length : 'undefined');
+      expect(tools).toBeDefined();
+      expect(tools).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: 'read_file' }),
+        expect.objectContaining({ name: 'write_file' }),
+        expect.objectContaining({ name: 'list_directory' }),
+      ]));
+    } catch (error) {
+      console.error('Error calling tools/list:', error);
+      throw error;
+    } finally {
+      console.log('Test completed (either success or failure)');
+    }
+  });
+});
 ```
 #### Plik: `src/utils/hintMap.ts`
 ```ts
@@ -114,10 +234,10 @@ export const HINTS: Record<string, HintInfo> = {
 ```
 #### Plik: `src/utils/pathFilter.test.ts`
 ```ts
-import { shouldSkipPath } from './pathFilter.js';
-import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+import { shouldSkipPath } from './pathFilter';
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions';
 
-import { Config } from '../server/config.js'; // Import the Config type
+import { Config } from '../server/config'; // Import the Config type
 
 // Define the type for overrides to allow partial nested objects
 type MockConfigOverrides = {
@@ -329,8 +449,8 @@ describe('classifyFileType', () => {
 ```ts
 import path from 'node:path';
 import { minimatch } from 'minimatch';
-import type { Config } from '../server/config.js';
-import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+import type { Config } from '../server/config';
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions';
 
 /** Zwraca true, jeśli ścieżka powinna być pominięta (wykluczona). */
 export function shouldSkipPath(filePath: string, config: Config): boolean {
@@ -447,7 +567,7 @@ export function classifyFileType(buffer: Buffer, filename?: string): FileType {
 ```ts
 import { performance } from 'node:perf_hooks';
 import type { Logger } from 'pino';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 export class PerformanceTimer {
   private startTime: number;
@@ -496,59 +616,29 @@ export function expandHome(filepath: string): string {
 ```ts
 #!/usr/bin/env node
 
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import { SseServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'; // New import - Renamed and path changed
-import express from 'express'; // New import
-import * as http from 'node:http'; // New import for type
+// ZMIANA: Używamy require dla modułów SDK, aby zapewnić spójne i niezawodne ładowanie
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { Server } = require('@modelcontextprotocol/sdk/server');
+// eslint-disable-next-line @typescript-eslint/no-var-requires
+const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio');
+
+// Pozostałe importy (lokalne i z innych paczek) pozostają jako 'import'
 import * as pino from 'pino';
 import { promises as fs } from 'node:fs';
 import fsSync from 'node:fs';
 import path from 'node:path';
 
-import { getConfig } from './config.js';
-import { setupToolHandlers } from '../core/toolHandlers.js';
-// import * as schemas from '../core/schemas.js'; // This line seems unused, can be kept or removed
-import { expandHome, normalizePath } from '../utils/pathUtils.js';
-
-let runningServer: Server | undefined;
-let httpServer: http.Server | undefined; // New global for HTTP server instance
-
-async function shutdown(signal: NodeJS.Signals, logger: pino.Logger) {
-  logger.info({ signal }, 'Received termination signal, shutting down gracefully');
-  try {
-    if (runningServer) {
-      // await runningServer.disconnect(); // Not supported by SDK
-    }
-    if (httpServer) {
-      await new Promise<void>((resolve, reject) => {
-        httpServer!.close((err) => { // Added null assertion as httpServer will be defined if this branch is hit
-          if (err) {
-            logger.error({ err }, 'Error closing HTTP server');
-            reject(err);
-            return;
-          }
-          logger.info('HTTP server closed.');
-          resolve();
-        });
-      });
-    }
-  } catch (err) {
-    logger.error({ err }, 'Error during graceful shutdown');
-  } finally {
-    // Give some time for logs and server to close
-    setTimeout(() => process.exit(0), 500); // Increased timeout
-  }
-}
+import { getConfig } from './config';
+import { setupToolHandlers } from '../core/toolHandlers';
+import { expandHome, normalizePath } from '../utils/pathUtils';
 
 async function main() {
-  const config = await getConfig(process.argv.slice(2)); // Pass CLI args to getConfig
+  const config = await getConfig(process.argv.slice(2));
 
   const logsDir = path.join(process.cwd(), 'logs');
   try {
     await fs.mkdir(logsDir, { recursive: true });
   } catch (err) {
-    // Log to console as logger might not be set up yet
     console.error('Could not create logs directory:', err);
   }
 
@@ -557,16 +647,15 @@ async function main() {
   const logger = pino.pino(
     {
       level: config.logging.level,
-      timestamp: () => `,"timestamp":"${new Date().toISOString()}"`, // Ensure correct JSON formatting for timestamp
-      base: { service: 'mcp-filesystem-server', version: '0.7.0' } // Updated version or make dynamic
+      timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+      base: { service: 'mcp-filesystem-server', version: '0.7.0' }
     },
     pino.multistream([
-      { stream: process.stdout },
-      { stream: fileStream, level: 'info' } // Ensure fileStream is correctly initialized
+      { stream: process.stderr },
+      { stream: fileStream, level: 'info' }
     ])
   );
 
-  // Logger wrappers (ensure these are robust)
   const logWithPaths = (logFn: pino.LogFn) => (objOrMsg: any, ...args: any[]) => {
     let logObject: any = {};
     if (typeof objOrMsg === 'string') {
@@ -574,7 +663,6 @@ async function main() {
     } else {
       logObject = { ...objOrMsg };
     }
-
     if (config.logging.level === 'debug') {
       if (logObject.path && typeof logObject.path === 'string') {
         logObject.absolutePath = normalizePath(path.resolve(logObject.path));
@@ -585,12 +673,10 @@ async function main() {
     }
     return logFn(logObject, ...args);
   };
-
   logger.info = logWithPaths(logger.info.bind(logger));
   logger.debug = logWithPaths(logger.debug.bind(logger));
   logger.error = logWithPaths(logger.error.bind(logger));
   logger.warn = logWithPaths(logger.warn.bind(logger));
-
 
   const allowedDirectories = config.allowedDirectories.map((dir: string) => normalizePath(path.resolve(expandHome(dir))));
 
@@ -598,7 +684,7 @@ async function main() {
     try {
       const stats = await fs.stat(dir);
       if (!stats.isDirectory()) {
-        logger.error({ directory: dir }, `Error: ${dir} is not a directory`); // Pass object to logger
+        logger.error({ directory: dir }, `Error: ${dir} is not a directory`);
         process.exit(1);
       }
     } catch (error) {
@@ -608,83 +694,25 @@ async function main() {
   }));
 
   const server = new Server(
-    { name: 'secure-filesystem-server', version: '0.7.0' }, // Ensure version is consistent or dynamic
+    { name: 'secure-filesystem-server', version: '0.7.0' },
     { capabilities: { tools: {} } }
   );
 
-  runningServer = server;
   setupToolHandlers(server, allowedDirectories, logger, config);
 
-  const transportType = process.env.MCP_SERVER_TRANSPORT || 'stdio'; // Default to stdio
-  const serverPort = parseInt(process.env.MCP_SERVER_PORT || '3001', 10);
+  // ZMIANA: Uproszczona logika - na ten moment serwer obsługuje tylko stdio.
+  // Aby włączyć HTTP, należy zaktualizować SDK do nowszej wersji.
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+  logger.info({ version: '0.7.0', transport: 'Stdio', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started via Stdio');
 
-  if (transportType.toLowerCase() === 'http') {
-    const app = express();
-    app.use(express.json());
+  logger.info('Server is running. Press Ctrl+C to exit.');
 
-    const httpTransport = new SseServerTransport({ // Renamed
-      // For E2E tests, a simple setup without session management initially.
-      // Session ID generator can be undefined for stateless or simple stateful.
-      // onsessioninitialized and onclose can be added if session management becomes complex.
-    });
-
-    await server.connect(httpTransport);
-
-    app.post('/mcp', async (req, res) => {
-      try {
-        await httpTransport.handleRequest(req, res, req.body);
-      } catch (e: any) {
-        logger.error({ err: e, path: req.path, method: req.method }, "Error handling HTTP POST request");
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Internal server error" });
-        }
-      }
-    });
-
-    app.get('/mcp', async (req, res) => {
-      try {
-        await httpTransport.handleRequest(req, res); // For SSE
-      } catch (e: any) {
-        logger.error({ err: e, path: req.path, method: req.method }, "Error handling HTTP GET request");
-        if (!res.headersSent) {
-          // SSE might have already set headers, so check
-          res.status(500).json({ error: "Internal server error" });
-        }
-      }
-    });
-
-    app.delete('/mcp', async (req, res) => {
-      try {
-        await httpTransport.handleRequest(req, res); // For session termination, if supported by transport
-      } catch (e: any) {
-        logger.error({ err: e, path: req.path, method: req.method }, "Error handling HTTP DELETE request");
-        if (!res.headersSent) {
-          res.status(500).json({ error: "Internal server error" });
-        }
-      }
-    });
-
-    httpServer = app.listen(serverPort, () => {
-      logger.info({ version: '0.7.0', transport: 'HTTP', port: serverPort, allowedDirectories, config }, 'Enhanced MCP Filesystem Server started via HTTP');
-    });
-
-    httpServer.on('error', (err) => {
-      logger.error({ err }, "HTTP server error");
-      process.exit(1);
-    });
-
-  } else {
-    const stdioTransport = new StdioServerTransport();
-    await server.connect(stdioTransport);
-    logger.info({ version: '0.7.0', transport: 'Stdio', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started via Stdio');
-  }
-
-  process.once('SIGINT', (sig) => shutdown(sig, logger));
-  process.once('SIGTERM', (sig) => shutdown(sig, logger));
+  process.once('SIGINT', () => process.exit(0));
+  process.once('SIGTERM', () => process.exit(0));
 }
 
 main().catch((error) => {
-  // Use console.error as logger might not be initialized or might have failed
   console.error('Fatal error running server:', error);
   process.exit(1);
 });
@@ -694,7 +722,7 @@ main().catch((error) => {
 import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions';
 
 export const ConfigSchema = z.object({
   allowedDirectories: z.array(z.string()),
@@ -828,11 +856,11 @@ declare module 'fast-levenshtein' {
 ```ts
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { PerformanceTimer } from '../utils/performance.js';
-import { expandHome, normalizePath } from '../utils/pathUtils.js';
-import { createError } from '../types/errors.js';
+import { PerformanceTimer } from '../utils/performance';
+import { expandHome, normalizePath } from '../utils/pathUtils';
+import { createError } from '../types/errors';
 import type { Logger } from 'pino';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 export async function validatePath(requestedPath: string, allowedDirectories: string[], logger: Logger, config: Config): Promise<string> {
   const timer = new PerformanceTimer('validatePath', logger, config);
@@ -914,7 +942,7 @@ export async function validatePath(requestedPath: string, allowedDirectories: st
 #### Plik: `src/core/concurrency.ts`
 ```ts
 import { Semaphore } from 'async-mutex';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 let globalEditSemaphore: Semaphore;
 
@@ -947,7 +975,7 @@ interface AppliedEditRange {
   editIndex: number; // To identify which edit operation this range belongs to
 }
 
-function doRangesOverlap(range1: AppliedEditRange, range2: {startLine: number, endLine: number}): boolean {
+function doRangesOverlap(range1: AppliedEditRange, range2: { startLine: number, endLine: number }): boolean {
   return Math.max(range1.startLine, range2.startLine) <= Math.min(range1.endLine, range2.endLine);
 }
 
@@ -1039,191 +1067,124 @@ export async function applyFileEdits(
     validateEdits(edits, config.debug, logger);
 
     for (const [editIndex, edit] of edits.entries()) {
-      // If caseSensitive is true, and oldText is not found exactly, throw immediately.
-      if (config.caseSensitive && !modifiedContent.includes(edit.oldText)) {
-        throw createError('NO_MATCH_FOUND', `No case-sensitive match found for "${edit.oldText}"`);
-      }
-
       let replaced = false;
       const normalizedOld = normalizeLineEndings(edit.oldText);
       const normalizedNew = normalizeLineEndings(edit.newText);
 
-      // Simple exact match replacement for single-line edits (exact spaces)
-      if (!normalizedOld.includes('\n') && modifiedContent.includes(config.caseSensitive ? edit.oldText : (config.ignoreWhitespace ? normalizedOld.replace(/\s+/g,' ') : normalizedOld))) {
-        const searchText = config.caseSensitive ? edit.oldText : normalizedOld;
-        const replaceText = config.caseSensitive ? edit.newText : normalizedNew;
-        modifiedContent = modifiedContent.replace(searchText, replaceText);
-        replaced = true;
-        continue;
-      }
-
-      if (!replaced && config.ignoreWhitespace && !normalizedOld.includes('\n')) {
-        const whitespacePattern = edit.oldText.replace(/\s+/g, "\\s+");
-        const flags = config.caseSensitive ? 'g' : 'gi';
-        const regex = new RegExp(whitespacePattern, flags);
-        if (regex.test(modifiedContent)) {
-          modifiedContent = modifiedContent.replace(regex, edit.newText);
-          replaced = true;
-        }
-      }
-
+      // Check for exact match first as it's faster
       const exactMatchIndex = modifiedContent.indexOf(normalizedOld);
+
       if (exactMatchIndex !== -1) {
-        replaced = true;
-        // Preserve indentation for exact matches using the same logic as fuzzy matches
-        const contentLines = modifiedContent.split('\n');
+        // Exact match found – decide between simple in-line replacement and multi-line block replacement
         const oldLinesForIndent = normalizedOld.split('\n');
         const newLinesForIndent = normalizedNew.split('\n');
 
-        // Find the line number of the exact match to get the original indent
-        let charCount = 0;
-        let lineNumberOfMatch = 0;
-        for (let i = 0; i < contentLines.length; i++) {
-          if (charCount + contentLines[i].length + 1 > exactMatchIndex) {
-            lineNumberOfMatch = i;
-            break;
+        if (oldLinesForIndent.length === 1 && newLinesForIndent.length === 1) {
+          // Simple in-line (single-line) replacement. Preserve surrounding text.
+          const lineNumberOfMatch = modifiedContent.slice(0, exactMatchIndex).split('\n').length - 1;
+
+          // Overlap guard – single-line range
+          const currentEditTargetRange = { startLine: lineNumberOfMatch, endLine: lineNumberOfMatch, editIndex };
+          for (const appliedRange of appliedRanges) {
+            if (doRangesOverlap(appliedRange, currentEditTargetRange)) {
+              throw createError('OVERLAPPING_EDIT', `Edit ${editIndex + 1} (exact match) overlaps with previously applied edit ${appliedRange.editIndex + 1}.`);
+            }
           }
-          charCount += contentLines[i].length + 1;
+
+          modifiedContent =
+            modifiedContent.slice(0, exactMatchIndex) +
+            normalizedNew +
+            modifiedContent.slice(exactMatchIndex + normalizedOld.length);
+
+          appliedRanges.push(currentEditTargetRange);
+          replaced = true;
+        } else {
+          // Multi-line replacement – keep existing indentation logic
+          replaced = true;
+          const contentLines = modifiedContent.split('\n');
+          let charCount = 0;
+          let lineNumberOfMatch = 0;
+          for (let i = 0; i < contentLines.length; i++) {
+            if (charCount + contentLines[i].length + 1 > exactMatchIndex) {
+              lineNumberOfMatch = i;
+              break;
+            }
+            charCount += contentLines[i].length + 1;
+          }
+          const originalIndent = contentLines[lineNumberOfMatch].match(/^\s*/)?.[0] ?? '';
+          const indentedNewLines = applyRelativeIndentation(newLinesForIndent, oldLinesForIndent, originalIndent, config.preserveLeadingWhitespace);
+          const currentEditTargetRange = {
+            startLine: lineNumberOfMatch,
+            endLine: lineNumberOfMatch + oldLinesForIndent.length - 1,
+            editIndex
+          };
+          for (const appliedRange of appliedRanges) {
+            if (doRangesOverlap(appliedRange, currentEditTargetRange)) {
+              throw createError('OVERLAPPING_EDIT', `Edit ${editIndex + 1} (exact match) overlaps with previously applied edit ${appliedRange.editIndex + 1}.`);
+            }
+          }
+          const tempContentLines = modifiedContent.split('\n');
+          tempContentLines.splice(lineNumberOfMatch, oldLinesForIndent.length, ...indentedNewLines);
+          modifiedContent = tempContentLines.join('\n');
+          appliedRanges.push({
+            startLine: currentEditTargetRange.startLine,
+            endLine: currentEditTargetRange.startLine + indentedNewLines.length - 1,
+            editIndex
+          });
         }
 
-        const originalIndent = contentLines[lineNumberOfMatch].match(/^\s*/)?.[0] ?? '';
-        const indentedNewLines = applyRelativeIndentation(
-          newLinesForIndent,
-          oldLinesForIndent,
-          originalIndent,
-          config.preserveLeadingWhitespace
-        );
+      } else if (!config.caseSensitive) {
+        // Logikę FUZZY MATCHING wykonujemy TYLKO, gdy NIE jest wymagana wrażliwość na wielkość liter
+        // LUB gdy wcześniejsze, prostsze metody (np. ignorowanie białych znaków) już znalazły dopasowanie.
+        // Ta struktura else if jest kluczowa.
 
-        // Reconstruct modifiedContent carefully with the new indented lines
-        const linesBeforeMatch = modifiedContent.substring(0, exactMatchIndex).split('\n');
-        const linesAfterMatch = modifiedContent.substring(exactMatchIndex + normalizedOld.length).split('\n');
-
-        // The new content replaces a certain number of original lines that constituted normalizedOld.
-        // We need to splice the contentLines array correctly.
-        // The number of lines to replace is oldLinesForIndent.length.
-        // The starting line for replacement is lineNumberOfMatch.
-        const currentEditTargetRange = {
-          startLine: lineNumberOfMatch,
-          endLine: lineNumberOfMatch + oldLinesForIndent.length - 1
-        };
-
-        for (const appliedRange of appliedRanges) {
-          if (doRangesOverlap(appliedRange, currentEditTargetRange)) {
-            throw createError(
-              'OVERLAPPING_EDIT',
-              `Edit ${editIndex + 1} (exact match) overlaps with previously applied edit ${appliedRange.editIndex + 1}. ` +
-              `Current edit targets lines ${currentEditTargetRange.startLine + 1}-${currentEditTargetRange.endLine + 1}. ` +
-              `Previous edit affected lines ${appliedRange.startLine + 1}-${appliedRange.endLine + 1}.`,
-              {
-                conflictingEditIndex: editIndex,
-                previousEditIndex: appliedRange.editIndex,
-                currentEditTargetRange,
-                previousEditAffectedRange: appliedRange
-              }
-            );
-          }
-        }
-
-        const tempContentLines = modifiedContent.split('\n');
-        tempContentLines.splice(lineNumberOfMatch, oldLinesForIndent.length, ...indentedNewLines);
-        modifiedContent = tempContentLines.join('\n');
-
-        appliedRanges.push({
-          startLine: currentEditTargetRange.startLine,
-          endLine: currentEditTargetRange.startLine + indentedNewLines.length - 1,
-          editIndex
-        });
-      } else {
-        // Fuzzy match logic
         const contentLines = modifiedContent.split('\n');
         const oldLines = normalizedOld.split('\n');
         const processedOld = preprocessText(normalizedOld, config);
 
-        let bestMatch = {
-          distance: Infinity,
-          index: -1,
-          text: '',
-          similarity: 0,
-          windowSize: 0
-        };
-        // Pętla do wyszukiwania najlepszego dopasowania
+        let bestMatch = { distance: Infinity, index: -1, text: '', similarity: 0, windowSize: 0 };
         for (let i = 0; i <= contentLines.length - oldLines.length; i++) {
           const windowLines = contentLines.slice(i, i + oldLines.length);
           const windowText = windowLines.join('\n');
-          
           const processedWindowText = preprocessText(windowText, config);
-
           if (processedOld.length === 0 && processedWindowText.length > 0) continue;
-
           levenshteinIterations++;
           const distance = fastLevenshtein(processedOld, processedWindowText);
           const maxLength = Math.max(processedOld.length, processedWindowText.length);
           const similarity = maxLength > 0 ? 1 - distance / maxLength : 1;
-
           if (similarity > bestMatch.similarity) {
-            bestMatch = {
-              distance,
-              index: i,
-              text: windowText, // Store original window text for applying indent
-              similarity,
-              windowSize: oldLines.length
-            };
+            bestMatch = { distance, index: i, text: windowText, similarity, windowSize: oldLines.length };
           }
         }
-        
-        const distanceRatio = bestMatch.text.length > 0 || normalizedOld.length > 0 ? 
-                            bestMatch.distance / Math.max(bestMatch.text.length, normalizedOld.length) : 0;
+
+        const distanceRatio = bestMatch.text.length > 0 || normalizedOld.length > 0 ? bestMatch.distance / Math.max(bestMatch.text.length, normalizedOld.length) : 0;
 
         if (bestMatch.index !== -1 && bestMatch.similarity >= config.minSimilarity && distanceRatio <= config.maxDistanceRatio) {
+          // Zastosuj edycję na podstawie najlepszego znalezionego dopasowania fuzzy
           const fuzzyMatchedLines = bestMatch.text.split('\n');
           const newLinesForFuzzy = normalizedNew.split('\n');
-          // Use the line where the best match starts to get its original indent
           const originalIndentFuzzy = contentLines[bestMatch.index].match(/^\s*/)?.[0] ?? '';
-
-          const indentedNewLinesFuzzy = applyRelativeIndentation(
-            newLinesForFuzzy,
-            fuzzyMatchedLines, // original lines from the best match window
-            originalIndentFuzzy,
-            config.preserveLeadingWhitespace
-          );
-
-          const currentFuzzyEditTargetRange = {
-            startLine: bestMatch.index,
-            endLine: bestMatch.index + bestMatch.windowSize - 1,
-          };
-
+          const indentedNewLinesFuzzy = applyRelativeIndentation(newLinesForFuzzy, fuzzyMatchedLines, originalIndentFuzzy, config.preserveLeadingWhitespace);
+          const currentFuzzyEditTargetRange = { startLine: bestMatch.index, endLine: bestMatch.index + bestMatch.windowSize - 1 };
           for (const appliedRange of appliedRanges) {
             if (doRangesOverlap(appliedRange, currentFuzzyEditTargetRange)) {
-              throw createError(
-                'OVERLAPPING_EDIT',
-                `Edit ${editIndex + 1} (fuzzy match) overlaps with previously applied edit ${appliedRange.editIndex + 1}. ` +
-                `Current edit targets lines ${currentFuzzyEditTargetRange.startLine + 1}-${currentFuzzyEditTargetRange.endLine + 1}. ` +
-                `Previous edit affected lines ${appliedRange.startLine + 1}-${appliedRange.endLine + 1}.`,
-                {
-                  conflictingEditIndex: editIndex,
-                  previousEditIndex: appliedRange.editIndex,
-                  currentEditTargetRange: currentFuzzyEditTargetRange,
-                  previousEditAffectedRange: appliedRange
-                }
-              );
+              throw createError('OVERLAPPING_EDIT', `Edit ${editIndex + 1} (fuzzy match) overlaps with previously applied edit ${appliedRange.editIndex + 1}.`);
             }
           }
-          
           const tempContentLinesFuzzy = modifiedContent.split('\n');
           tempContentLinesFuzzy.splice(bestMatch.index, bestMatch.windowSize, ...indentedNewLinesFuzzy);
           modifiedContent = tempContentLinesFuzzy.join('\n');
-          
-          appliedRanges.push({
-            startLine: currentFuzzyEditTargetRange.startLine,
-            endLine: currentFuzzyEditTargetRange.startLine + indentedNewLinesFuzzy.length - 1,
-            editIndex
-          });
+          appliedRanges.push({ startLine: currentFuzzyEditTargetRange.startLine, endLine: currentFuzzyEditTargetRange.startLine + indentedNewLinesFuzzy.length - 1, editIndex });
           replaced = true;
         }
       }
 
-      if (config.caseSensitive && !replaced) {
-        throw createError('NO_MATCH', `No match found for edit "${edit.oldText}" (caseSensitive)`);
+      if (!replaced) {
+        // No match found after all strategies – tailor error based on case sensitivity requirement
+        if (config.caseSensitive) {
+          throw createError('NO_MATCH_FOUND', `No case-sensitive match found for "${edit.oldText}"`);
+        }
+        throw createError('NO_MATCH', `No match found for edit "${edit.oldText}"`);
       }
     }
 
@@ -1233,15 +1194,15 @@ export async function applyFileEdits(
     let formattedDiff = "";
     if (diffLines.length > MAX_DIFF_LINES) {
       formattedDiff = "```diff\n" +
-                      diffLines.slice(0, MAX_DIFF_LINES).join('\n') +
-                      `\n...diff truncated (${diffLines.length - MAX_DIFF_LINES} lines omitted)\n` +
-                      "```\n\n";
+        diffLines.slice(0, MAX_DIFF_LINES).join('\n') +
+        `\n...diff truncated (${diffLines.length - MAX_DIFF_LINES} lines omitted)\n` +
+        "```\n\n";
     } else {
       formattedDiff = "```diff\n" + diff + "\n```\n\n";
     }
 
-    timer.end({ 
-      editsCount: edits.length, 
+    timer.end({
+      editsCount: edits.length,
       levenshteinIterations,
       charactersProcessed: originalContent.length
     });
@@ -1254,8 +1215,8 @@ export async function applyFileEdits(
 }
 
 function applyRelativeIndentation(
-  newLines: string[], 
-  oldLines: string[], 
+  newLines: string[],
+  oldLines: string[],
   originalIndent: string,
   preserveMode: 'auto' | 'strict' | 'normalize'
 ): string[] {
@@ -1264,7 +1225,7 @@ function applyRelativeIndentation(
   return newLines;
 }
 
-function validateEdits(edits: Array<{oldText: string, newText: string}>, debug: boolean, logger: Logger): void {
+function validateEdits(edits: Array<{ oldText: string, newText: string }>, debug: boolean, logger: Logger): void {
   // ... (oryginalna logika)
 }
 
@@ -1460,12 +1421,12 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { minimatch } from 'minimatch';
 import { lookup as mimeLookup } from 'mime-types';
-import { classifyFileType, FileType } from '../utils/binaryDetect.js';
-import { PerformanceTimer } from '../utils/performance.js';
-import { validatePath } from './security.js';
-import { shouldSkipPath } from '../utils/pathFilter.js';
+import { classifyFileType, FileType } from '../utils/binaryDetect';
+import { PerformanceTimer } from '../utils/performance';
+import { validatePath } from './security';
+import { shouldSkipPath } from '../utils/pathFilter';
 import type { Logger } from 'pino';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 export interface FileInfo {
   size: number;
@@ -1605,7 +1566,7 @@ export async function searchFiles(
   return results;
 }
 
-import type { DirectoryTreeEntry } from './schemas.js';
+import type { DirectoryTreeEntry } from './schemas';
 
 export async function getDirectoryTree(
   basePath: string,
@@ -1720,28 +1681,28 @@ export async function readMultipleFilesContent(
 ```
 #### Plik: `src/core/toolHandlers.ts`
 ```ts
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Mutex } from 'async-mutex';
-import { initGlobalSemaphore, getGlobalSemaphore } from './concurrency.js';
+import { initGlobalSemaphore, getGlobalSemaphore } from './concurrency';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
 
-import { createError, StructuredError } from '../types/errors.js';
-import { shouldSkipPath } from '../utils/pathFilter.js';
+import { createError, StructuredError } from '../types/errors';
+import { shouldSkipPath } from '../utils/pathFilter';
 
-import { PerformanceTimer } from '../utils/performance.js';
-import { classifyFileType, FileType } from '../utils/binaryDetect.js';
-import { validatePath } from './security.js';
-import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit.js';
-import { getFileStats, searchFiles, readMultipleFilesContent, getDirectoryTree } from './fileInfo.js';
-import * as schemas from './schemas.js'; // <-- BRAKUJĄCY IMPORT ZOSTAŁ DODANY
+import { PerformanceTimer } from '../utils/performance';
+import { classifyFileType, FileType } from '../utils/binaryDetect';
+import { validatePath } from './security';
+import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit';
+import { getFileStats, searchFiles, readMultipleFilesContent, getDirectoryTree } from './fileInfo';
+import * as schemas from './schemas'; // <-- BRAKUJĄCY IMPORT ZOSTAŁ DODANY
 // Import specific types that were causing issues if not directly imported
-import type { ListDirectoryEntry, DirectoryTreeEntry } from './schemas.js';
+import type { ListDirectoryEntry, DirectoryTreeEntry } from './schemas';
 
 import type { Logger } from 'pino';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 let requestCount = 0;
 let editOperationCount = 0;
@@ -2134,12 +2095,12 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
 ```
 #### Plik: `src/core/security.test.ts`
 ```ts
-import { validatePath } from './security.js';
-import { createError } from '../types/errors.js';
+import { validatePath } from './security';
+import { createError } from '../types/errors';
 import path from 'node:path';
 import pino from 'pino'; // Import pino
-import { Config } from '../server/config.js'; // Import Config type
-import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+import { Config } from '../server/config'; // Import Config type
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions';
 
 const testLogger = pino({ level: 'silent' }); // Create a silent pino instance for tests
 
@@ -2221,7 +2182,7 @@ describe('validatePath', () => {
 #### Plik: `src/core/schemas.ts`
 ```ts
 import { z } from 'zod';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 export const HandshakeRequestSchema = z.object({
   method: z.literal('handshake'),
@@ -2352,6 +2313,15 @@ export const DeleteDirectoryArgsSchema = z.object({
   recursive: z.boolean().optional().default(false).describe('Recursively delete directory contents')
 });
 ```
+#### Plik: `test.cl`
+```cl
+__kernel void vector_add(__global const float *a,
+                       __global const float *b,
+                       __global float *c) {
+    int gid = get_global_id(0);
+    c[gid] = a[gid] + b[gid];
+}
+```
 #### Plik: `package.json`
 ```json
 {
@@ -2377,34 +2347,35 @@ export const DeleteDirectoryArgsSchema = z.object({
     "watch": "tsc --watch",
     "clean": "npx rimraf dist",
     "prepublishOnly": "npm run build",
-    "test": "jest"
+    "test": "jest --no-color",
+    "test:e2e": "jest --testPathPattern=e2e --no-color"
   },
   "dependencies": {
-    "@modelcontextprotocol/sdk": "0.5.0",
+    "@modelcontextprotocol/sdk": "^1.12.3",
     "async-mutex": "^0.3.2",
     "axios": "^1.10.0",
     "diff": "^5.1.0",
+    "fast-levenshtein": "^3.0.0",
     "glob": "^10.3.10",
+    "mime-types": "^2.1.35",
     "minimatch": "^10.0.1",
     "pino": "^8.17.2",
-    "zod-to-json-schema": "^3.23.5",
-    "mime-types": "^2.1.35",
-    "fast-levenshtein": "^3.0.0",
-    "express": "^4.19.2"
+    "zod-to-json-schema": "^3.23.5"
   },
   "devDependencies": {
     "@types/diff": "^5.0.9",
+    "@types/express": "^5.0.3",
+    "@types/jest": "^29.5.12",
+    "@types/mime-types": "^2.1.4",
     "@types/minimatch": "^5.1.2",
     "@types/node": "^22.15.31",
     "@types/pino": "^7.0.5",
+    "jest": "^29.7.0",
     "rimraf": "^5.0.10",
     "shx": "^0.3.4",
-    "typescript": "^5.3.3",
-    "@types/jest": "^29.5.12",
-    "@types/mime-types": "^2.1.4",
-    "@types/express": "^4.17.21",
-    "jest": "^29.7.0",
-    "ts-jest": "^29.1.2"
+    "ts-jest": "^29.1.2",
+    "tsx": "^4.20.3",
+    "typescript": "^5.3.3"
   },
   "types": "./dist/server/index.d.ts",
   "main": "index.js",
@@ -2415,9 +2386,62 @@ export const DeleteDirectoryArgsSchema = z.object({
     "roots": [
       "<rootDir>/src"
     ],
-    "moduleFileExtensions": ["ts", "js", "json"],
-    "testMatch": ["**/__tests__/**/*.test.ts"]
+    "moduleFileExtensions": [
+      "ts",
+      "js",
+      "json"
+    ],
+    "testMatch": [
+      "**/__tests__/**/*.test.ts"
+    ]
   }
+}
+```
+#### Plik: `debug-e2e.js`
+```js
+const path = require('path');
+const fs = require('fs');
+const { execSync } = require('child_process');
+
+console.log('Current directory:', process.cwd());
+console.log('__dirname:', __dirname);
+
+// Look for tsx binary
+const possiblePaths = [
+  path.join(__dirname, 'node_modules/.bin/tsx'),
+  path.join(__dirname, '../node_modules/.bin/tsx'),
+  path.join(__dirname, '../../node_modules/.bin/tsx'),
+  '/usr/local/bin/tsx',
+  '/usr/bin/tsx'
+];
+
+console.log('Checking for tsx binary:');
+for (const binPath of possiblePaths) {
+  console.log(`- ${binPath}: ${fs.existsSync(binPath) ? 'EXISTS' : 'NOT FOUND'}`);
+}
+
+// Check if server built file exists
+const serverPath = path.join(__dirname, 'dist/server/index.js');
+console.log('Server built path:', serverPath);
+console.log('Server file exists:', fs.existsSync(serverPath));
+
+// Check SDK installation
+console.log('\nChecking SDK installation:');
+try {
+  console.log(execSync('npm ls @modelcontextprotocol/sdk', { encoding: 'utf8' }));
+} catch (error) {
+  console.error('Error checking SDK:', error.message);
+}
+
+// Try running the test with more verbose output
+console.log('\nTrying to run test with more debug info:');
+try {
+  execSync('jest src/e2e/__tests__/filesystem.e2e.test.ts --no-color --verbose', { 
+    stdio: 'inherit',
+    env: { ...process.env, DEBUG: '*' }
+  });
+} catch (error) {
+  console.log('Test failed as expected, but we got debug output');
 }
 ```
 #### Plik: `tsconfig.json`
@@ -2436,10 +2460,6 @@ export const DeleteDirectoryArgsSchema = z.object({
     "outDir": "./dist",
     "rootDir": "./src",
     "baseUrl": ".",
-    "paths": {
-      "@modelcontextprotocol/sdk/*": ["node_modules/@modelcontextprotocol/sdk/dist/*"]
-    },
-    "types": ["node"],
     "declaration": true,
     "emitDeclarationOnly": false,
     "sourceMap": true,
@@ -2551,5 +2571,80 @@ function sendRequest(tool, args) {
     server.stdout.on('data', listener);
   });
 }
+```
+#### Plik: `fix-imports.js`
+```js
+const fs = require('fs');
+const path = require('path');
+const { promisify } = require('util');
+
+const readdir = promisify(fs.readdir);
+const stat = promisify(fs.stat);
+const readFile = promisify(fs.readFile);
+const writeFile = promisify(fs.writeFile);
+
+// RegExp dla importów z rozszerzeniem .js
+const jsExtensionRegex = /from\s+['"]([^'"@][^'"]*?)\.js['"]/g;
+const typeJsExtensionRegex = /from\s+['"]type:([^'"@][^'"]*?)\.js['"]/g;
+const sdkJsExtensionRegex = /from\s+['"](@modelcontextprotocol\/sdk\/.+?)\.js['"]/g;
+
+async function walkDir(dir) {
+    const files = await readdir(dir);
+    const results = [];
+
+    for (const file of files) {
+        const filePath = path.join(dir, file);
+        const fileStat = await stat(filePath);
+
+        if (fileStat.isDirectory() && !file.includes('node_modules') && !file.includes('dist')) {
+            results.push(...await walkDir(filePath));
+        } else if (fileStat.isFile() && file.endsWith('.ts')) {
+            results.push(filePath);
+        }
+    }
+
+    return results;
+}
+
+async function fixImports(filePath) {
+    console.log(`Sprawdzanie ${filePath}...`);
+    const content = await readFile(filePath, 'utf-8');
+
+    // Usunięcie rozszerzeń .js z importów
+    let newContent = content
+        .replace(jsExtensionRegex, "from '$1'")
+        .replace(typeJsExtensionRegex, "from 'type:$1'")
+        .replace(sdkJsExtensionRegex, "from '$1'");
+
+    // Zapisu pliku tylko jeśli jest zmieniony
+    if (content !== newContent) {
+        await writeFile(filePath, newContent, 'utf-8');
+        console.log(`✅ Naprawiono importy w ${filePath}`);
+        return true;
+    }
+    
+    return false;
+}
+
+async function main() {
+    try {
+        const rootDir = path.join(__dirname, 'src');
+        const files = await walkDir(rootDir);
+        
+        console.log(`Znaleziono ${files.length} plików TypeScript do sprawdzenia`);
+        
+        let modifiedCount = 0;
+        for (const file of files) {
+            const modified = await fixImports(file);
+            if (modified) modifiedCount++;
+        }
+        
+        console.log(`\nZakończono! Zmodyfikowano ${modifiedCount} plików`);
+    } catch (error) {
+        console.error('Wystąpił błąd:', error);
+    }
+}
+
+main();
 ```
 ---

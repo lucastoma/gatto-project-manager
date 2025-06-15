@@ -1,5 +1,5 @@
 import { Semaphore } from 'async-mutex';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 let globalEditSemaphore: Semaphore;
 

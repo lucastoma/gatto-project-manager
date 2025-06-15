@@ -1,9 +1,9 @@
-import { validatePath } from './security.js';
-import { createError } from '../types/errors.js';
+import { validatePath } from './security';
+import { createError } from '../types/errors';
 import path from 'node:path';
 import pino from 'pino'; // Import pino
-import { Config } from '../server/config.js'; // Import Config type
-import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+import { Config } from '../server/config'; // Import Config type
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions';
 
 const testLogger = pino({ level: 'silent' }); // Create a silent pino instance for tests
 

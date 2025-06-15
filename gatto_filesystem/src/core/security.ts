@@ -1,10 +1,10 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { PerformanceTimer } from '../utils/performance.js';
-import { expandHome, normalizePath } from '../utils/pathUtils.js';
-import { createError } from '../types/errors.js';
+import { PerformanceTimer } from '../utils/performance';
+import { expandHome, normalizePath } from '../utils/pathUtils';
+import { createError } from '../types/errors';
 import type { Logger } from 'pino';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 export async function validatePath(requestedPath: string, allowedDirectories: string[], logger: Logger, config: Config): Promise<string> {
   const timer = new PerformanceTimer('validatePath', logger, config);

@@ -1,6 +1,6 @@
 import { performance } from 'node:perf_hooks';
 import type { Logger } from 'pino';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 export class PerformanceTimer {
   private startTime: number;

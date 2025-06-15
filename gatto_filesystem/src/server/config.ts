@@ -1,7 +1,7 @@
 import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
-import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions';
 
 export const ConfigSchema = z.object({
   allowedDirectories: z.array(z.string()),

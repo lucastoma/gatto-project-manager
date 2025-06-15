@@ -1,7 +1,7 @@
 import path from 'node:path';
 import { minimatch } from 'minimatch';
-import type { Config } from '../server/config.js';
-import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+import type { Config } from '../server/config';
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions';
 
 /** Zwraca true, jeśli ścieżka powinna być pominięta (wykluczona). */
 export function shouldSkipPath(filePath: string, config: Config): boolean {

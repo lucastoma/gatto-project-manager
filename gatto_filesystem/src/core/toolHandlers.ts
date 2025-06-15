@@ -1,25 +1,25 @@
-import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { Server } from '@modelcontextprotocol/sdk/server/index';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Mutex } from 'async-mutex';
-import { initGlobalSemaphore, getGlobalSemaphore } from './concurrency.js';
+import { initGlobalSemaphore, getGlobalSemaphore } from './concurrency';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
 
-import { createError, StructuredError } from '../types/errors.js';
-import { shouldSkipPath } from '../utils/pathFilter.js';
+import { createError, StructuredError } from '../types/errors';
+import { shouldSkipPath } from '../utils/pathFilter';
 
-import { PerformanceTimer } from '../utils/performance.js';
-import { classifyFileType, FileType } from '../utils/binaryDetect.js';
-import { validatePath } from './security.js';
-import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit.js';
-import { getFileStats, searchFiles, readMultipleFilesContent, getDirectoryTree } from './fileInfo.js';
-import * as schemas from './schemas.js'; // <-- BRAKUJĄCY IMPORT ZOSTAŁ DODANY
+import { PerformanceTimer } from '../utils/performance';
+import { classifyFileType, FileType } from '../utils/binaryDetect';
+import { validatePath } from './security';
+import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit';
+import { getFileStats, searchFiles, readMultipleFilesContent, getDirectoryTree } from './fileInfo';
+import * as schemas from './schemas'; // <-- BRAKUJĄCY IMPORT ZOSTAŁ DODANY
 // Import specific types that were causing issues if not directly imported
-import type { ListDirectoryEntry, DirectoryTreeEntry } from './schemas.js';
+import type { ListDirectoryEntry, DirectoryTreeEntry } from './schemas';
 
 import type { Logger } from 'pino';
-import type { Config } from '../server/config.js';
+import type { Config } from '../server/config';
 
 let requestCount = 0;
 let editOperationCount = 0;

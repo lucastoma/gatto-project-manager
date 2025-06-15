@@ -40,6 +40,7 @@ groups:
       - "*.json"
       - "*.yaml"
       - "*.yml"
+      - "*.cl"
     exclude_patterns:
       - "**node_modules/**"
       - "**dist/**"

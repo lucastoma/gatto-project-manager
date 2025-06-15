@@ -1,21 +1,21 @@
 === Statystyki Repomix dla projektu: gatto nero mcp no node and dist ===
-Data: 2025-06-15 12:51:12
+Data: 2025-06-15 15:17:43
 ============================================================
 
 === Statystyki dla grupy 'gatto nero mcp no node and dist' - ścieżka 'gatto_filesystem/' ===
-Łączna liczba plików: 24
-Łączna liczba znaków: 100555
+Łączna liczba plików: 28
+Łączna liczba znaków: 102820
 Łączna liczba tokenów: 0
 
 Top 3 plików wg liczby znaków:
-  1. src/core/toolHandlers.ts: 21639 znaków
-  2. src/core/fuzzyEdit.ts: 13590 znaków
-  3. src/core/fileInfo.ts: 10734 znaków
+  1. src/core/toolHandlers.ts: 21603 znaków
+  2. src/core/fuzzyEdit.ts: 11705 znaków
+  3. src/core/fileInfo.ts: 10716 znaków
 
 Top 3 plików wg liczby tokenów:
   1. index.ts: 0 tokenów
   2. src/constants/extensions.ts: 0 tokenów
-  3. src/utils/hintMap.ts: 0 tokenów
+  3. src/e2e/__tests__/filesystem.e2e.test.ts: 0 tokenów
 
 Struktura katalogów:
-{'index.ts': '', 'src': {'constants': {'extensions.ts': ''}, 'utils': {'hintMap.ts': '', 'pathFilter.test.ts': '', '__tests__': {'binaryDetect.test.ts': ''}, 'pathFilter.ts': '', 'binaryDetect.ts': '', 'performance.ts': '', 'pathUtils.ts': ''}, 'server': {'index.ts': '', 'config.ts': ''}, 'types': {'errors.ts': '', 'fast-levenshtein.d.ts': ''}, 'core': {'security.ts': '', 'concurrency.ts': '', 'fuzzyEdit.ts': '', '__tests__': {'applyFileEdits.test.ts': ''}, 'fileInfo.ts': '', 'toolHandlers.ts': '', 'security.test.ts': '', 'schemas.ts': ''}}, 'test.cl': '', 'package.json': '', 'README.md': '', 'tsconfig.json': '', 'test-filtering.js': '', 'Dockerfile': ''}
+{'index.ts': '', 'src': {'constants': {'extensions.ts': ''}, 'e2e': {'__tests__': {'filesystem.e2e.test.ts': ''}}, 'utils': {'hintMap.ts': '', 'pathFilter.test.ts': '', '__tests__': {'binaryDetect.test.ts': ''}, 'pathFilter.ts': '', 'binaryDetect.ts': '', 'performance.ts': '', 'pathUtils.ts': ''}, 'server': {'index.ts': '', 'config.ts': ''}, 'types': {'errors.ts': '', 'fast-levenshtein.d.ts': ''}, 'core': {'security.ts': '', 'concurrency.ts': '', 'fuzzyEdit.ts': '', '__tests__': {'applyFileEdits.test.ts': ''}, 'fileInfo.ts': '', 'toolHandlers.ts': '', 'security.test.ts': '', 'schemas.ts': ''}}, 'test.cl': '', 'package.json': '', 'README.md': '', 'debug-e2e.js': '', 'tsconfig.json': '', 'test-filtering.js': '', 'Dockerfile': '', 'fix-imports.js': ''}
