@@ -1,31 +1,19 @@
 import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
 
 export const ConfigSchema = z.object({
   allowedDirectories: z.array(z.string()),
   fileFiltering: z.object({
-    defaultExcludes: z.array(z.string()).default([
-      '**/build/**',
-      '**/dist/**',
-      '**/node_modules/**',
-      '**/.git/**',
-      '**/*.jpg', '**/*.png', '**/*.gif', '**/*.pdf',
-      '**/*.zip', '**/*.tar', '**/*.gz'
-    ]),
-    allowedExtensions: z.array(z.string()).default([
-      '*.txt', '*.js', '*.jsx', '*.ts', '*.tsx', '*.json', '*.yaml', '*.yml',
-      '*.html', '*.htm', '*.css', '*.scss', '*.sass', '*.less', '*.py', '*.java', '*.go',
-      '*.rs', '*.rb', '*.php', '*.sh', '*.bash', '*.zsh', '*.md', '*.markdown', '*.xml',
-      '*.svg', '*.csv', '*.toml', '*.ini', '*.cfg', '*.conf', '*.env', '*.ejs', '*.pug',
-      '*.vue', '*.svelte', '*.graphql', '*.gql', '*.proto', '*.kt', '*.kts', '*.swift',
-      '*.m', '*.h', '*.c', '*.cpp', '*.hpp', '*.cs', '*.fs', '*.fsx', '*.clj', '*.cljs',
-      '*.cljc', '*.edn', '*.ex', '*.exs', '*.erl', '*.hrl', '*.lua', '*.sql', '*.pl',
-      '*.pm', '*.r', '*.jl', '*.dart', '*.groovy', '*.gradle', '*.nim', '*.zig', '*.v',
-      '*.vh', '*.vhd', '*.cl', '*.tex', '*.sty', '*.cls', '*.rst', '*.adoc', '*.asciidoc'
-    ]),
+    defaultExcludes: z.array(z.string()).default(DEFAULT_EXCLUDE_PATTERNS),
+    allowedExtensions: z.array(z.string()).default(DEFAULT_ALLOWED_EXTENSIONS),
     forceTextFiles: z.boolean().default(true)
-  }).default({}),
+  }).default({
+    defaultExcludes: DEFAULT_EXCLUDE_PATTERNS,
+    allowedExtensions: DEFAULT_ALLOWED_EXTENSIONS,
+    forceTextFiles: true
+  }),
   fuzzyMatching: z.object({
     maxDistanceRatio: z.number().min(0).max(1).default(0.25),
     minSimilarity: z.number().min(0).max(1).default(0.7),
@@ -45,16 +33,29 @@ export const ConfigSchema = z.object({
     maxReadBytes: z.number().positive().default(5 * 1024 * 1024), // 5 MB
     maxWriteBytes: z.number().positive().default(5 * 1024 * 1024) // 5 MB
   }).default({})
+}).default({
+  allowedDirectories: [],
+  fileFiltering: {
+    defaultExcludes: DEFAULT_EXCLUDE_PATTERNS,
+    allowedExtensions: DEFAULT_ALLOWED_EXTENSIONS,
+    forceTextFiles: true
+  },
+  concurrency: {
+    maxConcurrentEdits: 10,
+    maxGlobalConcurrentEdits: 20
+  },
+  limits: {
+    maxReadBytes: 5 * 1024 * 1024,
+    maxWriteBytes: 5 * 1024 * 1024
+  }
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
 
-export async function loadConfig(): Promise<Config> {
-  const args = process.argv.slice(2);
-  if (args.length > 0 && (args[0] === '--config' || args[0] === '-c')) {
+export async function getConfig(args: string[]): Promise<Config> {
+  if (args.length > 0 && args[0] === '--config') {
     if (args.length < 2) {
-      console.error("Usage: mcp-server-filesystem --config <config-file>");
-      console.error("   or: mcp-server-filesystem <allowed-directory> [additional-directories...]");
+      console.error("Error: --config requires a path to a config file.");
       process.exit(1);
     }
     const configFile = args[1];
@@ -71,25 +72,8 @@ export async function loadConfig(): Promise<Config> {
   return ConfigSchema.parse({
     allowedDirectories: args.length > 0 ? args : [process.cwd()],
     fileFiltering: {
-      defaultExcludes: [
-        '**/build/**',
-        '**/dist/**',
-        '**/node_modules/**',
-        '**/.git/**',
-        '**/*.jpg', '**/*.png', '**/*.gif', '**/*.pdf',
-        '**/*.zip', '**/*.tar', '**/*.gz'
-      ],
-      allowedExtensions: [
-        '*.txt', '*.js', '*.jsx', '*.ts', '*.tsx', '*.json', '*.yaml', '*.yml',
-        '*.html', '*.htm', '*.css', '*.scss', '*.sass', '*.less', '*.py', '*.java', '*.go',
-        '*.rs', '*.rb', '*.php', '*.sh', '*.bash', '*.zsh', '*.md', '*.markdown', '*.xml',
-        '*.svg', '*.csv', '*.toml', '*.ini', '*.cfg', '*.conf', '*.env', '*.ejs', '*.pug',
-        '*.vue', '*.svelte', '*.graphql', '*.gql', '*.proto', '*.kt', '*.kts', '*.swift',
-        '*.m', '*.h', '*.c', '*.cpp', '*.hpp', '*.cs', '*.fs', '*.fsx', '*.clj', '*.cljs',
-        '*.cljc', '*.edn', '*.ex', '*.exs', '*.erl', '*.hrl', '*.lua', '*.sql', '*.pl',
-        '*.pm', '*.r', '*.jl', '*.dart', '*.groovy', '*.gradle', '*.nim', '*.zig', '*.v',
-        '*.vh', '*.vhd', '*.cl', '*.tex', '*.sty', '*.cls', '*.rst', '*.adoc', '*.asciidoc'
-      ],
+      defaultExcludes: DEFAULT_EXCLUDE_PATTERNS,
+      allowedExtensions: DEFAULT_ALLOWED_EXTENSIONS,
       forceTextFiles: true
     },
     fuzzyMatching: {

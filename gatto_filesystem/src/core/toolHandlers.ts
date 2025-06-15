@@ -4,9 +4,11 @@ import { Mutex } from 'async-mutex';
 import { initGlobalSemaphore, getGlobalSemaphore } from './concurrency.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { minimatch } from 'minimatch';
+
 
 import { createError, StructuredError } from '../types/errors.js';
+import { shouldSkipPath } from '../utils/pathFilter.js';
+
 import { PerformanceTimer } from '../utils/performance.js';
 import { isBinaryFile } from '../utils/binaryDetect.js';
 import { validatePath } from './security.js';
@@ -55,27 +57,7 @@ function getFileLock(filePath: string, config: Config, logger: Logger): Mutex {
   }
 }
 
-function shouldSkipPath(filePath: string, config: Config): boolean {
-  // Use the first allowed directory as the base for relative path calculation
-  const baseDir = config.allowedDirectories[0] ?? process.cwd();
-  const relativePath = path.relative(baseDir, filePath);
 
-  // Check against default excludes
-  if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
-    return true;
-  }
-
-  // Check allowed extensions if forceTextFiles is true
-  if (config.fileFiltering.forceTextFiles) {
-    const ext = path.extname(filePath).toLowerCase();
-    const isAllowed = config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p, { nocase: true }));
-    if (!isAllowed) {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 export function setupToolHandlers(server: Server, allowedDirectories: string[], logger: Logger, config: Config) {
   initGlobalSemaphore(config);
