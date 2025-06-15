@@ -52,3 +52,6 @@ gatto_filesystem/dist/**/*
 gatto_filesystem/node_modules/**/*
 
 **/dist/**/*
+
+
+**/node*/**/*

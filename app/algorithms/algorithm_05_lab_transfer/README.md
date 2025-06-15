@@ -56,8 +56,8 @@ This table provides a high-level overview of the current implementation status f
 | :--- | :--- | :--- | :--- | :--- |
 | **Basic** | Standard statistical transfer of L, a, b channels. | ✅ **Complete** | ✅ **Complete** | None. |
 | **Linear Blend** | Weighted transfer using `weights` for L, a, b. | ✅ **Complete** | ✅ **Complete** | None. |
-| **Selective** | Transfer on `selective_channels` with a `mask` and `blend_factor`. | ✅ **Complete** | ❌ **Partial**. Kernel only supports a simple 'preserve L' flag. No support for mask, blend_factor, or dynamic channels. | **Critical**: Enhance `gpu_core.py` and kernel to support mask, blending, and channel selection. |
-| **Adaptive** | Segmentation using `num_segments`, `delta_e_threshold`, `min_segment_size_perc`. | ✅ **Complete** | ❌ **Partial/Incorrect**. Kernel uses a hardcoded 3-segment logic and ignores configuration parameters. | **Critical**: Modify GPU implementation to dynamically handle `num_segments` and other parameters. |
+| **Selective** | Transfer on `selective_channels` with a `mask` and `blend_factor`. | ✅ **Complete** | ✅ **Complete**. Kernel and `gpu_core.py` support mask, blend_factor, and dynamic channel selection. | None. |
+| **Adaptive** | Segmentation using `num_segments`, `delta_e_threshold`, `min_segment_size_perc`. | ✅ **Complete** | ✅ **Partial**. Kernel and `gpu_core.py` dynamically handle `num_segments`. Logic for `delta_e_threshold` and `min_segment_size_perc` might be CPU-specific or require further clarification for GPU host code. | **Medium**: Clarify and potentially implement `delta_e_threshold` and `min_segment_size_perc` logic in `gpu_core.py` if required for GPU path. |
 | **Hybrid** | Logic is not clearly defined in the UI. `advanced.py` suggests it's a wrapper. | ❌ **Not Integrated**. `process_image_hybrid` exists but is not connected to the main `METHOD_MAP`. | ❌ **Not Implemented**. | **High**: Integrate into `METHOD_MAP` for testing. Define its role and decide on a potential GPU implementation. |
 
 ```
@@ -561,17 +561,3 @@ logging.basicConfig(level=logging.INFO)
 logger = logging.getLogger('algorithm_05_lab_transfer')
 logger.setLevel(logging.DEBUG)
 ```
-
-### Rozdział 1 
-- klasyczne README - szybki start, overview, podstawowa orientacja
-
-### Rozdział 2 
-{{ ... }}
-
-**Details:**
-- Konkretne API - dokładne sygnatury metod z typami
-- Kompletne przykłady - AI widzi jak używać bez czytania kodu
-- Error handling - wszystkie możliwe błędy i kody
-- Dependencies - dokładnie co importować
-- Lokalizacje - gdzie znajdzie kod jeśli jednak musi
-- Cel: AI agent może użyć modułu bez oglądania kodu źródłowego.

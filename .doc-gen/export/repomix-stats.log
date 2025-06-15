@@ -1,21 +1,17 @@
-=== Statystyki Repomix dla projektu: gatto nero mcp no node and dist ===
-Data: 2025-06-15 17:54:02
+=== Statystyki Repomix dla projektu: gatto nero color matching algorithm 05 ===
+Data: 2025-06-15 20:35:00
 ============================================================
 
-=== Statystyki dla grupy 'gatto nero mcp no node and dist' - ścieżka 'gatto_filesystem/' ===
-Łączna liczba plików: 29
-Łączna liczba znaków: 116201
+=== Statystyki dla grupy 'gatto nero color matching algorithm 05' - ścieżka 'app/algorithms/algorithm_05_lab_transfer' ===
+Łączna liczba plików: 1
+Łączna liczba znaków: 15003
 Łączna liczba tokenów: 0
 
 Top 3 plików wg liczby znaków:
-  1. src/core/toolHandlers.ts: 25300 znaków
-  2. src/core/fuzzyEdit.ts: 11705 znaków
-  3. src/e2e/__tests__/filesystem.e2e.test.ts: 11700 znaków
+  1. kernels.cl: 15003 znaków
 
 Top 3 plików wg liczby tokenów:
-  1. index.ts: 0 tokenów
-  2. src/constants/extensions.ts: 0 tokenów
-  3. src/e2e/__tests__/filesystem.e2e.test.ts: 0 tokenów
+  1. kernels.cl: 0 tokenów
 
 Struktura katalogów:
-{'jest': '', 'index.ts': '', 'src': {'constants': {'extensions.ts': ''}, 'e2e': {'__tests__': {'filesystem.e2e.test.ts': ''}}, 'utils': {'hintMap.ts': '', 'pathFilter.test.ts': '', '__tests__': {'binaryDetect.test.ts': ''}, 'pathFilter.ts': '', 'binaryDetect.ts': '', 'performance.ts': '', 'pathUtils.ts': ''}, 'server': {'index.ts': '', 'config.ts': ''}, 'types': {'errors.ts': '', 'fast-levenshtein.d.ts': ''}, 'core': {'security.ts': '', 'concurrency.ts': '', 'fuzzyEdit.ts': '', '__tests__': {'applyFileEdits.test.ts': ''}, 'fileInfo.ts': '', 'toolHandlers.ts': '', 'security.test.ts': '', 'schemas.ts': ''}}, 'test.cl': '', 'package.json': '', 'README.md': '', 'test-config.json': '', 'debug-e2e.js': '', 'tsconfig.json': '', 'test-filtering.js': '', 'Dockerfile': '', 'fix-imports.js': ''}
+{'core.py': '', 'README.todo.md': '', 'tests': {'test_processing_modes.py': '', 'conftest.py': '', 'test_lab_transfer.py': '', 'test_images': {'sample1.npy': '', 'sample2.npy': ''}, '__init__.py': '', 'regenerate_test_images.py': '', 'test_gpu_acceleration.py': '', 'test_lab_transfer_comprehensive.py': ''}, 'gpu_core.py': '', 'logger.py': '', 'test_images': {'sample1.npy': '', 'sample2.npy': ''}, '__init__.py': '', 'advanced.py': '', 'idea-semantic-math': {'lab_transfer_semantic_concept.md': ''}, 'README.concepts.md': '', 'kernels.cl': '', 'processor.py': '', 'README.md': '', 'metrics.py': '', 'config.py': ''}

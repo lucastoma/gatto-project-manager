@@ -1,0 +1,4 @@
+Nested directory test file
+Second line modified
+Third line with fuzzy edit
+Fourth line added

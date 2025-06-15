@@ -1,0 +1,4 @@
+// Sprawdź linię 627 i napraw błąd składni
+// Wyświetl fragment pliku wokół linii 627
+
+// Sprawdźmy czy problem to niekompletny kod w search_files
