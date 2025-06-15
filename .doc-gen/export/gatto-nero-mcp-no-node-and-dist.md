@@ -91,7 +91,16 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       let stderr = '';
       let foundResponse = false;
       let responseData: any = null;
-      let timeoutId: NodeJS.Timeout;
+      
+      // Initialize timeout first
+      const timeoutId = setTimeout(() => {
+        if (!foundResponse) {
+          if (!process.killed) {
+            process.kill();
+          }
+          // The 'close' event will handle rejection
+        }
+      }, 15000);
 
       process.stdout.on('data', (data) => {
         const chunk = data.toString();
@@ -101,16 +110,22 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
         const lines = chunk.split('\n');
         for (const line of lines) {
           const trimmed = line.trim();
-          if (trimmed.startsWith('{') && trimmed.includes('"jsonrpc"') && trimmed.includes(`"id":${request.id}`)) {
+          if (trimmed.startsWith('{') && trimmed.includes('"jsonrpc"')) {
             try {
               const response = JSON.parse(trimmed);
-              if (!foundResponse) {
-                foundResponse = true;
-                responseData = response;
-                clearTimeout(timeoutId);
-                console.log(`[TEST] Received response: ${JSON.stringify(response)}`);
-                if (!process.killed) {
-                  process.kill();
+              // Check if this response matches our request ID
+              if (response.id === request.id || (typeof request.id === 'string' && response.id === request.id)) {
+                if (!foundResponse) {
+                  foundResponse = true;
+                  responseData = response;
+                  clearTimeout(timeoutId);
+                  console.log(`[TEST] Received response: ${JSON.stringify(response)}`);
+                  // Give a small delay before killing to ensure response is captured
+                  setTimeout(() => {
+                    if (!process.killed) {
+                      process.kill();
+                    }
+                  }, 100);
                 }
               }
             } catch (e) {
@@ -145,16 +160,6 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       const requestStr = JSON.stringify(request) + '\n';
       process.stdin.write(requestStr);
       process.stdin.end();
-
-      // Timeout
-      timeoutId = setTimeout(() => {
-        if (!foundResponse) {
-          if (!process.killed) {
-            process.kill();
-          }
-          // The 'close' event will handle rejection
-        }
-      }, 15000);
     });
   }
 
@@ -205,7 +210,7 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       jsonrpc: "2.0",
       method: "tools/call",
       params: {
-        name: "read_file",
+        toolName: "read_file",
         arguments: {
           path: "test.cl"
         }
@@ -221,29 +226,134 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
     expect(response.result.result.content).toContain('kernel'); // test.cl contains __kernel
   });
 
-  it('can call list_directory tool', async () => {
-    const request = {
-      jsonrpc: "2.0",
-      method: "tools/call",
-      params: {
-        name: "list_directory",
-        arguments: {
-          path: "."
-        }
-      },
-      id: 4
-    };
+  describe('list_directory tool', () => {
+    const testDirName = 'list_directory_test_root';
+    const testDir = path.join(process.cwd(), testDirName); // Assuming tests run from project root
 
-    const response = await runServerCommand(request);
+    beforeAll(async () => {
+      // Create a controlled test directory structure
+      if (fs.existsSync(testDir)) {
+        await fs.promises.rm(testDir, { recursive: true, force: true });
+      }
+      await fs.promises.mkdir(testDir, { recursive: true });
+      await fs.promises.writeFile(path.join(testDir, 'file1.txt'), 'content1');
+      await fs.promises.writeFile(path.join(testDir, 'file2.ts'), 'content2'); // This might be filtered by default
+      await fs.promises.mkdir(path.join(testDir, 'sub_dir'), { recursive: true });
+      await fs.promises.writeFile(path.join(testDir, 'sub_dir', 'sub_file.txt'), 'sub_content');
+      await fs.promises.mkdir(path.join(testDir, 'sub_dir', 'nested_dir'), { recursive: true });
+      await fs.promises.writeFile(path.join(testDir, 'sub_dir', 'nested_dir', 'deep_file.md'), 'deep_content');
+      await fs.promises.mkdir(path.join(testDir, 'empty_dir'), { recursive: true });
+    });
 
-    expect(response.result).toBeDefined();
-    expect(response.result.result.entries).toBeDefined();
-    expect(Array.isArray(response.result.result.entries)).toBe(true);
+    afterAll(async () => {
+      await fs.promises.rm(testDir, { recursive: true, force: true });
+    });
 
-    // Should find some common files
-    const entryNames = response.result.result.entries.map((e: any) => e.name);
-    expect(entryNames).toContain('package.json');
-    expect(entryNames).toContain('src');
+    it('should list directory contents non-recursively', async () => {
+      const response = await runServerCommand({
+        jsonrpc: '2.0',
+        id: 'list-non-recursive',
+        method: 'tools/call',
+        params: {
+          toolName: 'list_directory',
+          arguments: { path: testDirName, recursive: false },
+        },
+      });
+      expect(response.id).toBe('list-non-recursive');
+      expect(response.result).toBeDefined();
+      expect(response.result.result.entries).toBeDefined();
+      const entries = response.result.result.entries;
+      expect(entries).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: 'file1.txt', type: 'file', path: 'file1.txt' }),
+        // file2.ts should be present (it's in allowedExtensions)
+        expect.objectContaining({ name: 'file2.ts', type: 'file', path: 'file2.ts' }), 
+        expect.objectContaining({ name: 'sub_dir', type: 'directory', path: 'sub_dir' }),
+        expect.objectContaining({ name: 'empty_dir', type: 'directory', path: 'empty_dir' }),
+      ]));
+      // Check that sub_file.txt is NOT present (non-recursive)
+      expect(entries.find((e:any) => e.path === 'sub_dir/sub_file.txt')).toBeUndefined();
+      // Verify .ts files are present (they are in allowedExtensions)
+      expect(entries.find((e:any) => e.name === 'file2.ts')).toBeDefined(); 
+    });
+
+    it('should list directory contents recursively', async () => {
+      const response = await runServerCommand({
+        jsonrpc: '2.0',
+        id: 'list-recursive',
+        method: 'tools/call',
+        params: {
+          toolName: 'list_directory',
+          arguments: { path: testDirName, recursive: true },
+        },
+      });
+      expect(response.id).toBe('list-recursive');
+      expect(response.result).toBeDefined();
+      const entries = response.result.result.entries;
+      expect(entries).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: 'file1.txt', type: 'file', path: 'file1.txt' }),
+        // file2.ts (still assuming filtered by default test config)
+        expect.objectContaining({ name: 'sub_dir', type: 'directory', path: 'sub_dir' }),
+        expect.objectContaining({ name: 'sub_file.txt', type: 'file', path: 'sub_dir/sub_file.txt' }),
+        expect.objectContaining({ name: 'nested_dir', type: 'directory', path: 'sub_dir/nested_dir' }),
+        expect.objectContaining({ name: 'deep_file.md', type: 'file', path: 'sub_dir/nested_dir/deep_file.md' }),
+        expect.objectContaining({ name: 'empty_dir', type: 'directory', path: 'empty_dir' }),
+      ]));
+      // Ensure order by path
+      const paths = entries.map((e:any) => e.path);
+      expect(paths).toEqual([...paths].sort());
+      // Verify .ts files are present (they are in allowedExtensions)
+      expect(entries.find((e:any) => e.name === 'file2.ts')).toBeDefined(); 
+    });
+
+    it('should list empty directory recursively', async () => {
+      const response = await runServerCommand({
+        jsonrpc: '2.0',
+        id: 'list-empty-recursive',
+        method: 'tools/call',
+        params: {
+          toolName: 'list_directory',
+          arguments: { path: `${testDirName}/empty_dir`, recursive: true },
+        },
+      });
+      expect(response.id).toBe('list-empty-recursive');
+      expect(response.result.result.entries).toEqual([]);
+    });
+
+    it('should return an error for non-existent directory when listing', async () => {
+      const response = await runServerCommand({
+        jsonrpc: '2.0',
+        id: 'list-non-existent',
+        method: 'tools/call',
+        params: {
+          toolName: 'list_directory',
+          arguments: { path: 'non_existent_dir123', recursive: false },
+        },
+      });
+      expect(response.id).toBe('list-non-existent');
+      expect(response.result).toBeDefined();
+      expect(response.result.isError).toBe(true);
+      expect(response.result.content).toBeDefined();
+      expect(response.result.content[0].text).toContain('ENOENT');
+    });
+
+    // Test to ensure original functionality of checking project root (like package.json) is still possible if needed
+    // This test runs on the actual project root, not the temporary testDir.
+    it('can list project root and find package.json and src (non-recursive)', async () => {
+      const response = await runServerCommand({
+        jsonrpc: '2.0',
+        id: 'list-project-root',
+        method: 'tools/call',
+        params: {
+          toolName: 'list_directory',
+          arguments: { path: '.', recursive: false }, // path: '.' refers to CWD of server, which is project root
+        },
+      });
+      expect(response.id).toBe('list-project-root');
+      expect(response.result).toBeDefined();
+      const entries = response.result.result.entries;
+      expect(entries.find((e:any) => e.name === 'package.json' && e.type === 'file')).toBeDefined();
+      expect(entries.find((e:any) => e.name === 'src' && e.type === 'directory')).toBeDefined();
+    });
   });
 
   it('can call server_stats tool', async () => {
@@ -251,7 +361,7 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       jsonrpc: "2.0",
       method: "tools/call",
       params: {
-        name: "server_stats",
+        toolName: "server_stats",
         arguments: {}
       },
       id: 5
@@ -1916,9 +2026,9 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
   // Handler for tools/call
   server.setRequestHandler(schemas.CallToolRequestSchema, async (request) => {
     requestCount++;
-    logger.info({ tool: request.params.name, args: request.params.arguments }, `Tool request: ${request.params.name}`);
+    logger.info({ tool: request.params.toolName, args: request.params.arguments }, `Tool request: ${request.params.toolName}`);
     try {
-      switch (request.params.name) {
+      switch (request.params.toolName) {
         case 'list_allowed_directories': {
           const parsed = schemas.ListAllowedDirectoriesArgsSchema.safeParse(request.params.arguments ?? {});
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) });
@@ -2071,32 +2181,79 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         case 'list_directory': {
           const parsed = schemas.ListDirectoryArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) });
-          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
-          const entries = await fs.readdir(validPath, { withFileTypes: true });
-          const results: ListDirectoryEntry[] = [];
-          for (const dirent of entries) {
-            const entryPath = path.join(validPath, dirent.name);
-            if (shouldSkipPath(entryPath, config)) {
-              continue;
-            }
+          const { path: targetPathFromArgs, recursive: isRecursiveMode } = parsed.data; // Destructure recursive here
+          const initialValidatedPath = await validatePath(targetPathFromArgs, allowedDirectories, logger, config);
 
-            let type: ListDirectoryEntry['type'] = 'other';
-            if (dirent.isFile()) type = 'file';
-            else if (dirent.isDirectory()) type = 'directory';
-            else if (dirent.isSymbolicLink()) type = 'symlink';
+          const collectedEntries: ListDirectoryEntry[] = [];
 
-            let size: number | undefined = undefined;
-            if (type === 'file') {
-              try {
-                const stats = await fs.stat(entryPath);
-                size = stats.size;
-              } catch (statError) {
-                logger.warn({ path: entryPath, error: statError }, 'Failed to get stats for file in list_directory');
+          async function _listDirectoryRecursive(currentPhysicalPath: string, currentRelativeBase: string, depth: number) {
+            const dirents = await fs.readdir(currentPhysicalPath, { withFileTypes: true });
+
+            for (const dirent of dirents) {
+              const entryPhysicalPath = path.join(currentPhysicalPath, dirent.name);
+              // Construct the relative path for the response: join currentRelativeBase with dirent.name
+              const entryRelativePath = path.join(currentRelativeBase, dirent.name).replace(/\\/g, '/');
+
+              if (shouldSkipPath(entryPhysicalPath, config)) {
+                logger.debug({ path: entryPhysicalPath, reason: 'skipped_by_filter' }, 'Skipping path in list_directory');
+                continue;
+              }
+
+              let type: ListDirectoryEntry['type'] = 'other';
+              if (dirent.isFile()) type = 'file';
+              else if (dirent.isDirectory()) type = 'directory';
+              else if (dirent.isSymbolicLink()) type = 'symlink';
+
+              const resultEntry: ListDirectoryEntry = { name: dirent.name, type, path: entryRelativePath }; 
+              if (type === 'file') {
+                try {
+                  const stats = await fs.stat(entryPhysicalPath);
+                  resultEntry.size = stats.size;
+                } catch (statError: any) {
+                  logger.warn({ path: entryPhysicalPath, error: statError.message }, 'Failed to get stats for file in list_directory');
+                }
+              }
+              collectedEntries.push(resultEntry);
+
+              if (type === 'directory' && isRecursiveMode) { // Use the destructured isRecursiveMode
+                 // For the next level of recursion, the new currentRelativeBase is the entryRelativePath we just constructed
+                await _listDirectoryRecursive(entryPhysicalPath, entryRelativePath, depth + 1);
               }
             }
-            results.push({ name: dirent.name, path: path.relative(allowedDirectories[0], entryPath).replace(/\\/g, '/'), type, size });
           }
-          return { result: { entries: results } };
+
+          if (isRecursiveMode) { // Use the destructured isRecursiveMode
+            // Initial call: currentRelativeBase is empty as paths should be relative to the requested directory itself
+            await _listDirectoryRecursive(initialValidatedPath, '', 0);
+          } else {
+            const dirents = await fs.readdir(initialValidatedPath, { withFileTypes: true });
+            for (const dirent of dirents) {
+              const entryPhysicalPath = path.join(initialValidatedPath, dirent.name);
+              // For non-recursive, path is just the entry name, relative to the initialValidatedPath
+              const entryRelativePath = dirent.name.replace(/\\/g, '/');
+
+              if (shouldSkipPath(entryPhysicalPath, config)) {
+                logger.debug({ path: entryPhysicalPath, reason: 'skipped_by_filter' }, 'Skipping path in list_directory');
+                continue;
+              }
+              let type: ListDirectoryEntry['type'] = 'other';
+              if (dirent.isFile()) type = 'file';
+              else if (dirent.isDirectory()) type = 'directory';
+              else if (dirent.isSymbolicLink()) type = 'symlink';
+              
+              const resultEntry: ListDirectoryEntry = { name: dirent.name, type, path: entryRelativePath }; 
+              if (type === 'file') {
+                try {
+                  const stats = await fs.stat(entryPhysicalPath);
+                  resultEntry.size = stats.size;
+                } catch (statError: any) {
+                  logger.warn({ path: entryPhysicalPath, error: statError.message }, 'Failed to get stats for file in list_directory');
+                }
+              }
+              collectedEntries.push(resultEntry);
+            }
+          }
+          return { result: { entries: collectedEntries.sort((a, b) => a.path.localeCompare(b.path)) } };
         }
 
         case 'move_file': {
@@ -2217,7 +2374,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         default:
-          throw createError('UNKNOWN_TOOL', `Unknown tool: ${request.params.name}`);
+          throw createError('UNKNOWN_TOOL', `Unknown tool: ${request.params.toolName}`);
       }
     } catch (error) {
       let structuredError: StructuredError;
@@ -2226,7 +2383,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
       } else {
         structuredError = createError('UNKNOWN_ERROR', error instanceof Error ? error.message : String(error));
       }
-      logger.error({ error: structuredError, tool: request.params.name }, `Tool request failed: ${request.params.name}`);
+      logger.error({ error: structuredError, tool: request.params.toolName }, `Tool request failed: ${request.params.toolName}`);
       return {
         content: [{ type: 'text', text: `Error (${structuredError.code}): ${structuredError.message}` }],
         isError: true,
@@ -2395,6 +2552,7 @@ export type ListDirectoryEntry = z.infer<typeof ListDirectoryEntrySchema>;
 
 export const ListDirectoryArgsSchema = z.object({
   path: z.string(),
+  recursive: z.boolean().optional().default(false).describe('List directory contents recursively')
 });
 
 // Zaktualizowany schemat z dodanym `maxDepth`
@@ -2450,7 +2608,7 @@ export const GetFileInfoArgsSchema = z.object({
 export const CallToolRequestSchema = z.object({
   method: z.literal('tools/call'),
   params: z.object({
-    name: z.string(),
+    toolName: z.string(), // Corrected from 'name' to 'toolName'
     arguments: z.any()
   })
 });

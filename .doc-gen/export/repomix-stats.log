@@ -1,16 +1,16 @@
 === Statystyki Repomix dla projektu: gatto nero mcp no node and dist ===
-Data: 2025-06-15 16:50:41
+Data: 2025-06-15 17:54:02
 ============================================================
 
 === Statystyki dla grupy 'gatto nero mcp no node and dist' - ścieżka 'gatto_filesystem/' ===
 Łączna liczba plików: 29
-Łączna liczba znaków: 107362
+Łączna liczba znaków: 116201
 Łączna liczba tokenów: 0
 
 Top 3 plików wg liczby znaków:
-  1. src/core/toolHandlers.ts: 22443 znaków
+  1. src/core/toolHandlers.ts: 25300 znaków
   2. src/core/fuzzyEdit.ts: 11705 znaków
-  3. src/core/fileInfo.ts: 10716 znaków
+  3. src/e2e/__tests__/filesystem.e2e.test.ts: 11700 znaków
 
 Top 3 plików wg liczby tokenów:
   1. index.ts: 0 tokenów
@@ -18,4 +18,4 @@ Top 3 plików wg liczby tokenów:
   3. src/e2e/__tests__/filesystem.e2e.test.ts: 0 tokenów
 
 Struktura katalogów:
-{'index.ts': '', 'src': {'constants': {'extensions.ts': ''}, 'e2e': {'__tests__': {'filesystem.e2e.test.ts': ''}}, 'utils': {'hintMap.ts': '', 'pathFilter.test.ts': '', '__tests__': {'binaryDetect.test.ts': ''}, 'pathFilter.ts': '', 'binaryDetect.ts': '', 'performance.ts': '', 'pathUtils.ts': ''}, 'server': {'index.ts': '', 'config.ts': ''}, 'types': {'errors.ts': '', 'fast-levenshtein.d.ts': ''}, 'core': {'security.ts': '', 'concurrency.ts': '', 'fuzzyEdit.ts': '', '__tests__': {'applyFileEdits.test.ts': ''}, 'fileInfo.ts': '', 'toolHandlers.ts': '', 'security.test.ts': '', 'schemas.ts': ''}}, 'test.cl': '', 'package.json': '', 'README.md': '', 'test-config.json': '', 'debug-e2e.js': '', 'tsconfig.json': '', 'test-filtering.js': '', 'Dockerfile': '', 'fix-imports.js': ''}
+{'jest': '', 'index.ts': '', 'src': {'constants': {'extensions.ts': ''}, 'e2e': {'__tests__': {'filesystem.e2e.test.ts': ''}}, 'utils': {'hintMap.ts': '', 'pathFilter.test.ts': '', '__tests__': {'binaryDetect.test.ts': ''}, 'pathFilter.ts': '', 'binaryDetect.ts': '', 'performance.ts': '', 'pathUtils.ts': ''}, 'server': {'index.ts': '', 'config.ts': ''}, 'types': {'errors.ts': '', 'fast-levenshtein.d.ts': ''}, 'core': {'security.ts': '', 'concurrency.ts': '', 'fuzzyEdit.ts': '', '__tests__': {'applyFileEdits.test.ts': ''}, 'fileInfo.ts': '', 'toolHandlers.ts': '', 'security.test.ts': '', 'schemas.ts': ''}}, 'test.cl': '', 'package.json': '', 'README.md': '', 'test-config.json': '', 'debug-e2e.js': '', 'tsconfig.json': '', 'test-filtering.js': '', 'Dockerfile': '', 'fix-imports.js': ''}
