@@ -63,8 +63,10 @@ export const ListDirectoryArgsSchema = z.object({
   path: z.string(),
 });
 
+// Zaktualizowany schemat z dodanym `maxDepth`
 export const DirectoryTreeArgsSchema = z.object({
   path: z.string(),
+  maxDepth: z.number().int().positive().optional().describe('Maximum depth to traverse the directory tree')
 });
 
 // Define the recursive DirectoryTreeEntrySchema
@@ -75,8 +77,6 @@ export const DirectoryTreeEntrySchema: z.ZodType<DirectoryTreeEntry> = z.lazy(()
     path: z.string().describe('Full absolute path of the file or directory'),
     type: z.enum(['file', 'directory']).describe('Type of the entry'),
     children: z.array(DirectoryTreeEntrySchema).optional().describe('Children of the directory entry, undefined for files'),
-    // We might want to add size for files or other metadata later
-    // size: z.number().optional().describe('Size of the file in bytes, undefined for directories'), 
   })
 );
 
@@ -86,7 +86,6 @@ export interface DirectoryTreeEntry {
   path: string;
   type: 'file' | 'directory';
   children?: DirectoryTreeEntry[];
-  // size?: number;
 }
 
 // The result schema is essentially the root entry of the directory tree

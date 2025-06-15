@@ -1,14 +1,14 @@
 === Statystyki Repomix dla projektu: gatto nero mcp no node and dist ===
-Data: 2025-06-15 10:27:23
+Data: 2025-06-15 10:58:40
 ============================================================
 
 === Statystyki dla grupy 'gatto nero mcp no node and dist' - ścieżka 'gatto_filesystem/' ===
-Łączna liczba plików: 16
-Łączna liczba znaków: 76537
+Łączna liczba plików: 17
+Łączna liczba znaków: 75941
 Łączna liczba tokenów: 0
 
 Top 3 plików wg liczby znaków:
-  1. src/core/toolHandlers.ts: 22392 znaków
+  1. src/core/toolHandlers.ts: 21333 znaków
   2. src/core/fuzzyEdit.ts: 15911 znaków
   3. src/core/fileInfo.ts: 11434 znaków
 
@@ -18,4 +18,4 @@ Top 3 plików wg liczby tokenów:
   3. src/utils/binaryDetect.ts: 0 tokenów
 
 Struktura katalogów:
-{'index.ts': '', 'src': {'utils': {'hintMap.ts': '', 'binaryDetect.ts': '', 'performance.ts': '', 'pathUtils.ts': ''}, 'server': {'index.ts': '', 'config.ts': ''}, 'types': {'errors.ts': ''}, 'core': {'security.ts': '', 'fuzzyEdit.ts': '', 'fileInfo.ts': '', 'toolHandlers.ts': '', 'schemas.ts': ''}}, 'test.cl': '', 'package.json': '', 'README.md': '', 'tsconfig.json': '', 'test-filtering.js': '', 'Dockerfile': ''}
+{'index.ts': '', 'src': {'utils': {'hintMap.ts': '', 'binaryDetect.ts': '', 'performance.ts': '', 'pathUtils.ts': ''}, 'server': {'index.ts': '', 'config.ts': ''}, 'types': {'errors.ts': ''}, 'core': {'security.ts': '', 'concurrency.ts': '', 'fuzzyEdit.ts': '', 'fileInfo.ts': '', 'toolHandlers.ts': '', 'schemas.ts': ''}}, 'test.cl': '', 'package.json': '', 'README.md': '', 'tsconfig.json': '', 'test-filtering.js': '', 'Dockerfile': ''}

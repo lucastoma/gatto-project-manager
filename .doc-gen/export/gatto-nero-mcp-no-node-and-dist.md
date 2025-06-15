@@ -1,10 +1,10 @@
 ﻿# Projekt: gatto nero mcp no node and dist
 ## Katalog główny: `/home/lukasz/projects/gatto-ps-ai`
-## Łączna liczba unikalnych plików: 16
+## Łączna liczba unikalnych plików: 17
 ---
 ## Grupa: gatto nero mcp no node and dist
 **Opis:** kod gatto nerro mcp filesystem
-**Liczba plików w grupie:** 16
+**Liczba plików w grupie:** 17
 
 ### Lista plików:
 - `index.ts`
@@ -16,6 +16,7 @@
 - `src/server/config.ts`
 - `src/types/errors.ts`
 - `src/core/security.ts`
+- `src/core/concurrency.ts`
 - `src/core/fuzzyEdit.ts`
 - `src/core/fileInfo.ts`
 - `src/core/toolHandlers.ts`
@@ -317,8 +318,9 @@ export const ConfigSchema = z.object({
     performance: z.boolean().default(false)
   }).default({}),
   concurrency: z.object({
-    maxConcurrentEdits: z.number().positive().default(10)
-  }).default({})
+  maxConcurrentEdits: z.number().positive().default(10),
+  maxGlobalConcurrentEdits: z.number().positive().default(20)
+}).default({})
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
@@ -495,6 +497,24 @@ export async function validatePath(requestedPath: string, allowedDirectories: st
     // Wrap other unexpected errors.
     throw createError('VALIDATION_ERROR', (error as Error).message || String(error), { originalErrorDetails: String(error) });
   }
+}
+```
+#### Plik: `src/core/concurrency.ts`
+```ts
+import { Semaphore } from 'async-mutex';
+import type { Config } from '../server/config.js';
+
+let globalEditSemaphore: Semaphore;
+
+export function initGlobalSemaphore(config: Config) {
+  globalEditSemaphore = new Semaphore(config.concurrency.maxGlobalConcurrentEdits ?? 20);
+}
+
+export function getGlobalSemaphore() {
+  if (!globalEditSemaphore) {
+    throw new Error('Global semaphore not initialized');
+  }
+  return globalEditSemaphore;
 }
 ```
 #### Plik: `src/core/fuzzyEdit.ts`
@@ -1180,6 +1200,7 @@ export async function readMultipleFilesContent(
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Mutex } from 'async-mutex';
+import { initGlobalSemaphore, getGlobalSemaphore } from './concurrency.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { minimatch } from 'minimatch';
@@ -1189,10 +1210,10 @@ import { PerformanceTimer } from '../utils/performance.js';
 import { isBinaryFile } from '../utils/binaryDetect.js';
 import { validatePath } from './security.js';
 import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit.js';
-import { getFileStats, searchFiles, readMultipleFilesContent, FileReadResult, getDirectoryTree } from './fileInfo.js'; 
-import * as schemas from './schemas.js';
+import { getFileStats, searchFiles, readMultipleFilesContent, getDirectoryTree } from './fileInfo.js';
+import * as schemas from './schemas.js'; // <-- BRAKUJĄCY IMPORT ZOSTAŁ DODANY
 // Import specific types that were causing issues if not directly imported
-import type { ListDirectoryEntry, DirectoryTreeEntry, EditOperation } from './schemas.js'; 
+import type { ListDirectoryEntry, DirectoryTreeEntry } from './schemas.js';
 
 import type { Logger } from 'pino';
 import type { Config } from '../server/config.js';
@@ -1234,33 +1255,35 @@ function getFileLock(filePath: string, config: Config, logger: Logger): Mutex {
 }
 
 function shouldSkipPath(filePath: string, config: Config): boolean {
-  const relativePath = path.relative(config.allowedDirectories[0], filePath);
-  
+  // Use the first allowed directory as the base for relative path calculation
+  const baseDir = config.allowedDirectories[0] ?? process.cwd();
+  const relativePath = path.relative(baseDir, filePath);
+
   // Check against default excludes
-  for (const pattern of config.fileFiltering.defaultExcludes) {
-    if (minimatch(relativePath, pattern)) {
-      return true;
-    }
+  if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
+    return true;
   }
-  
+
   // Check allowed extensions if forceTextFiles is true
   if (config.fileFiltering.forceTextFiles) {
     const ext = path.extname(filePath).toLowerCase();
-    if (!config.fileFiltering.allowedExtensions.includes(`*${ext}`)) {
+    const isAllowed = config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p, { nocase: true }));
+    if (!isAllowed) {
       return true;
     }
   }
-  
+
   return false;
 }
 
 export function setupToolHandlers(server: Server, allowedDirectories: string[], logger: Logger, config: Config) {
+  initGlobalSemaphore(config);
   server.setRequestHandler(schemas.HandshakeRequestSchema, async () => ({
     serverName: 'mcp-filesystem-server',
     serverVersion: '0.7.0'
   }));
   const EditFileArgsSchema = schemas.getEditFileArgsSchema(config);
-  
+
   server.setRequestHandler(schemas.ListToolsRequestSchema, async () => {
     return {
       tools: [
@@ -1290,7 +1313,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         case 'list_allowed_directories': {
           const parsed = schemas.ListAllowedDirectoriesArgsSchema.safeParse(request.params.args ?? {});
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) });
-          return { result: allowedDirectories };
+          return { result: { directories: allowedDirectories } };
         }
 
         case 'read_file': {
@@ -1299,21 +1322,9 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
           const timer = new PerformanceTimer('read_file_handler', logger, config);
           try {
             const validatedPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
-            
-            // Check if path should be excluded based on file filtering rules
-            const relativePath = path.relative(config.allowedDirectories[0], validatedPath);
-            if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
-              throw createError('ACCESS_DENIED', 'Path matches excluded pattern');
+            if (shouldSkipPath(validatedPath, config)) {
+              throw createError('ACCESS_DENIED', 'File access denied due to filtering rules.');
             }
-            
-            // Check allowed extensions if forceTextFiles is true
-            if (config.fileFiltering.forceTextFiles) {
-              const ext = path.extname(validatedPath).toLowerCase();
-              if (!config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p))) {
-                throw createError('ACCESS_DENIED', 'File extension not allowed');
-              }
-            }
-            
             const rawBuffer = await fs.readFile(validatedPath);
             let content: string;
             let encodingUsed: 'utf-8' | 'base64' = 'utf-8';
@@ -1334,19 +1345,16 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'read_multiple_files': {
-            const parsed = schemas.ReadMultipleFilesArgsSchema.safeParse(request.params.args);
-            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) });
-
-            // const timer = new PerformanceTimer('read_multiple_files_handler', logger, config); // Timer is now within readMultipleFilesContent
-            const fileReadResults = await readMultipleFilesContent(
-              parsed.data.paths,
-              parsed.data.encoding,
-              allowedDirectories,
-              logger,
-              config
-            );
-            // timer.end(...); // Logging for timer is handled within readMultipleFilesContent
-            return { result: fileReadResults };
+          const parsed = schemas.ReadMultipleFilesArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) });
+          const fileReadResults = await readMultipleFilesContent(
+            parsed.data.paths,
+            parsed.data.encoding,
+            allowedDirectories,
+            logger,
+            config
+          );
+          return { result: { files: fileReadResults } };
         }
 
         case 'write_file': {
@@ -1354,26 +1362,16 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.WriteFileArgsSchema) });
           const timer = new PerformanceTimer('write_file_handler', logger, config);
           try {
-            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
-            
-            // Check if path should be excluded based on file filtering rules
-            const relativePath = path.relative(config.allowedDirectories[0], validPath);
-            if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
-              throw createError('ACCESS_DENIED', 'Path matches excluded pattern');
+            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+            if (shouldSkipPath(validPath, config)) {
+              throw createError('ACCESS_DENIED', 'File writing denied due to filtering rules.');
             }
-            
-            // Check allowed extensions if forceTextFiles is true
-            if (config.fileFiltering.forceTextFiles) {
-              const ext = path.extname(validPath).toLowerCase();
-              if (!config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p))) {
-                throw createError('ACCESS_DENIED', 'File extension not allowed');
-              }
-            }
-            
-            const lock = getFileLock(validPath, config, requestLogger);
-            await lock.runExclusive(async () => {
-              const contentBuffer = Buffer.from(parsed.data.content, parsed.data.encoding);
-              await fs.writeFile(validPath, contentBuffer);
+            const lock = getFileLock(validPath, config, logger);
+            await getGlobalSemaphore().runExclusive(async () => {
+              await lock.runExclusive(async () => {
+                const contentBuffer = Buffer.from(parsed.data.content, parsed.data.encoding);
+                await fs.writeFile(validPath, contentBuffer);
+              });
             });
             timer.end();
             return { content: [{ type: 'text', text: `File written: ${parsed.data.path}` }] };
@@ -1389,41 +1387,54 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
-            throw createError('FILE_FILTERED_OUT', 'File is excluded by filtering rules', { path: validPath });
+            throw createError('ACCESS_DENIED', 'File editing denied due to filtering rules', { path: validPath });
           }
           const fuzzyConfig: FuzzyMatchConfig = {
-            maxDistanceRatio: config.fuzzyMatching.maxDistanceRatio,
-            minSimilarity: config.fuzzyMatching.minSimilarity,
-            caseSensitive: config.fuzzyMatching.caseSensitive,
-            ignoreWhitespace: config.fuzzyMatching.ignoreWhitespace,
-            preserveLeadingWhitespace: config.fuzzyMatching.preserveLeadingWhitespace,
-            debug: config.logging.level === 'debug',
+            maxDistanceRatio: parsed.data.maxDistanceRatio,
+            minSimilarity: parsed.data.minSimilarity,
+            caseSensitive: parsed.data.caseSensitive,
+            ignoreWhitespace: parsed.data.ignoreWhitespace,
+            preserveLeadingWhitespace: parsed.data.preserveLeadingWhitespace,
+            debug: parsed.data.debug || config.logging.level === 'debug',
           };
 
-          const lock = getFileLock(validPath, config);
-          const { modifiedContent, formattedDiff } = await lock.runExclusive(async () => {
-            const editResult = await applyFileEdits(
-              validPath, // Use validated path
-              parsed.data.edits,
-              fuzzyConfig,
-              logger,
-              config
-            );
-            return editResult;
+          const lock = getFileLock(validPath, config, logger);
+          let formattedDiff: string = '';
+
+          await getGlobalSemaphore().runExclusive(async () => {
+            await lock.runExclusive(async () => {
+              const editResult = await applyFileEdits(
+                validPath,
+                parsed.data.edits,
+                fuzzyConfig,
+                logger,
+                config
+              );
+              formattedDiff = editResult.formattedDiff;
+
+              if (!parsed.data.dryRun) {
+                await fs.writeFile(validPath, editResult.modifiedContent, 'utf-8');
+              }
+            });
           });
 
-          const responseText = parsed.data.dryRun 
+          const responseText = parsed.data.dryRun
             ? `Dry run: File '${parsed.data.path}' would be modified. Diff:\n${formattedDiff}`
             : `File '${parsed.data.path}' edited successfully. Diff:\n${formattedDiff}`;
-          
+
           return { content: [{ type: 'text', text: responseText }] };
         }
-        
+
         case 'create_directory': {
           const parsed = schemas.CreateDirectoryArgsSchema.safeParse(request.params.args);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) });
-          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
-          await fs.mkdir(validPath, { recursive: true });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const lock = getFileLock(validPath, config, logger);
+          await getGlobalSemaphore().runExclusive(async () => {
+            await lock.runExclusive(async () => {
+              await fs.mkdir(validPath, { recursive: true });
+            });
+          });
           return { content: [{ type: 'text', text: `Directory created: ${parsed.data.path}` }] };
         }
 
@@ -1434,67 +1445,72 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
           const entries = await fs.readdir(validPath, { withFileTypes: true });
           const results: ListDirectoryEntry[] = [];
           for (const dirent of entries) {
+            const entryPath = path.join(validPath, dirent.name);
+            if (shouldSkipPath(entryPath, config)) {
+              continue;
+            }
+
             let type: ListDirectoryEntry['type'] = 'other';
             if (dirent.isFile()) type = 'file';
             else if (dirent.isDirectory()) type = 'directory';
             else if (dirent.isSymbolicLink()) type = 'symlink';
-            
-            const entryPath = path.join(validPath, dirent.name);
+
             let size: number | undefined = undefined;
             if (type === 'file') {
-                try {
-                    const stats = await fs.stat(entryPath);
-                    size = stats.size;
-                } catch (statError) {
-                    logger.warn({ path: entryPath, error: statError }, 'Failed to get stats for file in list_directory');
-                }
+              try {
+                const stats = await fs.stat(entryPath);
+                size = stats.size;
+              } catch (statError) {
+                logger.warn({ path: entryPath, error: statError }, 'Failed to get stats for file in list_directory');
+              }
             }
-            if (!shouldSkipPath(entryPath, config)) {
-              results.push({ name: dirent.name, path: path.relative(config.allowedDirectories[0], entryPath).replace(/\\/g, '/'), type, size });
-            }
+            results.push({ name: dirent.name, path: path.relative(allowedDirectories[0], entryPath).replace(/\\/g, '/'), type, size });
           }
-          return { result: results };
+          return { result: { entries: results } };
         }
 
         case 'move_file': {
           const parsed = schemas.MoveFileArgsSchema.safeParse(request.params.args);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.MoveFileArgsSchema) });
-          const validSource = await validatePath(parsed.data.source, allowedDirectories, logger, config); // isWriteOperation = true (on source)
-          const validDestination = await validatePath(parsed.data.destination, allowedDirectories, logger, config); // isWriteOperation = true (on destination)
-          if (shouldSkipPath(validSource, config)) {
-            throw createError('FILE_FILTERED_OUT', 'File is excluded by filtering rules', { path: validSource });
+
+          const validSource = await validatePath(parsed.data.source, allowedDirectories, logger, config);
+          const validDestination = await validatePath(parsed.data.destination, allowedDirectories, logger, config);
+
+          if (validSource === validDestination) {
+            return { content: [{ type: 'text', text: 'Source and destination are the same, no action taken.' }] };
           }
-          if (shouldSkipPath(validDestination, config)) {
-            throw createError('FILE_FILTERED_OUT', 'File is excluded by filtering rules', { path: validDestination });
+          if (shouldSkipPath(validSource, config) || shouldSkipPath(validDestination, config)) {
+            throw createError('ACCESS_DENIED', 'Source or destination path is disallowed by filtering rules.');
           }
-          
-          const sourceLock = getFileLock(validSource, config);
-          const destLock = getFileLock(validDestination, config); // Potentially lock destination too if it might exist or be created
-          
-          await sourceLock.runExclusive(async () => {
-            // If destination is different, also acquire its lock if not already held
-            if (validSource !== validDestination && !destLock.isLocked()) {
-              await destLock.runExclusive(async () => {
+
+          await getGlobalSemaphore().runExclusive(async () => {
+            // To prevent deadlocks, always acquire locks in a consistent order (alphabetical)
+            const [path1, path2] = [validSource, validDestination].sort();
+            const lock1 = getFileLock(path1, config, logger);
+            const lock2 = getFileLock(path2, config, logger);
+
+            await lock1.runExclusive(async () => {
+              await lock2.runExclusive(async () => {
                 await fs.rename(validSource, validDestination);
               });
-            } else {
-              // If source and destination are same or destLock already acquired (e.g. by sourceLock if paths are same)
-              await fs.rename(validSource, validDestination);
-            }
+            });
           });
+
           return { content: [{ type: 'text', text: `Moved from ${parsed.data.source} to ${parsed.data.destination}` }] };
         }
 
         case 'delete_file': {
           const parsed = schemas.DeleteFileArgsSchema.safeParse(request.params.args);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DeleteFileArgsSchema) });
-          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
-            throw createError('FILE_FILTERED_OUT', 'File is excluded by filtering rules', { path: validPath });
+            throw createError('ACCESS_DENIED', 'File deletion denied due to filtering rules.');
           }
-          const lock = getFileLock(validPath, config);
-          await lock.runExclusive(async () => {
-            await fs.unlink(validPath);
+          const lock = getFileLock(validPath, config, logger);
+          await getGlobalSemaphore().runExclusive(async () => {
+            await lock.runExclusive(async () => {
+              await fs.unlink(validPath);
+            });
           });
           return { content: [{ type: 'text', text: `File deleted: ${parsed.data.path}` }] };
         }
@@ -1502,13 +1518,15 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         case 'delete_directory': {
           const parsed = schemas.DeleteDirectoryArgsSchema.safeParse(request.params.args);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DeleteDirectoryArgsSchema) });
-          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
-            throw createError('FILE_FILTERED_OUT', 'File is excluded by filtering rules', { path: validPath });
+            throw createError('ACCESS_DENIED', 'Directory deletion denied due to filtering rules.');
           }
-          const lock = getFileLock(validPath, config); // Lock the directory itself
-          await lock.runExclusive(async () => {
-            await fs.rm(validPath, { recursive: parsed.data.recursive || false, force: false }); // force: false for safety
+          const lock = getFileLock(validPath, config, logger);
+          await getGlobalSemaphore().runExclusive(async () => {
+            await lock.runExclusive(async () => {
+              await fs.rm(validPath, { recursive: parsed.data.recursive || false, force: false }); // force: false for safety
+            });
           });
           return { content: [{ type: 'text', text: `Directory deleted: ${parsed.data.path}` }] };
         }
@@ -1525,15 +1543,17 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
               logger,
               config,
               parsed.data.excludePatterns || [],
-              parsed.data.useExactPatterns || false
+              parsed.data.useExactPatterns || false,
+              parsed.data.maxDepth || -1
             );
-            
+
+            let finalResults = results;
             if (parsed.data.maxResults && results.length > parsed.data.maxResults) {
-              results.length = parsed.data.maxResults;
+              finalResults = results.slice(0, parsed.data.maxResults);
             }
-            
-            timer.end({ resultsCount: results.length });
-            return { results };
+
+            timer.end({ resultsCount: finalResults.length });
+            return { result: { paths: finalResults } };
           } catch (error) {
             timer.end({ result: 'error' });
             throw error;
@@ -1545,26 +1565,25 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
-            throw createError('FILE_FILTERED_OUT', 'File is excluded by filtering rules', { path: validPath });
+            throw createError('ACCESS_DENIED', 'File access denied due to filtering rules.');
           }
           const stats = await getFileStats(validPath, logger, config);
           return { result: stats };
         }
 
         case 'directory_tree': {
-            const parsed = schemas.DirectoryTreeArgsSchema.safeParse(request.params.args);
-            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DirectoryTreeArgsSchema) });
-            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
-            const tree = await getDirectoryTree(validPath, allowedDirectories, logger, config);
-            logger.debug({ tree }, 'Generated directory tree (getDirectoryTree)');
-            return { content: [{ type: 'text', text: JSON.stringify(tree, null, 2) }] };
+          const parsed = schemas.DirectoryTreeArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DirectoryTreeArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const tree = await getDirectoryTree(validPath, allowedDirectories, logger, config, 0, parsed.data.maxDepth ?? -1);
+          return { result: tree };
         }
 
         case 'server_stats': {
-            const parsed = schemas.ServerStatsArgsSchema.safeParse(request.params.args);
-            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ServerStatsArgsSchema) });
-            const stats = { requestCount, editOperationCount, config };
-            return { content: [{ type: 'text', text: JSON.stringify(stats, null, 2) }] };
+          const parsed = schemas.ServerStatsArgsSchema.safeParse(request.params.args ?? {});
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ServerStatsArgsSchema) });
+          const stats = { requestCount, editOperationCount, activeLocks: fileLocks.size, config };
+          return { result: stats };
         }
 
         default:
@@ -1572,7 +1591,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
       }
     } catch (error) {
       let structuredError: StructuredError;
-      if ((error as any).code && (error as any).message) { 
+      if ((error as any).code && (error as any).message) {
         structuredError = error as StructuredError;
       } else {
         structuredError = createError('UNKNOWN_ERROR', error instanceof Error ? error.message : String(error));
@@ -1654,8 +1673,10 @@ export const ListDirectoryArgsSchema = z.object({
   path: z.string(),
 });
 
+// Zaktualizowany schemat z dodanym `maxDepth`
 export const DirectoryTreeArgsSchema = z.object({
   path: z.string(),
+  maxDepth: z.number().int().positive().optional().describe('Maximum depth to traverse the directory tree')
 });
 
 // Define the recursive DirectoryTreeEntrySchema
@@ -1666,8 +1687,6 @@ export const DirectoryTreeEntrySchema: z.ZodType<DirectoryTreeEntry> = z.lazy(()
     path: z.string().describe('Full absolute path of the file or directory'),
     type: z.enum(['file', 'directory']).describe('Type of the entry'),
     children: z.array(DirectoryTreeEntrySchema).optional().describe('Children of the directory entry, undefined for files'),
-    // We might want to add size for files or other metadata later
-    // size: z.number().optional().describe('Size of the file in bytes, undefined for directories'), 
   })
 );
 
@@ -1677,7 +1696,6 @@ export interface DirectoryTreeEntry {
   path: string;
   type: 'file' | 'directory';
   children?: DirectoryTreeEntry[];
-  // size?: number;
 }
 
 // The result schema is essentially the root entry of the directory tree
