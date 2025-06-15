@@ -393,3 +393,41 @@ __kernel void selective_transfer_kernel(__global const float* source_lab,
     result_lab[base_idx + 1] = final_a;
     result_lab[base_idx + 2] = final_b;
 }
+
+// Kernel for linear blending in the hybrid pipeline
+// Blends current_source_lab with a statistically transformed version of original_target_lab
+__kernel void linear_blend_pipeline_kernel(__global float3* current_source_lab,
+                                           __global float3* original_target_lab, // This is the original target image buffer
+                                           __global float3* result_lab,
+                                           float src_mean_l, float src_std_l,       // Stats of current_source_lab
+                                           float src_mean_a, float src_std_a,
+                                           float src_mean_b, float src_std_b,
+                                           float tgt_mean_l, float tgt_std_l,       // Stats of original_target_lab
+                                           float tgt_mean_a, float tgt_std_a,
+                                           float tgt_mean_b, float tgt_std_b,
+                                           float weight_l, float weight_a, float weight_b,
+                                           int width, int height)
+{
+    int gid = get_global_id(0);
+    if (gid >= width * height) return;
+
+    float3 current_src_pixel = current_source_lab[gid];
+    float3 original_tgt_pixel = original_target_lab[gid];
+    float3 transformed_tgt_pixel_for_blending; // Target pixel transformed to match current_src_pixel's stats context
+
+    // Statistically transform original_tgt_pixel to match the statistics of current_src_pixel
+    // This means: (original_tgt_pixel - its_mean) * (current_src_std / its_std) + current_src_mean
+    if (tgt_std_l != 0.0f) transformed_tgt_pixel_for_blending.x = (original_tgt_pixel.x - tgt_mean_l) * (src_std_l / tgt_std_l) + src_mean_l;
+    else transformed_tgt_pixel_for_blending.x = src_mean_l;
+
+    if (tgt_std_a != 0.0f) transformed_tgt_pixel_for_blending.y = (original_tgt_pixel.y - tgt_mean_a) * (src_std_a / tgt_std_a) + src_mean_a;
+    else transformed_tgt_pixel_for_blending.y = src_mean_a;
+
+    if (tgt_std_b != 0.0f) transformed_tgt_pixel_for_blending.z = (original_tgt_pixel.z - tgt_mean_b) * (src_std_b / tgt_std_b) + src_mean_b;
+    else transformed_tgt_pixel_for_blending.z = src_mean_b;
+
+    // Blend the current_src_pixel with the transformed_tgt_pixel_for_blending
+    result_lab[gid].x = current_src_pixel.x * (1.0f - weight_l) + transformed_tgt_pixel_for_blending.x * weight_l;
+    result_lab[gid].y = current_src_pixel.y * (1.0f - weight_a) + transformed_tgt_pixel_for_blending.y * weight_a;
+    result_lab[gid].z = current_src_pixel.z * (1.0f - weight_b) + transformed_tgt_pixel_for_blending.z * weight_b;
+}

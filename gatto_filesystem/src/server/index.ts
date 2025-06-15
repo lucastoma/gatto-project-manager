@@ -15,6 +15,20 @@ if (allowedDirectories.length === 0) {
 console.error('🚀 Starting MCP Filesystem Server...');
 console.error('📂 Allowed directories:', allowedDirectories);
 
+// Szczegółowe logowanie do pliku
+const logFile = '/home/lukasz/projects/gatto-ps-ai/gatto_filesystem/logs/server-debug.log';
+
+async function logToFile(message: string, data?: any) {
+  const timestamp = new Date().toISOString();
+  const logEntry = `[${timestamp}] ${message}${data ? '\nData: ' + JSON.stringify(data, null, 2) : ''}\n`;
+  try {
+    await fs.mkdir(path.dirname(logFile), { recursive: true });
+    await fs.appendFile(logFile, logEntry);
+  } catch (error) {
+    console.error('Logging error:', error);
+  }
+}
+
 // Stwórz serwer MCP zgodnie z SDK
 const server = new McpServer({
   name: 'mcp-filesystem-server',
@@ -46,6 +60,8 @@ server.tool(
     encoding: z.enum(['utf-8', 'base64', 'auto']).optional().default('auto').describe('Encoding for file content')
   },
   async ({ path: filePath, encoding = 'auto' }) => {
+    await logToFile('read_file called', { filePath, encoding });
+    
     const validatedPath = await validatePath(filePath);
     const stats = await fs.stat(validatedPath);
     
@@ -57,8 +73,15 @@ server.tool(
     if (encoding === 'base64') {
       const buffer = await fs.readFile(validatedPath);
       content = buffer.toString('base64');
+      await logToFile('read_file: used base64 encoding', { contentLength: content.length });
     } else if (encoding === 'utf-8') {
       content = await fs.readFile(validatedPath, 'utf-8');
+      await logToFile('read_file: used utf-8 encoding', { 
+        contentLength: content.length,
+        hasNewlines: content.includes('\n'),
+        firstLine: content.split('\n')[0],
+        lineCount: content.split('\n').length
+      });
     } else {
       // Auto-detect encoding
       const buffer = await fs.readFile(validatedPath);
@@ -68,22 +91,38 @@ server.tool(
         if (content.includes('\uFFFD')) {
           content = buffer.toString('base64');
           encoding = 'base64';
+          await logToFile('read_file: auto-detected as base64 (replacement chars found)');
         } else {
           encoding = 'utf-8';
+          await logToFile('read_file: auto-detected as utf-8', {
+            contentLength: content.length,
+            hasNewlines: content.includes('\n'),
+            firstLine: content.split('\n')[0],
+            lineCount: content.split('\n').length
+          });
         }
       } catch {
         content = buffer.toString('base64');
         encoding = 'base64';
+        await logToFile('read_file: auto-detected as base64 (utf-8 failed)');
       }
     }
 
-    return {
+    const result = {
       content: [{
         type: 'text',
         text: content
       }],
       _meta: { encoding }
     };
+    
+    await logToFile('read_file result', { 
+      encoding, 
+      contentLength: content.length,
+      resultType: result.content[0].type
+    });
+
+    return result;
   }
 );
 

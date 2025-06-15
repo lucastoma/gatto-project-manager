@@ -15,7 +15,7 @@ import logging
 
 # ==============================================================================
 # POPRAWIONA LOGIKA Z MODUŁU: logger.py
-# ==============================================================================
+# =============================================================================
 def get_logger(name: str = None) -> logging.Logger:
     """Returns a configured logger instance."""
     logger_name = name or 'lab_transfer'

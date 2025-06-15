@@ -1,4 +1,20 @@
 import numpy as np
+import pyopencl as cl
+import pyopencl.array as cl_array # If used
+import os
+import warnings # if used
+from typing import List, Tuple, Union, Optional, Dict # Added typing
+from .logger import get_logger # Added logger import
+from .config import LABColorTransferConfig # Changed import
+
+# Placeholder for PYOPENCL_AVAILABLE, ensure it's defined based on successful cl import
+PYOPENCL_AVAILABLE = True
+try:
+    if os.environ.get("PYOPENCL_TEST", "0") == "1": # For testing fallback
+        raise ImportError("PYOPENCL_TEST is set, simulating no OpenCL")
+    cl.create_some_context()
+except Exception:
+    PYOPENCL_AVAILABLE = False
 import warnings
 
 # Ignoruj specyficzne ostrzeżenie z PyOpenCL dotyczące cache'owania kerneli.
@@ -18,6 +34,19 @@ import logging
 from .logger import get_logger
 
 class LABColorTransferGPU:
+    def __init__(self, config: LABColorTransferConfig):
+        if not PYOPENCL_AVAILABLE:
+            # This check might be redundant if ImageProcessor already handles PYOPENCL_AVAILABLE
+            # However, it's a good safeguard if LABColorTransferGPU is instantiated directly.
+            self.logger = get_logger(self.__class__.__name__) # Initialize logger early for this message
+            self.logger.error("PyOpenCL not available. LABColorTransferGPU cannot be initialized.")
+            raise RuntimeError("PyOpenCL is not available or context creation failed.")
+        
+        self.config = config
+        self.logger = get_logger(self.__class__.__name__)
+        self._initialize_opencl()
+        self._load_kernel()
+        self.gpu_mask_buffers_cache = {} # Cache for mask buffers
     """
     GPU-accelerated version of LABColorTransfer using OpenCL.
     """

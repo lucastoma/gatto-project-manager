@@ -19,7 +19,8 @@ class LABTransferConfig:
         min_segment_size_perc: float = 0.01,
         tile_size: int = 512,
         overlap: int = 64,
-        use_gpu: bool = False
+        use_gpu: bool = False,
+        hybrid_pipeline: Optional[List[Dict]] = None # Added hybrid_pipeline
     ):
         # Main processing method
         self.method = method
@@ -43,6 +44,22 @@ class LABTransferConfig:
 
         # GPU acceleration flag
         self.use_gpu = use_gpu
+
+        # Parameters for 'hybrid' method
+        if hybrid_pipeline is None:
+            self.hybrid_pipeline = [
+                {"method": "adaptive", "params": {"num_segments": 8}},
+                {"method": "selective",
+                 "params": {
+                     "mask": None, 
+                     "blend_factor": 0.7,
+                     "selective_channels": ["a", "b"]
+                 }},
+                {"method": "linear_blend",
+                 "params": {"weights": [0.3, 0.5, 0.5]}}
+            ]
+        else:
+            self.hybrid_pipeline = hybrid_pipeline
 
     def validate(self):
         """
@@ -82,6 +99,18 @@ class LABTransferConfig:
 
         if not (0.0 <= self.min_segment_size_perc <= 1.0):
             errors.append(f"Invalid min_segment_size_perc: {self.min_segment_size_perc}. Must be between 0.0 and 1.0.")
+
+        if not isinstance(self.hybrid_pipeline, list):
+            errors.append(f"'hybrid_pipeline' must be a list, got {type(self.hybrid_pipeline)}.")
+        else:
+            for idx, step in enumerate(self.hybrid_pipeline):
+                if not isinstance(step, dict):
+                    errors.append(f"Hybrid pipeline step {idx} must be a dictionary.")
+                    continue
+                if "method" not in step:
+                    errors.append(f"Hybrid pipeline step {idx} is missing 'method' key.")
+                # Further validation of methods and params within pipeline can be added here
+                # For now, we assume core/gpu_core will validate specific methods and their params
 
         if errors:
             raise ValueError("Configuration errors: " + "; ".join(errors))

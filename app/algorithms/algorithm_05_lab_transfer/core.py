@@ -1,5 +1,8 @@
 import os
 import numpy as np
+from typing import List, Tuple, Union, Optional, Dict
+from .logger import get_logger
+from .config import LABColorTransferConfig # Added import for LABColorTransferConfig
 from PIL import Image
 import skimage.color
 from functools import lru_cache
@@ -11,6 +14,10 @@ from .logger import get_logger
 from .gpu_core import LABColorTransferGPU
 
 class LABColorTransfer:
+    def __init__(self, config: LABColorTransferConfig):
+        self.config = config
+        self.logger = get_logger(self.__class__.__name__)
+        # Ensure other necessary initializations like _CPU_METHOD_DISPATCH are present if not class-level
     """
     Base class implementing core LAB color transfer methods.
     It now uses scikit-image for robust color conversions and includes
