@@ -7,13 +7,30 @@ import { promises as fs } from 'node:fs';
 import fsSync from 'node:fs';
 import path from 'node:path';
 
-import { loadConfig } from './config.js';
+import { getConfig } from './config.js';
 import { setupToolHandlers } from '../core/toolHandlers.js';
 import * as schemas from '../core/schemas.js';
 import { expandHome, normalizePath } from '../utils/pathUtils.js';
 
+let runningServer: Server | undefined;
+
+async function shutdown(signal: NodeJS.Signals, logger: pino.Logger) {
+  logger.info({ signal }, 'Received termination signal, shutting down gracefully');
+  try {
+    if (runningServer) {
+      // await runningServer.disconnect(); // Not supported by SDK, just exit
+    }
+  } catch (err) {
+    logger.error({ err }, 'Error during graceful shutdown');
+  } finally {
+    // Give some time for logs to flush
+    setTimeout(() => process.exit(0), 100);
+  }
+}
+
 async function main() {
-  const config = await loadConfig();
+  // TODO: parse process.argv or pass args if needed
+  const config = await getConfig([]);
 
   // Create logs directory if it doesn't exist
   const logsDir = path.join(process.cwd(), 'logs');
@@ -56,9 +73,9 @@ async function main() {
   logger.error = logWithPaths(logger.error.bind(logger));
   logger.warn = logWithPaths(logger.warn.bind(logger));
 
-  const allowedDirectories = config.allowedDirectories.map(dir => normalizePath(path.resolve(expandHome(dir))));
+  const allowedDirectories = config.allowedDirectories.map((dir: string) => normalizePath(path.resolve(expandHome(dir))));
 
-  await Promise.all(allowedDirectories.map(async (dir) => {
+  await Promise.all(allowedDirectories.map(async (dir: string) => {
     try {
       const stats = await fs.stat(dir);
       if (!stats.isDirectory()) {
@@ -76,13 +93,19 @@ async function main() {
     { capabilities: { tools: {} } }
   );
 
+  runningServer = server;
+
   setupToolHandlers(server, allowedDirectories, logger, config);
-// list_tools jest już zarejestrowane w toolHandlers.ts, więc usuwamy duplikat
+  // list_tools jest już zarejestrowane w toolHandlers.ts, więc usuwamy duplikat
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
   logger.info({ version: '0.7.0', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started');
+
+  // Setup signal handlers after server is running
+  process.once('SIGINT', (sig) => shutdown(sig, logger));
+  process.once('SIGTERM', (sig) => shutdown(sig, logger));
 }
 
 main().catch((error) => {

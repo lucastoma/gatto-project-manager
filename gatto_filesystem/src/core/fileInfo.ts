@@ -5,6 +5,7 @@ import { lookup as mimeLookup } from 'mime-types';
 import { isBinaryFile } from '../utils/binaryDetect.js';
 import { PerformanceTimer } from '../utils/performance.js';
 import { validatePath } from './security.js';
+import { shouldSkipPath } from '../utils/pathFilter.js';
 import type { Logger } from 'pino';
 import type { Config } from '../server/config.js';
 
@@ -24,7 +25,7 @@ const FILE_STAT_READ_BUFFER_SIZE = 8192; // Read 8KB for binary detection
 
 export async function getFileStats(filePath: string, logger: Logger, config: Config): Promise<FileInfo> {
   const timer = new PerformanceTimer('getFileStats', logger, config);
-  
+
   try {
     const stats = await fs.stat(filePath);
     let isBinary = false;
@@ -43,7 +44,7 @@ export async function getFileStats(filePath: string, logger: Logger, config: Con
       }
       mimeType = mimeLookup(filePath);
     }
-    
+
     const result = {
       size: stats.size,
       created: stats.birthtime,
@@ -55,7 +56,7 @@ export async function getFileStats(filePath: string, logger: Logger, config: Con
       isBinary: stats.isFile() ? isBinary : undefined, // isBinary is only relevant for files
       mimeType: stats.isFile() ? (mimeType || (isBinary ? 'application/octet-stream' : 'text/plain')) : undefined
     };
-    
+
     timer.end({ isBinary, size: stats.size });
     return result;
   } catch (error) {
@@ -92,31 +93,21 @@ export async function searchFiles(
 
         try {
           const relativePath = path.relative(rootPath, fullPath);
-          // Match exclude patterns against the relative path, case-insensitively
-          const shouldExclude = excludePatterns.some(p => minimatch(relativePath, p, { dot: true, nocase: true }));
-
-          if (shouldExclude) {
+          // Exclude via explicit excludePatterns first
+          if (excludePatterns.some(p => minimatch(relativePath, p, { dot: true, nocase: true }))) {
             continue;
           }
 
-          // Check if path should be excluded based on file filtering rules
-          if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
+          // Apply the centralized filtering utility
+          if (shouldSkipPath(fullPath, config)) {
             continue;
-          }
-
-          // Check allowed extensions if forceTextFiles is true
-          if (config.fileFiltering.forceTextFiles) {
-            const ext = path.extname(fullPath).toLowerCase();
-            if (!config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p))) {
-              continue;
-            }
           }
 
           // Determine the actual glob pattern to use based on useExactPatterns
           // If useExactPatterns is false and the input pattern doesn't contain a path separator,
           // prepend '**/' to match items at any depth.
-          const globPatternToUse = useExactPatterns 
-            ? pattern 
+          const globPatternToUse = useExactPatterns
+            ? pattern
             : (pattern.includes('/') ? pattern : `**/${pattern}`);
 
           // Match the effective glob pattern against the relative path, case-insensitively
@@ -192,21 +183,12 @@ export async function getDirectoryTree(
       const dirents = await fs.readdir(validatedPath, { withFileTypes: true });
       for (const dirent of dirents) {
         const childPath = path.join(validatedPath, dirent.name);
-        
-        // Skip excluded paths and disallowed extensions
-        const relativePath = path.relative(basePath, childPath);
-        if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
+
+        // Apply centralized filtering for each child entry
+        if (shouldSkipPath(childPath, config)) {
           continue;
         }
-        
-        // Check allowed extensions if forceTextFiles is true
-        if (dirent.isFile() && config.fileFiltering.forceTextFiles) {
-          const ext = path.extname(childPath).toLowerCase();
-          if (!config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p))) {
-            continue;
-          }
-        }
-        
+
         // Recursive call, incrementing currentDepth
         // We pass the original maxDepth down
         const childEntry = await getDirectoryTree(childPath, allowedDirectories, logger, config, currentDepth + 1, maxDepth);

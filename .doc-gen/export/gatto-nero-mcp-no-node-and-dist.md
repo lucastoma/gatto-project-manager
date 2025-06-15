@@ -1,25 +1,31 @@
 ﻿# Projekt: gatto nero mcp no node and dist
 ## Katalog główny: `/home/lukasz/projects/gatto-ps-ai`
-## Łączna liczba unikalnych plików: 17
+## Łączna liczba unikalnych plików: 23
 ---
 ## Grupa: gatto nero mcp no node and dist
 **Opis:** kod gatto nerro mcp filesystem
-**Liczba plików w grupie:** 17
+**Liczba plików w grupie:** 23
 
 ### Lista plików:
 - `index.ts`
+- `src/constants/extensions.ts`
 - `src/utils/hintMap.ts`
+- `src/utils/pathFilter.test.ts`
+- `src/utils/pathFilter.ts`
 - `src/utils/binaryDetect.ts`
 - `src/utils/performance.ts`
 - `src/utils/pathUtils.ts`
 - `src/server/index.ts`
 - `src/server/config.ts`
 - `src/types/errors.ts`
+- `src/types/fast-levenshtein.d.ts`
 - `src/core/security.ts`
 - `src/core/concurrency.ts`
 - `src/core/fuzzyEdit.ts`
+- `src/core/__tests__/applyFileEdits.test.ts`
 - `src/core/fileInfo.ts`
 - `src/core/toolHandlers.ts`
+- `src/core/security.test.ts`
 - `src/core/schemas.ts`
 - `package.json`
 - `tsconfig.json`
@@ -29,6 +35,29 @@
 #### Plik: `index.ts`
 ```ts
 // This file is intentionally left blank after refactoring to src/server/index.ts
+```
+#### Plik: `src/constants/extensions.ts`
+```ts
+export const DEFAULT_EXCLUDE_PATTERNS: string[] = [
+    '**/build/**',
+    '**/dist/**',
+    '**/node_modules/**',
+    '**/.git/**',
+    '**/*.jpg', '**/*.png', '**/*.gif', '**/*.pdf',
+    '**/*.zip', '**/*.tar', '**/*.gz'
+];
+
+export const DEFAULT_ALLOWED_EXTENSIONS: string[] = [
+    '*.txt', '*.js', '*.jsx', '*.ts', '*.tsx', '*.json', '*.yaml', '*.yml',
+    '*.html', '*.htm', '*.css', '*.scss', '*.sass', '*.less', '*.py', '*.java', '*.go',
+    '*.rs', '*.rb', '*.php', '*.sh', '*.bash', '*.zsh', '*.md', '*.markdown', '*.xml',
+    '*.svg', '*.csv', '*.toml', '*.ini', '*.cfg', '*.conf', '*.env', '*.ejs', '*.pug',
+    '*.vue', '*.svelte', '*.graphql', '*.gql', '*.proto', '*.kt', '*.kts', '*.swift',
+    '*.m', '*.h', '*.c', '*.cpp', '*.hpp', '*.cs', '*.fs', '*.fsx', '*.clj', '*.cljs',
+    '*.cljc', '*.edn', '*.ex', '*.exs', '*.erl', '*.hrl', '*.lua', '*.sql', '*.pl',
+    '*.pm', '*.r', '*.jl', '*.dart', '*.groovy', '*.gradle', '*.nim', '*.zig', '*.v',
+    '*.vh', '*.vhd', '*.cl', '*.tex', '*.sty', '*.cls', '*.rst', '*.adoc', '*.asciidoc'
+];
 ```
 #### Plik: `src/utils/hintMap.ts`
 ```ts
@@ -81,6 +110,100 @@ export const HINTS: Record<string, HintInfo> = {
     hint: "An unexpected error occurred. Check server logs for details."
   }
 };
+```
+#### Plik: `src/utils/pathFilter.test.ts`
+```ts
+import { shouldSkipPath } from './pathFilter.js';
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+
+describe('shouldSkipPath', () => {
+  const mockConfig = (overrides = {}) => ({
+    allowedDirectories: ['/allowed'],
+    fileFiltering: {
+      defaultExcludes: [],
+      allowedExtensions: [],
+      forceTextFiles: false,
+      ...overrides
+    }
+  });
+
+  it('should allow basic file when no filters', () => {
+    expect(shouldSkipPath('/allowed/file.txt', mockConfig())).toBe(false);
+  });
+
+  it('should exclude files matching default patterns', () => {
+    DEFAULT_EXCLUDE_PATTERNS.forEach(pattern => {
+      const testPath = `/allowed/${pattern.replace('*', 'test')}`;
+      expect(shouldSkipPath(testPath, mockConfig())).toBe(true);
+    });
+  });
+
+  it('should exclude files matching custom patterns', () => {
+    const config = mockConfig({ fileFiltering: { defaultExcludes: ['custom*'] } });
+    expect(shouldSkipPath('/allowed/custom-file.txt', config)).toBe(true);
+    expect(shouldSkipPath('/allowed/other-file.txt', config)).toBe(false);
+  });
+
+  it('should allow files with default extensions when forceTextFiles=true', () => {
+    const config = mockConfig({ fileFiltering: { forceTextFiles: true } });
+    DEFAULT_ALLOWED_EXTENSIONS.forEach(ext => {
+      expect(shouldSkipPath(`/allowed/file${ext}`, config)).toBe(false);
+    });
+  });
+
+  it('should exclude files without allowed extensions when forceTextFiles=true', () => {
+    const config = mockConfig({ fileFiltering: { forceTextFiles: true } });
+    expect(shouldSkipPath('/allowed/file.bin', config)).toBe(true);
+  });
+
+  it('should allow files with custom extensions when forceTextFiles=true', () => {
+    const config = mockConfig({
+      fileFiltering: {
+        forceTextFiles: true,
+        allowedExtensions: ['*.custom']
+      }
+    });
+    expect(shouldSkipPath('/allowed/file.custom', config)).toBe(false);
+    expect(shouldSkipPath('/allowed/file.txt', config)).toBe(true);
+  });
+
+  it('should handle case insensitivity', () => {
+    const config = mockConfig({ fileFiltering: { defaultExcludes: ['UPPER*'] } });
+    expect(shouldSkipPath('/allowed/upper-case.txt', config)).toBe(true);
+    expect(shouldSkipPath('/allowed/UPPER-CASE.txt', config)).toBe(true);
+  });
+
+  it('should handle dot files', () => {
+    const config = mockConfig({ fileFiltering: { defaultExcludes: ['.*'] } });
+    expect(shouldSkipPath('/allowed/.hidden', config)).toBe(true);
+    expect(shouldSkipPath('/allowed/visible', config)).toBe(false);
+  });
+});
+```
+#### Plik: `src/utils/pathFilter.ts`
+```ts
+import path from 'node:path';
+import { minimatch } from 'minimatch';
+import type { Config } from '../server/config.js';
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+
+/** Zwraca true, jeśli ścieżka powinna być pominięta (wykluczona). */
+export function shouldSkipPath(filePath: string, config: Config): boolean {
+    const baseDir = config.allowedDirectories[0] ?? process.cwd();
+    const rel = path.relative(baseDir, filePath);
+
+    // 1) wzorce global-exclude (połącz domyślne + z configu)
+    const allExcludes = [...DEFAULT_EXCLUDE_PATTERNS, ...config.fileFiltering.defaultExcludes];
+    if (allExcludes.some(p => minimatch(rel, p, { dot: true, nocase: true }))) return true;
+
+    // 2) rozszerzenia, jeśli forceTextFiles aktywne
+    if (config.fileFiltering.forceTextFiles) {
+        const ext = path.extname(filePath).toLowerCase();
+        const allowed = [...DEFAULT_ALLOWED_EXTENSIONS, ...config.fileFiltering.allowedExtensions];
+        if (!allowed.some(p => minimatch(`*${ext}`, p, { nocase: true }))) return true;
+    }
+    return false;
+}
 ```
 #### Plik: `src/utils/binaryDetect.ts`
 ```ts
@@ -193,13 +316,30 @@ import { promises as fs } from 'node:fs';
 import fsSync from 'node:fs';
 import path from 'node:path';
 
-import { loadConfig } from './config.js';
+import { getConfig } from './config.js';
 import { setupToolHandlers } from '../core/toolHandlers.js';
 import * as schemas from '../core/schemas.js';
 import { expandHome, normalizePath } from '../utils/pathUtils.js';
 
+let runningServer: Server | undefined;
+
+async function shutdown(signal: NodeJS.Signals, logger: pino.Logger) {
+  logger.info({ signal }, 'Received termination signal, shutting down gracefully');
+  try {
+    if (runningServer) {
+      // await runningServer.disconnect(); // Not supported by SDK, just exit
+    }
+  } catch (err) {
+    logger.error({ err }, 'Error during graceful shutdown');
+  } finally {
+    // Give some time for logs to flush
+    setTimeout(() => process.exit(0), 100);
+  }
+}
+
 async function main() {
-  const config = await loadConfig();
+  // TODO: parse process.argv or pass args if needed
+  const config = await getConfig([]);
 
   // Create logs directory if it doesn't exist
   const logsDir = path.join(process.cwd(), 'logs');
@@ -242,9 +382,9 @@ async function main() {
   logger.error = logWithPaths(logger.error.bind(logger));
   logger.warn = logWithPaths(logger.warn.bind(logger));
 
-  const allowedDirectories = config.allowedDirectories.map(dir => normalizePath(path.resolve(expandHome(dir))));
+  const allowedDirectories = config.allowedDirectories.map((dir: string) => normalizePath(path.resolve(expandHome(dir))));
 
-  await Promise.all(allowedDirectories.map(async (dir) => {
+  await Promise.all(allowedDirectories.map(async (dir: string) => {
     try {
       const stats = await fs.stat(dir);
       if (!stats.isDirectory()) {
@@ -262,13 +402,19 @@ async function main() {
     { capabilities: { tools: {} } }
   );
 
+  runningServer = server;
+
   setupToolHandlers(server, allowedDirectories, logger, config);
-// list_tools jest już zarejestrowane w toolHandlers.ts, więc usuwamy duplikat
+  // list_tools jest już zarejestrowane w toolHandlers.ts, więc usuwamy duplikat
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
 
   logger.info({ version: '0.7.0', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started');
+
+  // Setup signal handlers after server is running
+  process.once('SIGINT', (sig) => shutdown(sig, logger));
+  process.once('SIGTERM', (sig) => shutdown(sig, logger));
 }
 
 main().catch((error) => {
@@ -281,31 +427,19 @@ main().catch((error) => {
 import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
 
 export const ConfigSchema = z.object({
   allowedDirectories: z.array(z.string()),
   fileFiltering: z.object({
-    defaultExcludes: z.array(z.string()).default([
-      '**/build/**',
-      '**/dist/**',
-      '**/node_modules/**',
-      '**/.git/**',
-      '**/*.jpg', '**/*.png', '**/*.gif', '**/*.pdf',
-      '**/*.zip', '**/*.tar', '**/*.gz'
-    ]),
-    allowedExtensions: z.array(z.string()).default([
-      '*.txt', '*.js', '*.jsx', '*.ts', '*.tsx', '*.json', '*.yaml', '*.yml',
-      '*.html', '*.htm', '*.css', '*.scss', '*.sass', '*.less', '*.py', '*.java', '*.go',
-      '*.rs', '*.rb', '*.php', '*.sh', '*.bash', '*.zsh', '*.md', '*.markdown', '*.xml',
-      '*.svg', '*.csv', '*.toml', '*.ini', '*.cfg', '*.conf', '*.env', '*.ejs', '*.pug',
-      '*.vue', '*.svelte', '*.graphql', '*.gql', '*.proto', '*.kt', '*.kts', '*.swift',
-      '*.m', '*.h', '*.c', '*.cpp', '*.hpp', '*.cs', '*.fs', '*.fsx', '*.clj', '*.cljs',
-      '*.cljc', '*.edn', '*.ex', '*.exs', '*.erl', '*.hrl', '*.lua', '*.sql', '*.pl',
-      '*.pm', '*.r', '*.jl', '*.dart', '*.groovy', '*.gradle', '*.nim', '*.zig', '*.v',
-      '*.vh', '*.vhd', '*.cl', '*.tex', '*.sty', '*.cls', '*.rst', '*.adoc', '*.asciidoc'
-    ]),
+    defaultExcludes: z.array(z.string()).default(DEFAULT_EXCLUDE_PATTERNS),
+    allowedExtensions: z.array(z.string()).default(DEFAULT_ALLOWED_EXTENSIONS),
     forceTextFiles: z.boolean().default(true)
-  }).default({}),
+  }).default({
+    defaultExcludes: DEFAULT_EXCLUDE_PATTERNS,
+    allowedExtensions: DEFAULT_ALLOWED_EXTENSIONS,
+    forceTextFiles: true
+  }),
   fuzzyMatching: z.object({
     maxDistanceRatio: z.number().min(0).max(1).default(0.25),
     minSimilarity: z.number().min(0).max(1).default(0.7),
@@ -318,76 +452,81 @@ export const ConfigSchema = z.object({
     performance: z.boolean().default(false)
   }).default({}),
   concurrency: z.object({
-  maxConcurrentEdits: z.number().positive().default(10),
-  maxGlobalConcurrentEdits: z.number().positive().default(20)
-}).default({})
+    maxConcurrentEdits: z.number().positive().default(10),
+    maxGlobalConcurrentEdits: z.number().positive().default(20)
+  }).default({}),
+  limits: z.object({
+    maxReadBytes: z.number().positive().default(5 * 1024 * 1024), // 5 MB
+    maxWriteBytes: z.number().positive().default(5 * 1024 * 1024) // 5 MB
+  }).default({})
+}).default({
+  allowedDirectories: [],
+  fileFiltering: {
+    defaultExcludes: DEFAULT_EXCLUDE_PATTERNS,
+    allowedExtensions: DEFAULT_ALLOWED_EXTENSIONS,
+    forceTextFiles: true
+  },
+  concurrency: {
+    maxConcurrentEdits: 10,
+    maxGlobalConcurrentEdits: 20
+  },
+  limits: {
+    maxReadBytes: 5 * 1024 * 1024,
+    maxWriteBytes: 5 * 1024 * 1024
+  }
 });
 
 export type Config = z.infer<typeof ConfigSchema>;
 
-export async function loadConfig(): Promise<Config> {
-    const args = process.argv.slice(2);
-    if (args.length > 0 && (args[0] === '--config' || args[0] === '-c')) {
-        if (args.length < 2) {
-            console.error("Usage: mcp-server-filesystem --config <config-file>");
-            console.error("   or: mcp-server-filesystem <allowed-directory> [additional-directories...]");
-            process.exit(1);
-        }
-        const configFile = args[1];
-        try {
-            const configContent = await fs.readFile(configFile, 'utf-8');
-            return ConfigSchema.parse(JSON.parse(configContent));
-        } catch (err) {
-            console.error(`Error loading config file ${configFile}:`, err);
-            process.exit(1);
-        }
+export async function getConfig(args: string[]): Promise<Config> {
+  if (args.length > 0 && args[0] === '--config') {
+    if (args.length < 2) {
+      console.error("Error: --config requires a path to a config file.");
+      process.exit(1);
     }
+    const configFile = args[1];
+    try {
+      const configContent = await fs.readFile(configFile, 'utf-8');
+      return ConfigSchema.parse(JSON.parse(configContent));
+    } catch (err) {
+      console.error(`Error loading config file ${configFile}:`, err);
+      process.exit(1);
+    }
+  }
 
-    // Default config with file filtering
-    return ConfigSchema.parse({
-        allowedDirectories: args.length > 0 ? args : [process.cwd()],
-        fileFiltering: {
-            defaultExcludes: [
-                '**/build/**',
-                '**/dist/**',
-                '**/node_modules/**',
-                '**/.git/**',
-                '**/*.jpg', '**/*.png', '**/*.gif', '**/*.pdf',
-                '**/*.zip', '**/*.tar', '**/*.gz'
-            ],
-            allowedExtensions: [
-                '*.txt', '*.js', '*.jsx', '*.ts', '*.tsx', '*.json', '*.yaml', '*.yml',
-                '*.html', '*.htm', '*.css', '*.scss', '*.sass', '*.less', '*.py', '*.java', '*.go',
-                '*.rs', '*.rb', '*.php', '*.sh', '*.bash', '*.zsh', '*.md', '*.markdown', '*.xml',
-                '*.svg', '*.csv', '*.toml', '*.ini', '*.cfg', '*.conf', '*.env', '*.ejs', '*.pug',
-                '*.vue', '*.svelte', '*.graphql', '*.gql', '*.proto', '*.kt', '*.kts', '*.swift',
-                '*.m', '*.h', '*.c', '*.cpp', '*.hpp', '*.cs', '*.fs', '*.fsx', '*.clj', '*.cljs',
-                '*.cljc', '*.edn', '*.ex', '*.exs', '*.erl', '*.hrl', '*.lua', '*.sql', '*.pl',
-                '*.pm', '*.r', '*.jl', '*.dart', '*.groovy', '*.gradle', '*.nim', '*.zig', '*.v',
-                '*.vh', '*.vhd', '*.cl', '*.tex', '*.sty', '*.cls', '*.rst', '*.adoc', '*.asciidoc'
-            ],
-            forceTextFiles: true
-        },
-        fuzzyMatching: {
-            maxDistanceRatio: 0.25,
-            minSimilarity: 0.7,
-            caseSensitive: false,
-            ignoreWhitespace: true,
-            preserveLeadingWhitespace: 'auto'
-        },
-        logging: {
-            level: 'info',
-            performance: false
-        },
-        concurrency: {
-            maxConcurrentEdits: 10
-        }
-    });
+  // Default config with file filtering
+  return ConfigSchema.parse({
+    allowedDirectories: args.length > 0 ? args : [process.cwd()],
+    fileFiltering: {
+      defaultExcludes: DEFAULT_EXCLUDE_PATTERNS,
+      allowedExtensions: DEFAULT_ALLOWED_EXTENSIONS,
+      forceTextFiles: true
+    },
+    fuzzyMatching: {
+      maxDistanceRatio: 0.25,
+      minSimilarity: 0.7,
+      caseSensitive: false,
+      ignoreWhitespace: true,
+      preserveLeadingWhitespace: 'auto'
+    },
+    logging: {
+      level: 'info',
+      performance: false
+    },
+    concurrency: {
+      maxConcurrentEdits: 10,
+      maxGlobalConcurrentEdits: 20
+    },
+    limits: {
+      maxReadBytes: 5 * 1024 * 1024,
+      maxWriteBytes: 5 * 1024 * 1024
+    }
+  });
 }
 ```
 #### Plik: `src/types/errors.ts`
 ```ts
-import { HintInfo, HINTS } from "../utils/hintMap.js";
+import { HintInfo, HINTS } from "../utils/hintMap";
 
 export interface StructuredError {
   code: keyof typeof HINTS | string;
@@ -410,6 +549,12 @@ export function createError(
     confidence: hint?.confidence,
     details
   };
+}
+```
+#### Plik: `src/types/fast-levenshtein.d.ts`
+```ts
+declare module 'fast-levenshtein' {
+  export function get(a: string, b: string): number;
 }
 ```
 #### Plik: `src/core/security.ts`
@@ -521,13 +666,13 @@ export function getGlobalSemaphore() {
 ```ts
 import fs from 'node:fs/promises';
 import { createTwoFilesPatch } from 'diff';
-import { isBinaryFile } from '../utils/binaryDetect.js';
-import { createError } from '../types/errors.js';
+import { isBinaryFile } from '../utils/binaryDetect';
+import { createError } from '../types/errors';
 import { get as fastLevenshtein } from 'fast-levenshtein';
-import { PerformanceTimer } from '../utils/performance.js';
+import { PerformanceTimer } from '../utils/performance';
 import type { Logger } from 'pino';
-import type { EditOperation } from './schemas.js';
-import type { Config } from '../server/config.js';
+import type { EditOperation } from './schemas';
+import type { Config } from '../server/config';
 
 interface AppliedEditRange {
   startLine: number;
@@ -584,28 +729,28 @@ function preprocessText(text: string, config: FuzzyMatchConfig): string {
 
 // Using fast-levenshtein, the optimized native JS version is no longer primary
 // function levenshteinDistanceOptimized(str1: string, str2: string): number {
-  if (str1 === str2) return 0;
-  if (str1.length === 0) return str2.length;
-  if (str2.length === 0) return str1.length;
-  
-  const shorter = str1.length <= str2.length ? str1 : str2;
-  const longer = str1.length <= str2.length ? str2 : str1;
-  
-  let previousRow = Array(shorter.length + 1).fill(0).map((_, i) => i);
-  
-  for (let i = 0; i < longer.length; i++) {
-    const currentRow = [i + 1];
-    for (let j = 0; j < shorter.length; j++) {
-      const cost = longer[i] === shorter[j] ? 0 : 1;
-      currentRow.push(Math.min(
-        currentRow[j] + 1,
-        previousRow[j + 1] + 1,
-        previousRow[j] + cost
-      ));
-    }
-    previousRow = currentRow;
-  }
-  // return previousRow[shorter.length];
+//   if (str1 === str2) return 0;
+//   if (str1.length === 0) return str2.length;
+//   if (str2.length === 0) return str1.length;
+//   
+//   const shorter = str1.length <= str2.length ? str1 : str2;
+//   const longer = str1.length <= str2.length ? str2 : str1;
+//   
+//   let previousRow = Array(shorter.length + 1).fill(0).map((_, i) => i);
+//   
+//   for (let i = 0; i < longer.length; i++) {
+//     const currentRow = [i + 1];
+//     for (let j = 0; j < shorter.length; j++) {
+//       const cost = longer[i] === shorter[j] ? 0 : 1;
+//       currentRow.push(Math.min(
+//         currentRow[j] + 1,
+//         previousRow[j + 1] + 1,
+//         previousRow[j] + cost
+//       ));
+//     }
+//     previousRow = currentRow;
+//   }
+//   return previousRow[shorter.length];
 // }
 
 function calculateSimilarity(distance: number, maxLength: number): number {
@@ -693,6 +838,31 @@ export async function applyFileEdits(
     for (const [editIndex, edit] of edits.entries()) {
       const normalizedOld = normalizeLineEndings(edit.oldText);
       const normalizedNew = normalizeLineEndings(edit.newText);
+        
+        // caseSensitive: require direct oldText match
+        if (config.caseSensitive && !modifiedContent.includes(edit.oldText)) {
+          throw createError('NO_MATCH', `Exact text "${edit.oldText}" not found and caseSensitive enabled`);
+        }
+        // Simple exact match replacement for single-line edits
+        if (!normalizedOld.includes('\n') && modifiedContent.includes(config.caseSensitive ? edit.oldText : normalizedOld)) {
+          const searchText = config.caseSensitive ? edit.oldText : normalizedOld;
+          const replaceText = config.caseSensitive ? edit.newText : normalizedNew;
+          modifiedContent = modifiedContent.replace(searchText, replaceText);
+          matchFound = true;
+          continue;
+        }
+        // caseSensitive: require direct oldText match
+        if (config.caseSensitive && !modifiedContent.includes(edit.oldText)) {
+          throw createError('NO_MATCH', `Exact text "${edit.oldText}" not found and caseSensitive enabled`);
+        }
+        // Simple exact match replacement for single-line edits
+        if (!normalizedOld.includes('\n') && modifiedContent.includes(config.caseSensitive ? edit.oldText : normalizedOld)) {
+          const searchText = config.caseSensitive ? edit.oldText : normalizedOld;
+          const replaceText = config.caseSensitive ? edit.newText : normalizedNew;
+          modifiedContent = modifiedContent.replace(searchText, replaceText);
+          matchFound = true;
+          continue;
+        }
       let matchFound = false;
 
       const exactMatchIndex = modifiedContent.indexOf(normalizedOld);
@@ -915,6 +1085,109 @@ export async function applyFileEdits(
   }
 }
 ```
+#### Plik: `src/core/__tests__/applyFileEdits.test.ts`
+```ts
+/// <reference types="jest" />
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import os from 'node:os';
+import { applyFileEdits, FuzzyMatchConfig } from '../fuzzyEdit';
+import type { Config } from '../../server/config';
+
+// Minimal stub config for tests
+const testConfig = {
+    allowedDirectories: [],
+    fileFiltering: {
+        defaultExcludes: [],
+        allowedExtensions: ['*.txt'],
+        forceTextFiles: true
+    },
+    fuzzyMatching: {
+        maxDistanceRatio: 0.25,
+        minSimilarity: 0.7,
+        caseSensitive: false,
+        ignoreWhitespace: true,
+        preserveLeadingWhitespace: 'auto'
+    },
+    logging: { level: 'info', performance: false },
+    concurrency: { maxConcurrentEdits: 1, maxGlobalConcurrentEdits: 1 },
+    limits: { maxReadBytes: 1024 * 1024, maxWriteBytes: 1024 * 1024 }
+} as unknown as Config;
+
+// Simple no-op logger stub
+const noopLogger = {
+    info: () => { },
+    warn: () => { },
+    error: () => { },
+    debug: () => { },
+    trace: () => { }
+} as any;
+
+async function createTempFile(content: string): Promise<string> {
+    const tmpDir = os.tmpdir();
+    const filePath = path.join(tmpDir, `applyFileEdits_${Date.now()}_${Math.random().toString(36).slice(2)}.txt`);
+    await fs.writeFile(filePath, content, 'utf-8');
+    return filePath;
+}
+
+describe('applyFileEdits', () => {
+    it('applies exact text replacement', async () => {
+        const original = 'foo bar baz';
+        const filePath = await createTempFile(original);
+
+        const edits = [{ oldText: 'bar', newText: 'qux', forcePartialMatch: false }];
+        const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: 0.25,
+            minSimilarity: 0.7,
+            caseSensitive: false,
+            ignoreWhitespace: true,
+            preserveLeadingWhitespace: 'auto',
+            debug: false
+        };
+
+        const res = await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig);
+
+        expect(res.modifiedContent).toBe('foo qux baz');
+        expect(res.formattedDiff).toContain('-foo bar baz');
+        expect(res.formattedDiff).toContain('+foo qux baz');
+    });
+
+    it('respects caseSensitive flag', async () => {
+        const original = 'Hello World';
+        const filePath = await createTempFile(original);
+
+        const edits = [{ oldText: 'hello', newText: 'Hi', forcePartialMatch: false }];
+        const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: 0.25,
+            minSimilarity: 0.7,
+            caseSensitive: true,
+            ignoreWhitespace: true,
+            preserveLeadingWhitespace: 'auto',
+            debug: false
+        };
+
+        await expect(applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig)).rejects.toThrow();
+    });
+
+    it('handles ignoreWhitespace option', async () => {
+        const original = 'alpha    beta';
+        const filePath = await createTempFile(original);
+
+        const edits = [{ oldText: 'alpha beta', newText: 'gamma', forcePartialMatch: false }];
+        const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: 0.3,
+            minSimilarity: 0.6,
+            caseSensitive: false,
+            ignoreWhitespace: true,
+            preserveLeadingWhitespace: 'auto',
+            debug: false
+        };
+
+        const res = await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig);
+        expect(res.modifiedContent).toBe('gamma');
+    });
+});
+```
 #### Plik: `src/core/fileInfo.ts`
 ```ts
 import fs from 'node:fs/promises';
@@ -924,6 +1197,7 @@ import { lookup as mimeLookup } from 'mime-types';
 import { isBinaryFile } from '../utils/binaryDetect.js';
 import { PerformanceTimer } from '../utils/performance.js';
 import { validatePath } from './security.js';
+import { shouldSkipPath } from '../utils/pathFilter.js';
 import type { Logger } from 'pino';
 import type { Config } from '../server/config.js';
 
@@ -943,7 +1217,7 @@ const FILE_STAT_READ_BUFFER_SIZE = 8192; // Read 8KB for binary detection
 
 export async function getFileStats(filePath: string, logger: Logger, config: Config): Promise<FileInfo> {
   const timer = new PerformanceTimer('getFileStats', logger, config);
-  
+
   try {
     const stats = await fs.stat(filePath);
     let isBinary = false;
@@ -962,7 +1236,7 @@ export async function getFileStats(filePath: string, logger: Logger, config: Con
       }
       mimeType = mimeLookup(filePath);
     }
-    
+
     const result = {
       size: stats.size,
       created: stats.birthtime,
@@ -974,7 +1248,7 @@ export async function getFileStats(filePath: string, logger: Logger, config: Con
       isBinary: stats.isFile() ? isBinary : undefined, // isBinary is only relevant for files
       mimeType: stats.isFile() ? (mimeType || (isBinary ? 'application/octet-stream' : 'text/plain')) : undefined
     };
-    
+
     timer.end({ isBinary, size: stats.size });
     return result;
   } catch (error) {
@@ -1011,31 +1285,21 @@ export async function searchFiles(
 
         try {
           const relativePath = path.relative(rootPath, fullPath);
-          // Match exclude patterns against the relative path, case-insensitively
-          const shouldExclude = excludePatterns.some(p => minimatch(relativePath, p, { dot: true, nocase: true }));
-
-          if (shouldExclude) {
+          // Exclude via explicit excludePatterns first
+          if (excludePatterns.some(p => minimatch(relativePath, p, { dot: true, nocase: true }))) {
             continue;
           }
 
-          // Check if path should be excluded based on file filtering rules
-          if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
+          // Apply the centralized filtering utility
+          if (shouldSkipPath(fullPath, config)) {
             continue;
-          }
-
-          // Check allowed extensions if forceTextFiles is true
-          if (config.fileFiltering.forceTextFiles) {
-            const ext = path.extname(fullPath).toLowerCase();
-            if (!config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p))) {
-              continue;
-            }
           }
 
           // Determine the actual glob pattern to use based on useExactPatterns
           // If useExactPatterns is false and the input pattern doesn't contain a path separator,
           // prepend '**/' to match items at any depth.
-          const globPatternToUse = useExactPatterns 
-            ? pattern 
+          const globPatternToUse = useExactPatterns
+            ? pattern
             : (pattern.includes('/') ? pattern : `**/${pattern}`);
 
           // Match the effective glob pattern against the relative path, case-insensitively
@@ -1111,21 +1375,12 @@ export async function getDirectoryTree(
       const dirents = await fs.readdir(validatedPath, { withFileTypes: true });
       for (const dirent of dirents) {
         const childPath = path.join(validatedPath, dirent.name);
-        
-        // Skip excluded paths and disallowed extensions
-        const relativePath = path.relative(basePath, childPath);
-        if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
+
+        // Apply centralized filtering for each child entry
+        if (shouldSkipPath(childPath, config)) {
           continue;
         }
-        
-        // Check allowed extensions if forceTextFiles is true
-        if (dirent.isFile() && config.fileFiltering.forceTextFiles) {
-          const ext = path.extname(childPath).toLowerCase();
-          if (!config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p))) {
-            continue;
-          }
-        }
-        
+
         // Recursive call, incrementing currentDepth
         // We pass the original maxDepth down
         const childEntry = await getDirectoryTree(childPath, allowedDirectories, logger, config, currentDepth + 1, maxDepth);
@@ -1203,9 +1458,11 @@ import { Mutex } from 'async-mutex';
 import { initGlobalSemaphore, getGlobalSemaphore } from './concurrency.js';
 import fs from 'node:fs/promises';
 import path from 'node:path';
-import { minimatch } from 'minimatch';
+
 
 import { createError, StructuredError } from '../types/errors.js';
+import { shouldSkipPath } from '../utils/pathFilter.js';
+
 import { PerformanceTimer } from '../utils/performance.js';
 import { isBinaryFile } from '../utils/binaryDetect.js';
 import { validatePath } from './security.js';
@@ -1254,27 +1511,7 @@ function getFileLock(filePath: string, config: Config, logger: Logger): Mutex {
   }
 }
 
-function shouldSkipPath(filePath: string, config: Config): boolean {
-  // Use the first allowed directory as the base for relative path calculation
-  const baseDir = config.allowedDirectories[0] ?? process.cwd();
-  const relativePath = path.relative(baseDir, filePath);
 
-  // Check against default excludes
-  if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
-    return true;
-  }
-
-  // Check allowed extensions if forceTextFiles is true
-  if (config.fileFiltering.forceTextFiles) {
-    const ext = path.extname(filePath).toLowerCase();
-    const isAllowed = config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p, { nocase: true }));
-    if (!isAllowed) {
-      return true;
-    }
-  }
-
-  return false;
-}
 
 export function setupToolHandlers(server: Server, allowedDirectories: string[], logger: Logger, config: Config) {
   initGlobalSemaphore(config);
@@ -1326,6 +1563,16 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
               throw createError('ACCESS_DENIED', 'File access denied due to filtering rules.');
             }
             const rawBuffer = await fs.readFile(validatedPath);
+
+            // Enforce configured maximum read size
+            if (rawBuffer.length > config.limits.maxReadBytes) {
+              throw createError(
+                'FILE_TOO_LARGE',
+                `File size ${rawBuffer.length} exceeds configured maxReadBytes limit of ${config.limits.maxReadBytes} bytes`,
+                { path: validatedPath, size: rawBuffer.length, limit: config.limits.maxReadBytes }
+              );
+            }
+
             let content: string;
             let encodingUsed: 'utf-8' | 'base64' = 'utf-8';
             const isBinary = isBinaryFile(rawBuffer, validatedPath);
@@ -1370,6 +1617,16 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
             await getGlobalSemaphore().runExclusive(async () => {
               await lock.runExclusive(async () => {
                 const contentBuffer = Buffer.from(parsed.data.content, parsed.data.encoding);
+
+                // Enforce configured maximum write size
+                if (contentBuffer.length > config.limits.maxWriteBytes) {
+                  throw createError(
+                    'WRITE_TOO_LARGE',
+                    `Content size ${contentBuffer.length} exceeds configured maxWriteBytes limit of ${config.limits.maxWriteBytes} bytes`,
+                    { path: validPath, size: contentBuffer.length, limit: config.limits.maxWriteBytes }
+                  );
+                }
+
                 await fs.writeFile(validPath, contentBuffer);
               });
             });
@@ -1606,6 +1863,64 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
   });
 }
 ```
+#### Plik: `src/core/security.test.ts`
+```ts
+import { validatePath } from './security.js';
+import { createError } from '../types/errors.js';
+import path from 'node:path';
+
+describe('validatePath', () => {
+  const mockLogger = {
+    info: jest.fn(),
+    debug: jest.fn(),
+    error: jest.fn()
+  };
+  
+  const mockConfig = {
+    allowedDirectories: ['/allowed'],
+    fileFiltering: {
+      defaultExcludes: [],
+      allowedExtensions: [],
+      forceTextFiles: false
+    },
+    logging: { level: 'info' }
+  };
+
+  it('should allow paths within allowed directories', async () => {
+    const result = await validatePath('/allowed/file.txt', ['/allowed'], mockLogger, mockConfig);
+    expect(result).toBe(path.normalize('/allowed/file.txt'));
+  });
+
+  it('should reject paths outside allowed directories', async () => {
+    await expect(validatePath('/outside/file.txt', ['/allowed'], mockLogger, mockConfig))
+      .rejects
+      .toThrow(createError('ACCESS_DENIED', expect.any(String)));
+  });
+
+  it('should resolve relative paths against first allowed directory', async () => {
+    const result = await validatePath('file.txt', ['/allowed'], mockLogger, mockConfig);
+    expect(result).toBe(path.normalize('/allowed/file.txt'));
+  });
+
+  it('should normalize path separators', async () => {
+    const result = await validatePath('/allowed\subdir\file.txt', ['/allowed'], mockLogger, mockConfig);
+    expect(result).toBe(path.normalize('/allowed/subdir/file.txt'));
+  });
+
+  it('should handle home directory expansion', async () => {
+    const originalHome = process.env.HOME;
+    process.env.HOME = '/home/user';
+    
+    const result = await validatePath('~/file.txt', ['/allowed'], mockLogger, mockConfig);
+    expect(result).toBe(path.normalize('/home/user/file.txt'));
+    
+    process.env.HOME = originalHome;
+  });
+
+  // Note: Symlink tests would require actual filesystem setup
+  // and are better suited for integration/e2e tests
+});
+```
 #### Plik: `src/core/schemas.ts`
 ```ts
 import { z } from 'zod';
@@ -1794,13 +2109,23 @@ export const DeleteDirectoryArgsSchema = z.object({
   },
   "types": "./dist/server/index.d.ts",
   "main": "index.js",
-  "keywords": []
+  "keywords": [],
+  "jest": {
+    "preset": "ts-jest",
+    "testEnvironment": "node",
+    "roots": [
+      "<rootDir>/src"
+    ],
+    "moduleFileExtensions": ["ts", "js", "json"],
+    "testMatch": ["**/__tests__/**/*.test.ts"]
+  }
 }
 ```
 #### Plik: `tsconfig.json`
 ```json
 {
   "compilerOptions": {
+    "types": ["jest", "node"],
     "target": "es2022",
     "module": "commonjs",
     "moduleResolution": "node",

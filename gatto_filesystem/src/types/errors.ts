@@ -1,4 +1,4 @@
-import { HintInfo, HINTS } from "../utils/hintMap.js";
+import { HintInfo, HINTS } from "../utils/hintMap";
 
 export interface StructuredError {
   code: keyof typeof HINTS | string;
