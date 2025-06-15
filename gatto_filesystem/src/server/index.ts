@@ -1,12 +1,12 @@
 #!/usr/bin/env node
 
-// ZMIANA: Używamy require dla modułów SDK, aby zapewnić spójne i niezawodne ładowanie
+// ZMIANA: Używamy require dla modułów SDK, aby zapewnić spójne i niezawodne ładowanie.
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { Server } = require('@modelcontextprotocol/sdk/server');
 // eslint-disable-next-line @typescript-eslint/no-var-requires
 const { StdioServerTransport } = require('@modelcontextprotocol/sdk/server/stdio');
 
-// Pozostałe importy (lokalne i z innych paczek) pozostają jako 'import'
+// Pozostałe importy (lokalne i z innych paczek) pozostają jako 'import'.
 import * as pino from 'pino';
 import { promises as fs } from 'node:fs';
 import fsSync from 'node:fs';
@@ -84,8 +84,6 @@ async function main() {
 
   setupToolHandlers(server, allowedDirectories, logger, config);
 
-  // ZMIANA: Uproszczona logika - na ten moment serwer obsługuje tylko stdio.
-  // Aby włączyć HTTP, należy zaktualizować SDK do nowszej wersji.
   const transport = new StdioServerTransport();
   await server.connect(transport);
   logger.info({ version: '0.7.0', transport: 'Stdio', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started via Stdio');
