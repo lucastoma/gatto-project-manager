@@ -69,104 +69,200 @@ export const DEFAULT_ALLOWED_EXTENSIONS: string[] = [
 ```ts
 import path from 'path';
 import fs from 'fs';
-import type { ChildProcess } from 'child_process';
-
-// Używamy require, ponieważ jest to sprawdzona metoda ładowania tego SDK w projekcie
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { Client } = require('@modelcontextprotocol/sdk/client');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio');
+import { spawn, ChildProcess } from 'child_process';
 
 jest.setTimeout(30000);
 
 describe('MCP Filesystem – E2E (Stdio)', () => {
-  let transport: any;
-  let client: typeof Client;
-  let serverProcess: ChildProcess;
 
-  beforeAll(async () => {
-    try {
-      const projectRoot = process.cwd();
-      const serverPath = path.join(projectRoot, 'src/server/index.ts');
-      const tsxBin = path.join(projectRoot, 'node_modules/.bin/tsx');
+  async function runServerCommand(request: any): Promise<any> {
+    const projectRoot = process.cwd();
+    const serverPath = path.join(projectRoot, 'src/server/index.ts');
+    const tsxBin = path.join(projectRoot, 'node_modules/.bin/tsx');
 
-      console.log('Project root:', projectRoot);
-      console.log('Server path:', serverPath);
-      console.log('TSX binary path:', tsxBin);
-      console.log('TSX exists:', fs.existsSync(tsxBin));
+    return new Promise((resolve, reject) => {
+      console.log(`[TEST] Sending request: ${JSON.stringify(request)}`);
 
-      transport = new StdioClientTransport({
-        command: tsxBin,
-        args: [serverPath],
-        stderr: 'pipe',
+      const process = spawn(tsxBin, [serverPath], {
+        stdio: ['pipe', 'pipe', 'pipe']
       });
 
-      serverProcess = (transport as any).proc;
+      let stdout = '';
+      let stderr = '';
+      let foundResponse = false;
+      let responseData: any = null;
+      let timeoutId: NodeJS.Timeout;
 
-      if (serverProcess?.stderr) {
-        serverProcess.stderr.on('data', (data: Buffer) => {
-          console.error('[SERVER CRASH LOG]', data.toString());
-        });
-      }
+      process.stdout.on('data', (data) => {
+        const chunk = data.toString();
+        stdout += chunk;
 
-      client = new Client({ name: 'e2e-test-client', version: '0.0.0' });
+        // Look for JSON response lines
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('{') && trimmed.includes('"jsonrpc"') && trimmed.includes(`"id":${request.id}`)) {
+            try {
+              const response = JSON.parse(trimmed);
+              if (!foundResponse) {
+                foundResponse = true;
+                responseData = response;
+                clearTimeout(timeoutId);
+                console.log(`[TEST] Received response: ${JSON.stringify(response)}`);
+                if (!process.killed) {
+                  process.kill();
+                }
+              }
+            } catch (e) {
+              console.log(`[TEST] Failed to parse JSON: ${trimmed}`);
+            }
+          }
+        }
+      });
 
-      // Add timeout for connection
-      await Promise.race([
-        client.connect(transport),
-        new Promise((_, reject) => setTimeout(
-          () => reject(new Error('Connection timeout after 5s')),
-          5000
-        ))
-      ]);
+      process.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
 
-      console.log('Transport state after connect:', transport.readyState);
-    } catch (error) {
-      console.error('Error in beforeAll:', error);
-      throw error;
-    }
+      process.on('close', (code) => {
+        clearTimeout(timeoutId);
+        if (foundResponse && responseData) {
+          resolve(responseData);
+        } else {
+          console.error('[TEST] Server stdout:', stdout);
+          console.error('[TEST] Server stderr:', stderr);
+          reject(new Error(`Process exited with code ${code}, no JSON response found. Stdout: ${stdout}, Stderr: ${stderr}`));
+        }
+      });
+
+      process.on('error', (err) => {
+        clearTimeout(timeoutId);
+        console.error('[TEST] Process error:', err);
+        reject(err);
+      });
+
+      // Send the request
+      const requestStr = JSON.stringify(request) + '\n';
+      process.stdin.write(requestStr);
+      process.stdin.end();
+
+      // Timeout
+      timeoutId = setTimeout(() => {
+        if (!foundResponse) {
+          if (!process.killed) {
+            process.kill();
+          }
+          // The 'close' event will handle rejection
+        }
+      }, 15000);
+    });
+  }
+
+  it('responds to initialize request', async () => {
+    const request = {
+      jsonrpc: "2.0",
+      method: "initialize",
+      params: {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: { name: "test", version: "1.0.0" }
+      },
+      id: 1
+    };
+
+    const response = await runServerCommand(request);
+
+    expect(response.result).toBeDefined();
+    expect(response.result.serverInfo).toBeDefined();
+    expect(response.result.serverInfo.name).toBe('mcp-filesystem-server');
   });
 
-  afterAll(async () => {
-    try {
-      if (client?.isConnected) {
-        await client.close();
-      }
-      if (serverProcess) {
-        serverProcess.kill();
-      }
-    } catch (error) {
-      console.error('Error in afterAll:', error);
-    }
+  it('responds to tools/list request', async () => {
+    const request = {
+      jsonrpc: "2.0",
+      method: "tools/list",
+      params: {},
+      id: 2
+    };
+
+    const response = await runServerCommand(request);
+
+    expect(response.result).toBeDefined();
+    expect(response.result.tools).toBeDefined();
+    expect(Array.isArray(response.result.tools)).toBe(true);
+    expect(response.result.tools.length).toBeGreaterThan(5);
+
+    const toolNames = response.result.tools.map((t: any) => t.name);
+    expect(toolNames).toContain('read_file');
+    expect(toolNames).toContain('write_file');
+    expect(toolNames).toContain('list_directory');
+    expect(toolNames).toContain('edit_file');
+    expect(toolNames).toContain('search_files');
   });
 
-  it('initializes and lists available tools', async () => {
-    console.log('Client connected. Sending tools/list request...');
+  it('can call read_file tool', async () => {
+    const request = {
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: {
+        name: "read_file",
+        arguments: {
+          path: "test.cl"
+        }
+      },
+      id: 3
+    };
 
-    console.log('Transport state before request:', transport.readyState);
+    const response = await runServerCommand(request);
 
-    try {
-      // Add timeout for the request
-      const listToolsResp = await Promise.race([
-        client.request('list_tools', {}),
-        new Promise((_, reject) =>
-          setTimeout(() => reject(new Error('Request timeout after 5s')), 5000)
-        )
-      ]);
+    expect(response.result).toBeDefined();
+    expect(response.result.result.content).toBeDefined();
+    expect(typeof response.result.result.content).toBe('string');
+    expect(response.result.result.content).toContain('kernel'); // test.cl contains __kernel
+  });
 
-      console.log('Tools response:', JSON.stringify(listToolsResp, null, 2));
+  it('can call list_directory tool', async () => {
+    const request = {
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: {
+        name: "list_directory",
+        arguments: {
+          path: "."
+        }
+      },
+      id: 4
+    };
 
-      const tools = (listToolsResp as any)?.tools;
-      expect(tools).toBeDefined();
-      expect(tools).toEqual(expect.arrayContaining([
-        expect.objectContaining({ name: 'read_file' }),
-        expect.objectContaining({ name: 'write_file' }),
-        expect.objectContaining({ name: 'list_directory' }),
-      ]));
-    } catch (error) {
-      console.error('Error calling tools/list:', error);
-      throw error;
-    }
+    const response = await runServerCommand(request);
+
+    expect(response.result).toBeDefined();
+    expect(response.result.result.entries).toBeDefined();
+    expect(Array.isArray(response.result.result.entries)).toBe(true);
+
+    // Should find some common files
+    const entryNames = response.result.result.entries.map((e: any) => e.name);
+    expect(entryNames).toContain('package.json');
+    expect(entryNames).toContain('src');
+  });
+
+  it('can call server_stats tool', async () => {
+    const request = {
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: {
+        name: "server_stats",
+        arguments: {}
+      },
+      id: 5
+    };
+
+    const response = await runServerCommand(request);
+
+    expect(response.result).toBeDefined();
+    expect(response.result.result.requestCount).toBeDefined();
+    expect(response.result.result.config).toBeDefined();
+    expect(typeof response.result.result.requestCount).toBe('number');
   });
 });
 ```
@@ -454,8 +550,14 @@ export function shouldSkipPath(filePath: string, config: Config): boolean {
     // 2) rozszerzenia, jeśli forceTextFiles aktywne
     if (config.fileFiltering.forceTextFiles) {
         const ext = path.extname(filePath).toLowerCase();
-        const allowed = [...DEFAULT_ALLOWED_EXTENSIONS, ...config.fileFiltering.allowedExtensions];
-        if (!allowed.some(p => minimatch(`*${ext}`, p, { nocase: true }))) return true;
+        // Only apply extension filtering if there IS an extension.
+        // Directories (ext === '') or files without extensions should not be skipped by this rule.
+        if (ext !== '') {
+            const allowed = [...DEFAULT_ALLOWED_EXTENSIONS, ...config.fileFiltering.allowedExtensions];
+            if (!allowed.some(p => minimatch(`*${ext}`, p, { nocase: true }))) {
+                return true; // Skip if extension is present but not in allowed list
+            }
+        }
     }
     return false;
 }
@@ -640,6 +742,7 @@ process.on('unhandledRejection', (reason, promise) => {
 });
 
 async function main() {
+  console.log('Starting MCP Filesystem Server...');
   const config = await getConfig(process.argv.slice(2));
 
   const logsDir = path.join(process.cwd(), 'logs');
@@ -663,7 +766,7 @@ async function main() {
       { stream: fileStream, level: 'info' }
     ])
   );
-  
+
   // Replace the global logger with the configured one
   Object.assign(logger, childLogger);
 
@@ -717,7 +820,9 @@ async function main() {
   logger.info('Creating stdio transport');
   const transport = new StdioServerTransport();
   logger.info('Connecting transport to server');
+  console.log('Server setup completed, connecting transport...');
   await server.connect(transport);
+  console.log('Transport connected, server ready!');
   logger.info('Transport connected successfully');
 
   logger.info({ version: '0.7.0', transport: 'Stdio', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started via Stdio');
@@ -1704,7 +1809,6 @@ import { initGlobalSemaphore, getGlobalSemaphore } from './concurrency';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-
 import { createError, StructuredError } from '../types/errors';
 import { shouldSkipPath } from '../utils/pathFilter';
 
@@ -1713,7 +1817,7 @@ import { classifyFileType, FileType } from '../utils/binaryDetect';
 import { validatePath } from './security';
 import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit';
 import { getFileStats, searchFiles, readMultipleFilesContent, getDirectoryTree } from './fileInfo';
-import * as schemas from './schemas'; // <-- BRAKUJĄCY IMPORT ZOSTAŁ DODANY
+import * as schemas from './schemas';
 // Import specific types that were causing issues if not directly imported
 import type { ListDirectoryEntry, DirectoryTreeEntry } from './schemas';
 
@@ -1756,16 +1860,32 @@ function getFileLock(filePath: string, config: Config, logger: Logger): Mutex {
   }
 }
 
-
-
 export function setupToolHandlers(server: Server, allowedDirectories: string[], logger: Logger, config: Config) {
   initGlobalSemaphore(config);
+
+  // Handler for initialize
+  server.setRequestHandler(schemas.InitializeRequestSchema, async (request: any) => {
+    logger.info({ params: request.params }, 'Handling initialize request');
+    return {
+      protocolVersion: '2024-11-05',
+      capabilities: {
+        tools: {}
+      },
+      serverInfo: {
+        name: 'mcp-filesystem-server',
+        version: '0.7.0'
+      }
+    };
+  });
+
+  // Handler for handshake (existing, kept for compatibility if needed, or can be removed if initialize replaces it)
   server.setRequestHandler(schemas.HandshakeRequestSchema, async () => ({
     serverName: 'mcp-filesystem-server',
     serverVersion: '0.7.0'
   }));
   const EditFileArgsSchema = schemas.getEditFileArgsSchema(config);
 
+  // Handler for tools/list
   server.setRequestHandler(schemas.ListToolsRequestSchema, async () => {
     logger.info('Handling list_tools request');
     try {
@@ -1793,19 +1913,20 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
     }
   });
 
+  // Handler for tools/call
   server.setRequestHandler(schemas.CallToolRequestSchema, async (request) => {
     requestCount++;
-    logger.info({ tool: request.params.name, args: request.params.args }, `Tool request: ${request.params.name}`);
+    logger.info({ tool: request.params.name, args: request.params.arguments }, `Tool request: ${request.params.name}`);
     try {
       switch (request.params.name) {
         case 'list_allowed_directories': {
-          const parsed = schemas.ListAllowedDirectoriesArgsSchema.safeParse(request.params.args ?? {});
+          const parsed = schemas.ListAllowedDirectoriesArgsSchema.safeParse(request.params.arguments ?? {});
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) });
           return { result: { directories: allowedDirectories } };
         }
 
         case 'read_file': {
-          const parsed = schemas.ReadFileArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.ReadFileArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadFileArgsSchema) });
           const timer = new PerformanceTimer('read_file_handler', logger, config);
           try {
@@ -1828,8 +1949,8 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
             let encodingUsed: 'utf-8' | 'base64' = 'utf-8';
             const fileType = classifyFileType(rawBuffer, validatedPath);
 
-            if (parsed.data.encoding === 'base64' || 
-                (parsed.data.encoding === 'auto' && (fileType === FileType.CONFIRMED_BINARY || fileType === FileType.POTENTIAL_TEXT_WITH_CAVEATS))) {
+            if (parsed.data.encoding === 'base64' ||
+              (parsed.data.encoding === 'auto' && (fileType === FileType.CONFIRMED_BINARY || fileType === FileType.POTENTIAL_TEXT_WITH_CAVEATS))) {
               content = rawBuffer.toString('base64');
               encodingUsed = 'base64';
             } else {
@@ -1844,7 +1965,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'read_multiple_files': {
-          const parsed = schemas.ReadMultipleFilesArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.ReadMultipleFilesArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) });
           const fileReadResults = await readMultipleFilesContent(
             parsed.data.paths,
@@ -1857,7 +1978,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'write_file': {
-          const parsed = schemas.WriteFileArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.WriteFileArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.WriteFileArgsSchema) });
           const timer = new PerformanceTimer('write_file_handler', logger, config);
           try {
@@ -1892,7 +2013,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
 
         case 'edit_file': {
           editOperationCount++;
-          const parsed = EditFileArgsSchema.safeParse(request.params.args);
+          const parsed = EditFileArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
@@ -1935,7 +2056,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'create_directory': {
-          const parsed = schemas.CreateDirectoryArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.CreateDirectoryArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           const lock = getFileLock(validPath, config, logger);
@@ -1948,7 +2069,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'list_directory': {
-          const parsed = schemas.ListDirectoryArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.ListDirectoryArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           const entries = await fs.readdir(validPath, { withFileTypes: true });
@@ -1979,7 +2100,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'move_file': {
-          const parsed = schemas.MoveFileArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.MoveFileArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.MoveFileArgsSchema) });
 
           const validSource = await validatePath(parsed.data.source, allowedDirectories, logger, config);
@@ -2009,7 +2130,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'delete_file': {
-          const parsed = schemas.DeleteFileArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.DeleteFileArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DeleteFileArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
@@ -2025,7 +2146,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'delete_directory': {
-          const parsed = schemas.DeleteDirectoryArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.DeleteDirectoryArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DeleteDirectoryArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
@@ -2041,7 +2162,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'search_files': {
-          const parsed = schemas.SearchFilesArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.SearchFilesArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.SearchFilesArgsSchema) });
           const timer = new PerformanceTimer('search_files_handler', logger, config);
           try {
@@ -2070,7 +2191,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'get_file_info': {
-          const parsed = schemas.GetFileInfoArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.GetFileInfoArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
@@ -2081,7 +2202,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'directory_tree': {
-          const parsed = schemas.DirectoryTreeArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.DirectoryTreeArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DirectoryTreeArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           const tree = await getDirectoryTree(validPath, allowedDirectories, logger, config, 0, parsed.data.maxDepth ?? -1);
@@ -2089,7 +2210,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'server_stats': {
-          const parsed = schemas.ServerStatsArgsSchema.safeParse(request.params.args ?? {});
+          const parsed = schemas.ServerStatsArgsSchema.safeParse(request.params.arguments ?? {});
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ServerStatsArgsSchema) });
           const stats = { requestCount, editOperationCount, activeLocks: fileLocks.size, config };
           return { result: stats };
@@ -2211,8 +2332,16 @@ export const HandshakeRequestSchema = z.object({
   params: z.object({}).optional()
 });
 
+export const InitializeRequestSchema = z.object({
+  method: z.literal('initialize'),
+  params: z.object({
+    // According to MCP spec, clientInfo might be here, but for now, keep it simple
+    // clientInfo: z.object({ name: z.string(), version: z.string() }).optional()
+  }).optional()
+});
+
 export const ListToolsRequestSchema = z.object({
-  method: z.literal('list_tools'),
+  method: z.literal('tools/list'),
   params: z.object({}).optional()
 });
 
@@ -2319,10 +2448,10 @@ export const GetFileInfoArgsSchema = z.object({
 });
 
 export const CallToolRequestSchema = z.object({
-  method: z.literal('call_tool'),
+  method: z.literal('tools/call'),
   params: z.object({
     name: z.string(),
-    args: z.any()
+    arguments: z.any()
   })
 });
 

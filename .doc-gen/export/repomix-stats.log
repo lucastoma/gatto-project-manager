@@ -1,14 +1,14 @@
 === Statystyki Repomix dla projektu: gatto nero mcp no node and dist ===
-Data: 2025-06-15 16:14:06
+Data: 2025-06-15 16:50:41
 ============================================================
 
 === Statystyki dla grupy 'gatto nero mcp no node and dist' - ścieżka 'gatto_filesystem/' ===
 Łączna liczba plików: 29
-Łączna liczba znaków: 103289
+Łączna liczba znaków: 107362
 Łączna liczba tokenów: 0
 
 Top 3 plików wg liczby znaków:
-  1. src/core/toolHandlers.ts: 21843 znaków
+  1. src/core/toolHandlers.ts: 22443 znaków
   2. src/core/fuzzyEdit.ts: 11705 znaków
   3. src/core/fileInfo.ts: 10716 znaków
 

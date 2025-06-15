@@ -21,6 +21,8 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       let stdout = '';
       let stderr = '';
       let foundResponse = false;
+      let responseData: any = null;
+      let timeoutId: NodeJS.Timeout;
 
       process.stdout.on('data', (data) => {
         const chunk = data.toString();
@@ -35,9 +37,12 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
               const response = JSON.parse(trimmed);
               if (!foundResponse) {
                 foundResponse = true;
+                responseData = response;
+                clearTimeout(timeoutId);
                 console.log(`[TEST] Received response: ${JSON.stringify(response)}`);
-                process.kill();
-                resolve(response);
+                if (!process.killed) {
+                  process.kill();
+                }
               }
             } catch (e) {
               console.log(`[TEST] Failed to parse JSON: ${trimmed}`);
@@ -51,14 +56,18 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       });
 
       process.on('close', (code) => {
-        if (!foundResponse) {
+        clearTimeout(timeoutId);
+        if (foundResponse && responseData) {
+          resolve(responseData);
+        } else {
           console.error('[TEST] Server stdout:', stdout);
           console.error('[TEST] Server stderr:', stderr);
-          reject(new Error(`Process exited with code ${code}, no JSON response found`));
+          reject(new Error(`Process exited with code ${code}, no JSON response found. Stdout: ${stdout}, Stderr: ${stderr}`));
         }
       });
 
       process.on('error', (err) => {
+        clearTimeout(timeoutId);
         console.error('[TEST] Process error:', err);
         reject(err);
       });
@@ -69,10 +78,12 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       process.stdin.end();
 
       // Timeout
-      setTimeout(() => {
+      timeoutId = setTimeout(() => {
         if (!foundResponse) {
-          process.kill();
-          reject(new Error('Request timeout after 15 seconds'));
+          if (!process.killed) {
+            process.kill();
+          }
+          // The 'close' event will handle rejection
         }
       }, 15000);
     });
