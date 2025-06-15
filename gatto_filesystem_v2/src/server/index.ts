@@ -8,6 +8,7 @@ import path from 'node:path';
 
 import { loadConfig } from './config.js';
 import { setupToolHandlers } from '../core/toolHandlers.js';
+import * as schemas from '../core/schemas.js';
 import { expandHome, normalizePath } from '../utils/pathUtils.js';
 
 async function main() {
@@ -41,6 +42,7 @@ async function main() {
   );
 
   setupToolHandlers(server, allowedDirectories, logger, config);
+// list_tools jest już zarejestrowane w toolHandlers.ts, więc usuwamy duplikat
 
   const transport = new StdioServerTransport();
   await server.connect(transport);

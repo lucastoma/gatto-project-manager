@@ -11,9 +11,12 @@ export async function validatePath(requestedPath: string, allowedDirectories: st
   
   try {
     const expandedPath = expandHome(requestedPath);
+    // If the path is relative, resolve it against the FIRST allowed directory instead of the server CWD.
+    // This makes JSON-RPC requests intuitive: a client can pass "./" or "sub/dir" and it will be treated as relative
+    // to the allowed directory supplied at server start (e.g. "mcp-test").
     const absolute = path.isAbsolute(expandedPath)
       ? path.resolve(expandedPath)
-      : path.resolve(process.cwd(), expandedPath);
+      : path.resolve(allowedDirectories[0] ?? process.cwd(), expandedPath);
 
     const normalizedRequested = normalizePath(absolute);
 
@@ -52,12 +55,20 @@ export async function validatePath(requestedPath: string, allowedDirectories: st
       timer.end({ result: 'success', realPath });
       return realPath;
     } catch (error) {
-      const parentDir = path.dirname(absolute);
+      // realpath may fail on Windows for non-existent or locked files/directories.
+      // If the absolute path itself exists (lstat succeeds) and is inside allowedDirectories,
+      // we can safely allow it.
       try {
-        const realParentPath = await fs.realpath(parentDir);
-        const normalizedParent = normalizePath(realParentPath);
-        const isParentAllowed = allowedDirectories.some(dir => {
-          const relativePath = path.relative(dir, normalizedParent);
+        await fs.lstat(absolute);
+        timer.end({ result: 'success', realPath: absolute });
+        return absolute;
+      } catch {
+        const parentDir = path.dirname(absolute);
+        try {
+          const normalizedParent = normalizePath(parentDir); // parentDir is already absolute here
+        const isParentAllowed = allowedDirectories.some(allowedDir => {
+          const relativePath = path.relative(allowedDir, normalizedParent);
+          // Check if normalizedParent is the same as allowedDir or a subdirectory
           return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
         });
         
@@ -65,18 +76,20 @@ export async function validatePath(requestedPath: string, allowedDirectories: st
           throw createError(
             'ACCESS_DENIED',
             'Parent directory outside allowed directories',
-            { parentDirectory: realParentPath }
+            { parentDirectory: normalizedParent } // Use normalizedParent for error reporting
           );
         }
         
         timer.end({ result: 'success', newFile: true });
         return absolute;
-      } catch {
+      } catch (parentError) {
+        if ((parentError as any).code === 'ACCESS_DENIED') throw parentError; // Re-throw our custom error
         throw createError(
           'ACCESS_DENIED',
           `Parent directory does not exist or is not accessible: ${parentDir}`,
           { parentDirectory: parentDir }
         );
+      }
       }
     }
   } catch (error) {

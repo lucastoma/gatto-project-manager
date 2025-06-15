@@ -1,21 +1,21 @@
-=== Statystyki Repomix dla projektu: lab transfer algorytm ===
-Data: 2025-06-14 00:18:12
+=== Statystyki Repomix dla projektu: gatto nero mcp no node and dist ===
+Data: 2025-06-15 01:24:30
 ============================================================
 
-=== Statystyki dla grupy 'lab transfer' - ścieżka 'Knowledge/WORKING-ON/lab_transfer' ===
-Łączna liczba plików: 8
-Łączna liczba znaków: 36035
+=== Statystyki dla grupy 'gatto nero mcp no node and dist' - ścieżka 'gatto_filesystem_v2/' ===
+Łączna liczba plików: 15
+Łączna liczba znaków: 55139
 Łączna liczba tokenów: 0
 
 Top 3 plików wg liczby znaków:
-  1. processor.py: 12807 znaków
-  2. core.py: 11740 znaków
-  3. gpu_core.py: 4112 znaków
+  1. src/core/toolHandlers.ts: 17429 znaków
+  2. src/core/fuzzyEdit.ts: 8984 znaków
+  3. src/core/fileInfo.ts: 8330 znaków
 
 Top 3 plików wg liczby tokenów:
-  1. advanced.py: 0 tokenów
-  2. config.py: 0 tokenów
-  3. core.py: 0 tokenów
+  1. index.ts: 0 tokenów
+  2. package.json: 0 tokenów
+  3. src/core/fileInfo.ts: 0 tokenów
 
 Struktura katalogów:
-{'advanced.py': '', 'config.py': '', 'core.py': '', 'gpu_core.py': '', 'kernels.cl': '', 'logger.py': '', 'metrics.py': '', 'processor.py': '', '__init__.py': ''}
+{'Dockerfile': '', 'index.ts': '', 'package.json': '', 'README.md': '', 'src': {'core': {'fileInfo.ts': '', 'fuzzyEdit.ts': '', 'schemas.ts': '', 'security.ts': '', 'toolHandlers.ts': ''}, 'server': {'config.ts': '', 'index.ts': ''}, 'types': {'errors.ts': ''}, 'utils': {'binaryDetect.ts': '', 'hintMap.ts': '', 'pathUtils.ts': '', 'performance.ts': ''}}, 'tsconfig.json': ''}

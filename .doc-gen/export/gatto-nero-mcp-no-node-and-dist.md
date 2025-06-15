@@ -1,9 +1,35 @@
---- START gatto_filesystem_v2\index.ts ---
+﻿# Projekt: gatto nero mcp no node and dist
+## Katalog główny: `D:\projects\gatto-ps-ai-link1`
+## Łączna liczba unikalnych plików: 15
+---
+## Grupa: gatto nero mcp no node and dist
+**Opis:** kod gatto nerro mcp filesystem
+**Liczba plików w grupie:** 15
+
+### Lista plików:
+- `index.ts`
+- `package.json`
+- `src/core/fileInfo.ts`
+- `src/core/fuzzyEdit.ts`
+- `src/core/schemas.ts`
+- `src/core/security.ts`
+- `src/core/toolHandlers.ts`
+- `src/server/config.ts`
+- `src/server/index.ts`
+- `src/types/errors.ts`
+- `src/utils/binaryDetect.ts`
+- `src/utils/hintMap.ts`
+- `src/utils/pathUtils.ts`
+- `src/utils/performance.ts`
+- `tsconfig.json`
+
+### Zawartość plików:
+#### Plik: `index.ts`
+```ts
 // This file is intentionally left blank after refactoring to src/server/index.ts
-
---- END gatto_filesystem_v2\index.ts ---
-
---- START gatto_filesystem_v2\package.json ---
+```
+#### Plik: `package.json`
+```json
 {
   "name": "@modelcontextprotocol/server-filesystem",
   "version": "0.6.3",
@@ -27,7 +53,7 @@
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "@shopify/async-mutex": "^1.3.2",
+    "async-mutex": "^0.3.2",
     "pino": "^8.17.2",
     "@modelcontextprotocol/sdk": "0.5.0",
     "diff": "^5.1.0",
@@ -46,227 +72,9 @@
   },
   "types": "./dist/server/index.d.ts"
 }
---- END gatto_filesystem_v2\package.json ---
-
---- START gatto_filesystem_v2\README.md ---
-# Filesystem MCP Server
-
-Node.js server implementing Model Context Protocol (MCP) for filesystem operations.
-
-## Features
-
-- Read/write files
-- Create/list/delete directories
-- Move files/directories
-- Search files
-- Get file metadata
-
-**Note**: The server will only allow operations within directories specified via `args`.
-
-## API
-
-### Resources
-
-- `file://system`: File system operations interface
-
-### Tools
-
-- **read_file**
-  - Read complete contents of a file
-  - Input: `path` (string)
-  - Reads complete file contents with UTF-8 encoding
-
-- **read_multiple_files**
-  - Read multiple files simultaneously
-  - Input: `paths` (string[])
-  - Failed reads won't stop the entire operation
-
-- **write_file**
-  - Create new file or overwrite existing (exercise caution with this)
-  - Inputs:
-    - `path` (string): File location
-    - `content` (string): File content
-
-- **edit_file**
-  - Make selective edits using advanced pattern matching and formatting
-  - Features:
-    - Line-based and multi-line content matching
-    - Whitespace normalization with indentation preservation
-    - Multiple simultaneous edits with correct positioning
-    - Indentation style detection and preservation
-    - Git-style diff output with context
-    - Preview changes with dry run mode
-  - Inputs:
-    - `path` (string): File to edit
-    - `edits` (array): List of edit operations
-      - `oldText` (string): Text to search for (can be substring)
-      - `newText` (string): Text to replace with
-    - `dryRun` (boolean): Preview changes without applying (default: false)
-  - Returns detailed diff and match information for dry runs, otherwise applies changes
-  - Best Practice: Always use dryRun first to preview changes before applying them
-
-- **create_directory**
-  - Create new directory or ensure it exists
-  - Input: `path` (string)
-  - Creates parent directories if needed
-  - Succeeds silently if directory exists
-
-- **list_directory**
-  - List directory contents with [FILE] or [DIR] prefixes
-  - Input: `path` (string)
-
-- **move_file**
-  - Move or rename files and directories
-  - Inputs:
-    - `source` (string)
-    - `destination` (string)
-  - Fails if destination exists
-
-- **search_files**
-  - Recursively search for files/directories
-  - Inputs:
-    - `path` (string): Starting directory
-    - `pattern` (string): Search pattern
-    - `excludePatterns` (string[]): Exclude any patterns. Glob formats are supported.
-  - Case-insensitive matching
-  - Returns full paths to matches
-
-- **get_file_info**
-  - Get detailed file/directory metadata
-  - Input: `path` (string)
-  - Returns:
-    - Size
-    - Creation time
-    - Modified time
-    - Access time
-    - Type (file/directory)
-    - Permissions
-
-- **list_allowed_directories**
-  - List all directories the server is allowed to access
-  - No input required
-  - Returns:
-    - Directories that this server can read/write from
-
-## Usage with Claude Desktop
-Add this to your `claude_desktop_config.json`:
-
-Note: you can provide sandboxed directories to the server by mounting them to `/projects`. Adding the `ro` flag will make the directory readonly by the server.
-
-### Docker
-Note: all directories must be mounted to `/projects` by default.
-
-```json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "docker",
-      "args": [
-        "run",
-        "-i",
-        "--rm",
-        "--mount", "type=bind,src=/Users/username/Desktop,dst=/projects/Desktop",
-        "--mount", "type=bind,src=/path/to/other/allowed/dir,dst=/projects/other/allowed/dir,ro",
-        "--mount", "type=bind,src=/path/to/file.txt,dst=/projects/path/to/file.txt",
-        "mcp/filesystem",
-        "/projects"
-      ]
-    }
-  }
-}
 ```
-
-### NPX
-
-```json
-{
-  "mcpServers": {
-    "filesystem": {
-      "command": "npx",
-      "args": [
-        "-y",
-        "@modelcontextprotocol/server-filesystem",
-        "/Users/username/Desktop",
-        "/path/to/other/allowed/dir"
-      ]
-    }
-  }
-}
-```
-
-## Usage with VS Code
-
-For quick installation, click the installation buttons below...
-
-[![Install with NPX in VS Code](https://img.shields.io/badge/VS_Code-NPM-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=filesystem&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40modelcontextprotocol%2Fserver-filesystem%22%2C%22%24%7BworkspaceFolder%7D%22%5D%7D) [![Install with NPX in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-NPM-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=filesystem&config=%7B%22command%22%3A%22npx%22%2C%22args%22%3A%5B%22-y%22%2C%22%40modelcontextprotocol%2Fserver-filesystem%22%2C%22%24%7BworkspaceFolder%7D%22%5D%7D&quality=insiders)
-
-[![Install with Docker in VS Code](https://img.shields.io/badge/VS_Code-Docker-0098FF?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=filesystem&config=%7B%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-i%22%2C%22--rm%22%2C%22--mount%22%2C%22type%3Dbind%2Csrc%3D%24%7BworkspaceFolder%7D%2Cdst%3D%2Fprojects%2Fworkspace%22%2C%22mcp%2Ffilesystem%22%2C%22%2Fprojects%22%5D%7D) [![Install with Docker in VS Code Insiders](https://img.shields.io/badge/VS_Code_Insiders-Docker-24bfa5?style=flat-square&logo=visualstudiocode&logoColor=white)](https://insiders.vscode.dev/redirect/mcp/install?name=filesystem&config=%7B%22command%22%3A%22docker%22%2C%22args%22%3A%5B%22run%22%2C%22-i%22%2C%22--rm%22%2C%22--mount%22%2C%22type%3Dbind%2Csrc%3D%24%7BworkspaceFolder%7D%2Cdst%3D%2Fprojects%2Fworkspace%22%2C%22mcp%2Ffilesystem%22%2C%22%2Fprojects%22%5D%7D&quality=insiders)
-
-For manual installation, add the following JSON block to your User Settings (JSON) file in VS Code. You can do this by pressing `Ctrl + Shift + P` and typing `Preferences: Open Settings (JSON)`.
-
-Optionally, you can add it to a file called `.vscode/mcp.json` in your workspace. This will allow you to share the configuration with others.
-
-> Note that the `mcp` key is not needed in the `.vscode/mcp.json` file.
-
-You can provide sandboxed directories to the server by mounting them to `/projects`. Adding the `ro` flag will make the directory readonly by the server.
-
-### Docker
-Note: all directories must be mounted to `/projects` by default. 
-
-```json
-{
-  "mcp": {
-    "servers": {
-      "filesystem": {
-        "command": "docker",
-        "args": [
-          "run",
-          "-i",
-          "--rm",
-          "--mount", "type=bind,src=${workspaceFolder},dst=/projects/workspace",
-          "mcp/filesystem",
-          "/projects"
-        ]
-      }
-    }
-  }
-}
-```
-
-### NPX
-
-```json
-{
-  "mcp": {
-    "servers": {
-      "filesystem": {
-        "command": "npx",
-        "args": [
-          "-y",
-          "@modelcontextprotocol/server-filesystem",
-          "${workspaceFolder}"
-        ]
-      }
-    }
-  }
-}
-```
-
-## Build
-
-Docker build:
-
-```bash
-docker build -t mcp/filesystem -f src/filesystem/Dockerfile .
-```
-
-## License
-
-This MCP server is licensed under the MIT License. This means you are free to use, modify, and distribute the software, subject to the terms and conditions of the MIT License. For more details, please see the LICENSE file in the project repository.
-
---- END gatto_filesystem_v2\README.md ---
-
---- START gatto_filesystem_v2\src\core\fileInfo.ts ---
+#### Plik: `src/core/fileInfo.ts`
+```ts
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { minimatch } from 'minimatch';
@@ -319,7 +127,6 @@ export async function getFileStats(filePath: string, logger: Logger, config: Con
 export async function searchFiles(
   rootPath: string,
   pattern: string,
-  allowedDirectories: string[],
   logger: Logger,
   config: Config,
   excludePatterns: string[] = [],
@@ -346,24 +153,36 @@ export async function searchFiles(
         const fullPath = path.join(currentPath, entry.name);
 
         try {
-          await validatePath(fullPath, allowedDirectories, logger, config);
-
           const relativePath = path.relative(rootPath, fullPath);
-          const shouldExclude = excludePatterns.some(p => minimatch(relativePath, p, { dot: true }));
+          // Match exclude patterns against the relative path, case-insensitively
+          const shouldExclude = excludePatterns.some(p => minimatch(relativePath, p, { dot: true, nocase: true }));
 
           if (shouldExclude) {
             continue;
           }
 
-          if (entry.name.toLowerCase().includes(pattern.toLowerCase())) {
-            results.push(fullPath);
+          // Determine the actual glob pattern to use based on useExactPatterns
+          // If useExactPatterns is false and the input pattern doesn't contain a path separator,
+          // prepend '**/' to match items at any depth.
+          const globPatternToUse = useExactPatterns 
+            ? pattern 
+            : (pattern.includes('/') ? pattern : `**/${pattern}`);
+
+          // Match the effective glob pattern against the relative path, case-insensitively
+          if (minimatch(relativePath, globPatternToUse, { dot: true, nocase: true })) {
+            results.push(fullPath); // Add full path of the matching file/directory
           }
 
+          // If it's a directory (and wasn't excluded), recurse into it.
+          // The directory itself might have matched the pattern and been added above.
+          // Recursion happens to find matching items *within* this directory.
           if (entry.isDirectory()) {
             await search(fullPath);
           }
         } catch (error) {
-          logger.debug({ path: fullPath, error: (error as Error).message }, 'Skipping invalid path during search');
+          // This catch block might still be relevant if fs.stat or fs.readdir fails for a specific entry
+          // even if the parent was accessible. However, the validatePath call was the primary source of errors here.
+          logger.debug({ path: fullPath, error: (error as Error).message }, 'Error processing entry during search');
           continue;
         }
       }
@@ -378,9 +197,111 @@ export async function searchFiles(
   return results;
 }
 
---- END gatto_filesystem_v2\src\core\fileInfo.ts ---
+import type { DirectoryTreeEntry } from './schemas.js';
 
---- START gatto_filesystem_v2\src\core\fuzzyEdit.ts ---
+export async function getDirectoryTree(
+  basePath: string,
+  allowedDirectories: string[],
+  logger: Logger,
+  config: Config,
+  currentDepth: number = 0, // Keep track of current depth
+  maxDepth: number = -1 // Default to no max depth (-1 or undefined)
+): Promise<DirectoryTreeEntry> {
+  const timer = new PerformanceTimer('getDirectoryTree', logger, config);
+  logger.debug({ basePath, currentDepth, maxDepth }, 'Starting getDirectoryTree for path');
+
+  const validatedPath = await validatePath(basePath, allowedDirectories, logger, config);
+  const stats = await fs.stat(validatedPath);
+  const name = path.basename(validatedPath);
+
+  const entry: DirectoryTreeEntry = {
+    name,
+    path: validatedPath,
+    type: stats.isDirectory() ? 'directory' : 'file',
+  };
+
+  if (stats.isDirectory()) {
+    // Check if maxDepth is set and if currentDepth has reached it
+    if (maxDepth !== -1 && currentDepth >= maxDepth) {
+      logger.debug({ basePath, currentDepth, maxDepth }, 'Max depth reached, not traversing further');
+      entry.children = []; // Indicate that there might be more, but not traversing
+      timer.end({ path: basePath, type: 'directory', depthReached: true });
+      return entry;
+    }
+
+    entry.children = [];
+    try {
+      const dirents = await fs.readdir(validatedPath, { withFileTypes: true });
+      for (const dirent of dirents) {
+        const childPath = path.join(validatedPath, dirent.name);
+        // Recursive call, incrementing currentDepth
+        // We pass the original maxDepth down
+        const childEntry = await getDirectoryTree(childPath, allowedDirectories, logger, config, currentDepth + 1, maxDepth);
+        entry.children.push(childEntry);
+      }
+    } catch (error: any) {
+      logger.warn({ path: validatedPath, error: error.message }, 'Failed to read directory contents in getDirectoryTree');
+      // Optionally, add an error node or just skip: entry.children.push({ name: 'Error reading directory', path: validatedPath, type: 'error' });
+    }
+  }
+
+  timer.end({ path: basePath, type: entry.type, childrenCount: entry.children?.length });
+  return entry;
+}
+
+// Add this function to src/core/fileInfo.ts
+
+export interface FileReadResult {
+  path: string;
+  content?: string;
+  encoding?: 'utf-8' | 'base64' | 'error'; // Changed from encodingUsed, added 'error'
+}
+
+export async function readMultipleFilesContent(
+  filePaths: string[],
+  requestedEncoding: 'utf-8' | 'base64' | 'auto',
+  allowedDirectories: string[],
+  logger: Logger,
+  config: Config
+): Promise<FileReadResult[]> {
+  const timer = new PerformanceTimer('readMultipleFilesContent', logger, config);
+  const results: FileReadResult[] = [];
+
+  for (const filePath of filePaths) {
+    try {
+      const validPath = await validatePath(filePath, allowedDirectories, logger, config);
+      const rawBuffer = await fs.readFile(validPath);
+      let content: string;
+      let encodingUsed: 'utf-8' | 'base64' = 'utf-8'; // Default to utf-8
+
+      if (requestedEncoding === 'base64') {
+        content = rawBuffer.toString('base64');
+        encodingUsed = 'base64';
+      } else if (requestedEncoding === 'auto') {
+        if (isBinaryFile(rawBuffer, validPath)) {
+          content = rawBuffer.toString('base64');
+          encodingUsed = 'base64';
+        } else {
+          content = rawBuffer.toString('utf-8');
+          encodingUsed = 'utf-8';
+        }
+      } else { // utf-8
+        content = rawBuffer.toString('utf-8');
+        encodingUsed = 'utf-8';
+      }
+      results.push({ path: filePath, content, encoding: encodingUsed }); // Use 'encoding'
+    } catch (error: any) {
+      logger.warn({ path: filePath, error: error.message }, 'Failed to read one of the files in readMultipleFilesContent');
+      results.push({ path: filePath, content: `Error: ${error.message}`, encoding: 'error' }); // Error in content, encoding='error'
+    }
+  }
+
+  timer.end({ filesCount: filePaths.length, resultsCount: results.length });
+  return results;
+}
+```
+#### Plik: `src/core/fuzzyEdit.ts`
+```ts
 import fs from 'node:fs/promises';
 import { createTwoFilesPatch } from 'diff';
 import { isBinaryFile } from '../utils/binaryDetect.js';
@@ -637,11 +558,21 @@ export async function applyFileEdits(
     throw error;
   }
 }
---- END gatto_filesystem_v2\src\core\fuzzyEdit.ts ---
-
---- START gatto_filesystem_v2\src\core\schemas.ts ---
+```
+#### Plik: `src/core/schemas.ts`
+```ts
 import { z } from 'zod';
 import type { Config } from '../server/config.js';
+
+export const HandshakeRequestSchema = z.object({
+  method: z.literal('handshake'),
+  params: z.object({}).optional()
+});
+
+export const ListToolsRequestSchema = z.object({
+  method: z.literal('list_tools'),
+  params: z.object({}).optional()
+});
 
 export const ReadFileArgsSchema = z.object({
   path: z.string(),
@@ -659,10 +590,11 @@ export const WriteFileArgsSchema = z.object({
   encoding: z.enum(['utf-8', 'base64']).default('utf-8').describe('Encoding of provided content')
 });
 
-const EditOperation = z.object({
+export const EditOperation = z.object({
   oldText: z.string().describe('Text to search for - can be slightly inaccurate'),
   newText: z.string().describe('Text to replace with')
 });
+export type EditOperation = z.infer<typeof EditOperation>;
 
 export const getEditFileArgsSchema = (config: Config) => z.object({
   path: z.string(),
@@ -680,6 +612,14 @@ export const CreateDirectoryArgsSchema = z.object({
   path: z.string(),
 });
 
+export const ListDirectoryEntrySchema = z.object({
+  name: z.string().describe('Name of the file or directory'),
+  path: z.string().describe('Relative path from the base allowed directory'),
+  type: z.enum(['file', 'directory', 'symlink', 'other']).describe('Type of the entry'),
+  size: z.number().optional().describe('Size of the file in bytes, undefined for directories or if error reading stats')
+});
+export type ListDirectoryEntry = z.infer<typeof ListDirectoryEntrySchema>;
+
 export const ListDirectoryArgsSchema = z.object({
   path: z.string(),
 });
@@ -688,25 +628,72 @@ export const DirectoryTreeArgsSchema = z.object({
   path: z.string(),
 });
 
+// Define the recursive DirectoryTreeEntrySchema
+// We need to use z.lazy to handle recursive types with Zod
+export const DirectoryTreeEntrySchema: z.ZodType<DirectoryTreeEntry> = z.lazy(() =>
+  z.object({
+    name: z.string().describe('Name of the file or directory'),
+    path: z.string().describe('Full absolute path of the file or directory'),
+    type: z.enum(['file', 'directory']).describe('Type of the entry'),
+    children: z.array(DirectoryTreeEntrySchema).optional().describe('Children of the directory entry, undefined for files'),
+    // We might want to add size for files or other metadata later
+    // size: z.number().optional().describe('Size of the file in bytes, undefined for directories'), 
+  })
+);
+
+// Define the TypeScript interface for DirectoryTreeEntry for clarity
+export interface DirectoryTreeEntry {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: DirectoryTreeEntry[];
+  // size?: number;
+}
+
+// The result schema is essentially the root entry of the directory tree
+export const DirectoryTreeResultSchema = DirectoryTreeEntrySchema;
+
 export const MoveFileArgsSchema = z.object({
   source: z.string(),
   destination: z.string(),
 });
 
+export const ListAllowedDirectoriesArgsSchema = z.object({}); // No parameters for listing allowed directories
+
+export const ServerStatsArgsSchema = z.object({}); // Schema for server_stats tool arguments
+
 export const SearchFilesArgsSchema = z.object({
   path: z.string(),
   pattern: z.string(),
   excludePatterns: z.array(z.string()).optional().default([]),
-  useExactPatterns: z.boolean().default(false).describe('Use patterns exactly as provided instead of wrapping with **/')
+  useExactPatterns: z.boolean().default(false).describe('Use patterns exactly as provided instead of wrapping with **/'),
+  maxDepth: z.number().int().positive().optional().describe('Maximum depth to search'),
+  maxResults: z.number().int().positive().optional().describe('Maximum number of results to return')
 });
 
 export const GetFileInfoArgsSchema = z.object({
   path: z.string(),
 });
 
---- END gatto_filesystem_v2\src\core\schemas.ts ---
+export const CallToolRequestSchema = z.object({
+  method: z.literal('call_tool'),
+  params: z.object({
+    name: z.string(),
+    args: z.any()
+  })
+});
 
---- START gatto_filesystem_v2\src\core\security.ts ---
+export const DeleteFileArgsSchema = z.object({
+  path: z.string(),
+});
+
+export const DeleteDirectoryArgsSchema = z.object({
+  path: z.string(),
+  recursive: z.boolean().optional().default(false).describe('Recursively delete directory contents')
+});
+```
+#### Plik: `src/core/security.ts`
+```ts
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { PerformanceTimer } from '../utils/performance.js';
@@ -720,9 +707,12 @@ export async function validatePath(requestedPath: string, allowedDirectories: st
   
   try {
     const expandedPath = expandHome(requestedPath);
+    // If the path is relative, resolve it against the FIRST allowed directory instead of the server CWD.
+    // This makes JSON-RPC requests intuitive: a client can pass "./" or "sub/dir" and it will be treated as relative
+    // to the allowed directory supplied at server start (e.g. "mcp-test").
     const absolute = path.isAbsolute(expandedPath)
       ? path.resolve(expandedPath)
-      : path.resolve(process.cwd(), expandedPath);
+      : path.resolve(allowedDirectories[0] ?? process.cwd(), expandedPath);
 
     const normalizedRequested = normalizePath(absolute);
 
@@ -761,12 +751,20 @@ export async function validatePath(requestedPath: string, allowedDirectories: st
       timer.end({ result: 'success', realPath });
       return realPath;
     } catch (error) {
-      const parentDir = path.dirname(absolute);
+      // realpath may fail on Windows for non-existent or locked files/directories.
+      // If the absolute path itself exists (lstat succeeds) and is inside allowedDirectories,
+      // we can safely allow it.
       try {
-        const realParentPath = await fs.realpath(parentDir);
-        const normalizedParent = normalizePath(realParentPath);
-        const isParentAllowed = allowedDirectories.some(dir => {
-          const relativePath = path.relative(dir, normalizedParent);
+        await fs.lstat(absolute);
+        timer.end({ result: 'success', realPath: absolute });
+        return absolute;
+      } catch {
+        const parentDir = path.dirname(absolute);
+        try {
+          const normalizedParent = normalizePath(parentDir); // parentDir is already absolute here
+        const isParentAllowed = allowedDirectories.some(allowedDir => {
+          const relativePath = path.relative(allowedDir, normalizedParent);
+          // Check if normalizedParent is the same as allowedDir or a subdirectory
           return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
         });
         
@@ -774,18 +772,20 @@ export async function validatePath(requestedPath: string, allowedDirectories: st
           throw createError(
             'ACCESS_DENIED',
             'Parent directory outside allowed directories',
-            { parentDirectory: realParentPath }
+            { parentDirectory: normalizedParent } // Use normalizedParent for error reporting
           );
         }
         
         timer.end({ result: 'success', newFile: true });
         return absolute;
-      } catch {
+      } catch (parentError) {
+        if ((parentError as any).code === 'ACCESS_DENIED') throw parentError; // Re-throw our custom error
         throw createError(
           'ACCESS_DENIED',
           `Parent directory does not exist or is not accessible: ${parentDir}`,
           { parentDirectory: parentDir }
         );
+      }
       }
     }
   } catch (error) {
@@ -796,12 +796,10 @@ export async function validatePath(requestedPath: string, allowedDirectories: st
     throw createError('VALIDATION_ERROR', (error as Error).message || String(error));
   }
 }
-
---- END gatto_filesystem_v2\src\core\security.ts ---
-
---- START gatto_filesystem_v2\src\core\toolHandlers.ts ---
+```
+#### Plik: `src/core/toolHandlers.ts`
+```ts
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
-import { CallToolRequestSchema, ListToolsRequestSchema, ToolSchema } from '@modelcontextprotocol/sdk/types.js';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Mutex } from 'async-mutex';
 import fs from 'node:fs/promises';
@@ -812,16 +810,16 @@ import { PerformanceTimer } from '../utils/performance.js';
 import { isBinaryFile } from '../utils/binaryDetect.js';
 import { validatePath } from './security.js';
 import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit.js';
-import { getFileStats, searchFiles } from './fileInfo.js';
+import { getFileStats, searchFiles, readMultipleFilesContent, FileReadResult, getDirectoryTree } from './fileInfo.js'; 
 import * as schemas from './schemas.js';
+// Import specific types that were causing issues if not directly imported
+import type { ListDirectoryEntry, DirectoryTreeEntry, EditOperation } from './schemas.js'; 
 
 import type { Logger } from 'pino';
 import type { Config } from '../server/config.js';
 
 let requestCount = 0;
 let editOperationCount = 0;
-let binaryFileAttempts = 0;
-let averageEditTime = 0;
 
 const fileLocks = new Map<string, Mutex>();
 
@@ -829,7 +827,7 @@ function getFileLock(filePath: string, config: Config): Mutex {
   if (!fileLocks.has(filePath)) {
     if (fileLocks.size >= config.concurrency.maxConcurrentEdits) {
       const oldestKey = fileLocks.keys().next().value;
-      fileLocks.delete(oldestKey);
+      if (oldestKey) fileLocks.delete(oldestKey);
     }
     fileLocks.set(filePath, new Mutex());
   }
@@ -837,121 +835,257 @@ function getFileLock(filePath: string, config: Config): Mutex {
 }
 
 export function setupToolHandlers(server: Server, allowedDirectories: string[], logger: Logger, config: Config) {
+  server.setRequestHandler(schemas.HandshakeRequestSchema, async () => ({
+    serverName: 'mcp-filesystem-server',
+    serverVersion: '0.7.0'
+  }));
   const EditFileArgsSchema = schemas.getEditFileArgsSchema(config);
-
-  server.setRequestHandler(ListToolsRequestSchema, async () => {
+  
+  server.setRequestHandler(schemas.ListToolsRequestSchema, async () => {
     return {
       tools: [
         { name: 'read_file', description: 'Read file contents.', inputSchema: zodToJsonSchema(schemas.ReadFileArgsSchema) as any },
         { name: 'read_multiple_files', description: 'Read multiple files.', inputSchema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) as any },
-        { name: 'write_file', description: 'Write to a file.', inputSchema: zodToJsonSchema(schemas.WriteFileArgsSchema) as any },
-        { name: 'edit_file', description: 'Apply fuzzy edits to a file.', inputSchema: zodToJsonSchema(EditFileArgsSchema) as any },
+        { name: 'list_allowed_directories', description: 'List allowed base directories.', inputSchema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) as any },
+        { name: 'write_file', description: 'Write file contents.', inputSchema: zodToJsonSchema(schemas.WriteFileArgsSchema) as any },
+        { name: 'edit_file', description: 'Edit file contents using fuzzy matching.', inputSchema: zodToJsonSchema(EditFileArgsSchema) as any },
         { name: 'create_directory', description: 'Create a directory.', inputSchema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) as any },
         { name: 'list_directory', description: 'List directory contents.', inputSchema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) as any },
-        { name: 'directory_tree', description: 'Get a directory tree.', inputSchema: zodToJsonSchema(schemas.DirectoryTreeArgsSchema) as any },
-        { name: 'move_file', description: 'Move/rename a file.', inputSchema: zodToJsonSchema(schemas.MoveFileArgsSchema) as any },
-        { name: 'search_files', description: 'Search for files.', inputSchema: zodToJsonSchema(schemas.SearchFilesArgsSchema) as any },
-        { name: 'get_file_info', description: 'Get file metadata.', inputSchema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) as any },
-        { name: 'list_allowed_directories', description: 'List allowed directories.', inputSchema: { type: 'object', properties: {} } },
-        { name: 'server_stats', description: 'Get server statistics.', inputSchema: { type: 'object', properties: {} } },
-      ],
+        { name: 'directory_tree', description: 'Get directory tree.', inputSchema: zodToJsonSchema(schemas.DirectoryTreeArgsSchema) as any },
+        { name: 'move_file', description: 'Move/rename a file or directory.', inputSchema: zodToJsonSchema(schemas.MoveFileArgsSchema) as any },
+        { name: 'delete_file', description: 'Delete a file.', inputSchema: zodToJsonSchema(schemas.DeleteFileArgsSchema) as any },
+        { name: 'delete_directory', description: 'Delete a directory.', inputSchema: zodToJsonSchema(schemas.DeleteDirectoryArgsSchema) as any },
+        { name: 'search_files', description: 'Search for files by pattern.', inputSchema: zodToJsonSchema(schemas.SearchFilesArgsSchema) as any },
+        { name: 'get_file_info', description: 'Get file/directory metadata.', inputSchema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) as any },
+        { name: 'server_stats', description: 'Get server statistics.', inputSchema: zodToJsonSchema(schemas.ServerStatsArgsSchema) as any }
+      ]
     };
   });
 
-  server.setRequestHandler(CallToolRequestSchema, async (request) => {
-    const operationTimer = new PerformanceTimer('request_handler', logger, config);
+  server.setRequestHandler(schemas.CallToolRequestSchema, async (request) => {
     requestCount++;
-    const { name, arguments: args } = request.params;
-    logger.info({ tool: name, requestCount }, `Processing tool request: ${name}`);
-
+    logger.info({ tool: request.params.name, args: request.params.args }, `Tool request: ${request.params.name}`);
     try {
-      switch (name) {
+      switch (request.params.name) {
+        case 'list_allowed_directories': {
+          const parsed = schemas.ListAllowedDirectoriesArgsSchema.safeParse(request.params.args ?? {});
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) });
+          return { result: allowedDirectories };
+        }
+
         case 'read_file': {
-          const parsed = schemas.ReadFileArgsSchema.safeParse(args);
+          const parsed = schemas.ReadFileArgsSchema.safeParse(request.params.args);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadFileArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
-          const buffer = await fs.readFile(validPath);
-          let content: string, encoding: string;
-          if (parsed.data.encoding === 'base64' || (parsed.data.encoding === 'auto' && isBinaryFile(buffer, validPath))) {
-            content = buffer.toString('base64');
-            encoding = 'base64';
+          const rawBuffer = await fs.readFile(validPath);
+          let content: string;
+          let encodingUsed: 'utf-8' | 'base64' = 'utf-8';
+          const isBinary = isBinaryFile(rawBuffer, validPath);
+
+          if (parsed.data.encoding === 'base64' || (parsed.data.encoding === 'auto' && isBinary)) {
+            content = rawBuffer.toString('base64');
+            encodingUsed = 'base64';
           } else {
-            content = buffer.toString('utf-8');
-            encoding = 'utf-8';
+            content = rawBuffer.toString('utf-8'); // Default to utf-8
           }
-          return { content: [{ type: 'text', text: `File: ${validPath}\nEncoding: ${encoding}\n\n${content}` }] };
+          return { result: { content, encoding: encodingUsed } };
+        }
+
+        case 'read_multiple_files': {
+            const parsed = schemas.ReadMultipleFilesArgsSchema.safeParse(request.params.args);
+            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) });
+
+            // const timer = new PerformanceTimer('read_multiple_files_handler', logger, config); // Timer is now within readMultipleFilesContent
+            const fileReadResults = await readMultipleFilesContent(
+              parsed.data.paths,
+              parsed.data.encoding,
+              allowedDirectories,
+              logger,
+              config
+            );
+            // timer.end(...); // Logging for timer is handled within readMultipleFilesContent
+            return { result: fileReadResults };
         }
 
         case 'write_file': {
-          const parsed = schemas.WriteFileArgsSchema.safeParse(args);
+          const parsed = schemas.WriteFileArgsSchema.safeParse(request.params.args);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.WriteFileArgsSchema) });
-          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
-          const buffer = Buffer.from(parsed.data.content, parsed.data.encoding);
-          await fs.writeFile(validPath, buffer);
-          return { content: [{ type: 'text', text: `Successfully wrote to ${validPath}` }] };
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+
+          const lock = getFileLock(validPath, config);
+          await lock.runExclusive(async () => {
+            const contentBuffer = Buffer.from(parsed.data.content, parsed.data.encoding);
+            await fs.writeFile(validPath, contentBuffer);
+          });
+          return { content: [{ type: 'text', text: `File written: ${parsed.data.path}` }] };
         }
 
         case 'edit_file': {
           editOperationCount++;
-          const parsed = EditFileArgsSchema.safeParse(args);
-          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(EditFileArgsSchema) });
-          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
-          const fileLock = getFileLock(validPath, config);
-          return await fileLock.runExclusive(async () => {
-            const { modifiedContent, formattedDiff } = await applyFileEdits(validPath, parsed.data.edits, parsed.data, logger, config);
+          const parsed = EditFileArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments for edit_file', { error: parsed.error, schema: zodToJsonSchema(EditFileArgsSchema) });
+          
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+          const fileBuffer = await fs.readFile(validPath);
+          if (isBinaryFile(fileBuffer, validPath)) { // Check if file is binary by extension or content
+            throw createError('BINARY_FILE_EDIT', `Cannot edit binary file: ${validPath}`);
+          }
+
+          const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: parsed.data.maxDistanceRatio,
+            minSimilarity: parsed.data.minSimilarity,
+            caseSensitive: parsed.data.caseSensitive,
+            ignoreWhitespace: parsed.data.ignoreWhitespace,
+            preserveLeadingWhitespace: parsed.data.preserveLeadingWhitespace,
+            debug: parsed.data.debug
+          };
+          
+          let modifiedContent: string = '';
+          let formattedDiff: string = '';
+
+          const lock = getFileLock(validPath, config);
+          await lock.runExclusive(async () => {
+            const currentContent = await fs.readFile(validPath, 'utf-8');
+            const editResult = await applyFileEdits(currentContent, parsed.data.edits as EditOperation[], fuzzyConfig, logger, config);
+            modifiedContent = editResult.modifiedContent;
+            formattedDiff = editResult.formattedDiff;
             if (!parsed.data.dryRun) {
               await fs.writeFile(validPath, modifiedContent, 'utf-8');
             }
-            const resultMessage = parsed.data.dryRun ? `Dry run complete. Changes:\n\n${formattedDiff}` : `File edited. Changes:\n\n${formattedDiff}`;
-            return { content: [{ type: 'text', text: resultMessage }] };
           });
-        }
 
+          const responseText = parsed.data.dryRun 
+            ? `Dry run: File '${parsed.data.path}' would be modified. Diff:\n${formattedDiff}`
+            : `File '${parsed.data.path}' edited successfully. Diff:\n${formattedDiff}`;
+          
+          return { content: [{ type: 'text', text: responseText }] };
+        }
+        
         case 'create_directory': {
-            const parsed = schemas.CreateDirectoryArgsSchema.safeParse(args);
-            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) });
-            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
-            await fs.mkdir(validPath, { recursive: true });
-            return { content: [{ type: 'text', text: `Successfully created directory ${validPath}` }] };
+          const parsed = schemas.CreateDirectoryArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+          await fs.mkdir(validPath, { recursive: true });
+          return { content: [{ type: 'text', text: `Directory created: ${parsed.data.path}` }] };
         }
 
         case 'list_directory': {
-            const parsed = schemas.ListDirectoryArgsSchema.safeParse(args);
-            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) });
-            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
-            const entries = await fs.readdir(validPath, { withFileTypes: true });
-            const listing = entries.map(e => e.isDirectory() ? `[DIR]  ${e.name}` : `[FILE] ${e.name}`).join('\n');
-            return { content: [{ type: 'text', text: listing }] };
+          const parsed = schemas.ListDirectoryArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const entries = await fs.readdir(validPath, { withFileTypes: true });
+          const results: ListDirectoryEntry[] = [];
+          for (const dirent of entries) {
+            let type: ListDirectoryEntry['type'] = 'other';
+            if (dirent.isFile()) type = 'file';
+            else if (dirent.isDirectory()) type = 'directory';
+            else if (dirent.isSymbolicLink()) type = 'symlink';
+            
+            const entryPath = path.join(validPath, dirent.name);
+            let size: number | undefined = undefined;
+            if (type === 'file') {
+                try {
+                    const stats = await fs.stat(entryPath);
+                    size = stats.size;
+                } catch (statError) {
+                    logger.warn({ path: entryPath, error: statError }, 'Failed to get stats for file in list_directory');
+                }
+            }
+            results.push({ name: dirent.name, path: path.relative(config.allowedDirectories[0], entryPath).replace(/\\/g, '/'), type, size });
+          }
+          return { result: results };
+        }
+
+        case 'move_file': {
+          const parsed = schemas.MoveFileArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.MoveFileArgsSchema) });
+          const validSource = await validatePath(parsed.data.source, allowedDirectories, logger, config); // isWriteOperation = true (on source)
+          const validDestination = await validatePath(parsed.data.destination, allowedDirectories, logger, config); // isWriteOperation = true (on destination)
+          
+          const sourceLock = getFileLock(validSource, config);
+          const destLock = getFileLock(validDestination, config); // Potentially lock destination too if it might exist or be created
+          
+          await sourceLock.runExclusive(async () => {
+            // If destination is different, also acquire its lock if not already held
+            if (validSource !== validDestination && !destLock.isLocked()) {
+              await destLock.runExclusive(async () => {
+                await fs.rename(validSource, validDestination);
+              });
+            } else {
+              // If source and destination are same or destLock already acquired (e.g. by sourceLock if paths are same)
+              await fs.rename(validSource, validDestination);
+            }
+          });
+          return { content: [{ type: 'text', text: `Moved from ${parsed.data.source} to ${parsed.data.destination}` }] };
+        }
+
+        case 'delete_file': {
+          const parsed = schemas.DeleteFileArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DeleteFileArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+          
+          const lock = getFileLock(validPath, config);
+          await lock.runExclusive(async () => {
+            await fs.unlink(validPath);
+          });
+          return { content: [{ type: 'text', text: `File deleted: ${parsed.data.path}` }] };
+        }
+
+        case 'delete_directory': {
+          const parsed = schemas.DeleteDirectoryArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DeleteDirectoryArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+          
+          const lock = getFileLock(validPath, config); // Lock the directory itself
+          await lock.runExclusive(async () => {
+            await fs.rm(validPath, { recursive: parsed.data.recursive || false, force: false }); // force: false for safety
+          });
+          return { content: [{ type: 'text', text: `Directory deleted: ${parsed.data.path}` }] };
+        }
+
+        case 'search_files': {
+          const parsed = schemas.SearchFilesArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.SearchFilesArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const results = await searchFiles(validPath, parsed.data.pattern, logger, config, parsed.data.excludePatterns || [], false);
+          return { result: results };
         }
 
         case 'get_file_info': {
-            const parsed = schemas.GetFileInfoArgsSchema.safeParse(args);
-            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) });
-            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
-            const stats = await getFileStats(validPath, logger, config);
-            return { content: [{ type: 'text', text: JSON.stringify(stats, null, 2) }] };
+          const parsed = schemas.GetFileInfoArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const stats = await getFileStats(validPath, logger, config);
+          return { result: stats };
         }
 
-        case 'list_allowed_directories': {
-            return { content: [{ type: 'text', text: JSON.stringify(allowedDirectories, null, 2) }] };
+        case 'directory_tree': {
+            const parsed = schemas.DirectoryTreeArgsSchema.safeParse(request.params.args);
+            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DirectoryTreeArgsSchema) });
+            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+            const tree = await getDirectoryTree(validPath, allowedDirectories, logger, config);
+            logger.debug({ tree }, 'Generated directory tree (getDirectoryTree)');
+            return { content: [{ type: 'text', text: JSON.stringify(tree, null, 2) }] };
         }
 
         case 'server_stats': {
-            const stats = { requestCount, editOperationCount, binaryFileAttempts, averageEditTime, config };
+            const parsed = schemas.ServerStatsArgsSchema.safeParse(request.params.args);
+            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ServerStatsArgsSchema) });
+            const stats = { requestCount, editOperationCount, config };
             return { content: [{ type: 'text', text: JSON.stringify(stats, null, 2) }] };
         }
 
         default:
-          throw createError('UNKNOWN_TOOL', `Unknown tool: ${name}`);
+          throw createError('UNKNOWN_TOOL', `Unknown tool: ${request.params.name}`);
       }
     } catch (error) {
       let structuredError: StructuredError;
-      if ((error as any).code) {
+      if ((error as any).code && (error as any).message) { 
         structuredError = error as StructuredError;
       } else {
         structuredError = createError('UNKNOWN_ERROR', error instanceof Error ? error.message : String(error));
       }
-      logger.error({ error: structuredError, tool: name }, `Tool request failed: ${name}`);
+      logger.error({ error: structuredError, tool: request.params.name }, `Tool request failed: ${request.params.name}`);
       return {
         content: [{ type: 'text', text: `Error (${structuredError.code}): ${structuredError.message}` }],
         isError: true,
@@ -960,10 +1094,9 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
     }
   });
 }
-
---- END gatto_filesystem_v2\src\core\toolHandlers.ts ---
-
---- START gatto_filesystem_v2\src\server\config.ts ---
+```
+#### Plik: `src/server/config.ts`
+```ts
 import { z } from "zod";
 import fs from "node:fs/promises";
 import path from "node:path";
@@ -1037,28 +1170,28 @@ export async function loadConfig(): Promise<Config> {
         };
     }
 }
-
---- END gatto_filesystem_v2\src\server\config.ts ---
-
---- START gatto_filesystem_v2\src\server\index.ts ---
+```
+#### Plik: `src/server/index.ts`
+```ts
 #!/usr/bin/env node
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
-import pino from 'pino';
+import * as pino from 'pino';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
 import { loadConfig } from './config.js';
 import { setupToolHandlers } from '../core/toolHandlers.js';
+import * as schemas from '../core/schemas.js';
 import { expandHome, normalizePath } from '../utils/pathUtils.js';
 
 async function main() {
   const config = await loadConfig();
 
-  const logger = pino({
+  const logger = pino.pino({
     level: config.logging.level,
-    formatters: { level: (label) => ({ level: label }) },
+    formatters: { level: (label: string) => ({ level: label }) },
     timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
     base: { service: 'mcp-filesystem-server', version: '0.7.0' }
   });
@@ -1084,6 +1217,7 @@ async function main() {
   );
 
   setupToolHandlers(server, allowedDirectories, logger, config);
+// list_tools jest już zarejestrowane w toolHandlers.ts, więc usuwamy duplikat
 
   const transport = new StdioServerTransport();
   await server.connect(transport);
@@ -1095,11 +1229,10 @@ main().catch((error) => {
   console.error('Fatal error running server:', error);
   process.exit(1);
 });
-
---- END gatto_filesystem_v2\src\server\index.ts ---
-
---- START gatto_filesystem_v2\src\types\errors.ts ---
-import type { HintInfo, HINTS } from "../utils/hintMap.js";
+```
+#### Plik: `src/types/errors.ts`
+```ts
+import { HintInfo, HINTS } from "../utils/hintMap.js";
 
 export interface StructuredError {
   code: keyof typeof HINTS | string;
@@ -1123,11 +1256,11 @@ export function createError(
     details
   };
 }
-
---- END gatto_filesystem_v2\src\types\errors.ts ---
-
---- START gatto_filesystem_v2\src\utils\binaryDetect.ts ---
+```
+#### Plik: `src/utils/binaryDetect.ts`
+```ts
 import path from 'node:path';
+import { isUtf8 as bufferIsUtf8 } from 'buffer';
 
 const BINARY_EXTENSIONS = new Set([
   '.exe', '.dll', '.so', '.dylib', '.bin', '.dat',
@@ -1138,7 +1271,8 @@ const BINARY_EXTENSIONS = new Set([
 ]);
 
 export function isBinaryFile(buffer: Buffer, filename?: string): boolean {
-  if (Buffer.isUtf8 && !Buffer.isUtf8(buffer)) {
+  const isUtf8 = (Buffer as any).isUtf8 ?? bufferIsUtf8;
+  if (isUtf8 && !isUtf8(buffer)) {
     return true;
   }
 
@@ -1165,10 +1299,9 @@ export function isBinaryFile(buffer: Buffer, filename?: string): boolean {
 
   return (nonPrintable / sampleSize) > 0.1;
 }
-
---- END gatto_filesystem_v2\src\utils\binaryDetect.ts ---
-
---- START gatto_filesystem_v2\src\utils\hintMap.ts ---
+```
+#### Plik: `src/utils/hintMap.ts`
+```ts
 export interface HintInfo {
   confidence: number;
   hint: string;
@@ -1195,19 +1328,32 @@ export const HINTS: Record<string, HintInfo> = {
     confidence: 0.6,
     hint: "Found a partial match. Review the diff and correct 'oldText' or parameters."
   },
+  FILE_NOT_FOUND_MULTI: {
+    confidence: 0.8,
+    hint: "One or more requested files could not be read. See per-file result details."
+  },
   UNKNOWN_TOOL: {
     confidence: 0.9,
     hint: "The requested tool does not exist. Use 'list_tools' to see available tools."
+  },
+  DEST_EXISTS: {
+    confidence: 0.85,
+    hint: "Destination path already exists. Provide a different destination or remove the existing file first.",
+    example: { source: "/workspace/src.txt", destination: "/workspace/dest.txt" }
+  },
+  SRC_MISSING: {
+    confidence: 0.85,
+    hint: "Source file does not exist. Check the 'source' argument.",
+    example: { source: "/workspace/missing.txt" }
   },
   UNKNOWN_ERROR: {
     confidence: 0.1,
     hint: "An unexpected error occurred. Check server logs for details."
   }
 };
-
---- END gatto_filesystem_v2\src\utils\hintMap.ts ---
-
---- START gatto_filesystem_v2\src\utils\pathUtils.ts ---
+```
+#### Plik: `src/utils/pathUtils.ts`
+```ts
 import path from 'node:path';
 import os from 'node:os';
 
@@ -1221,10 +1367,9 @@ export function expandHome(filepath: string): string {
   }
   return filepath;
 }
-
---- END gatto_filesystem_v2\src\utils\pathUtils.ts ---
-
---- START gatto_filesystem_v2\src\utils\performance.ts ---
+```
+#### Plik: `src/utils/performance.ts`
+```ts
 import { performance } from 'node:perf_hooks';
 import type { Logger } from 'pino';
 import type { Config } from '../server/config.js';
@@ -1255,14 +1400,13 @@ export class PerformanceTimer {
     return duration;
   }
 }
-
---- END gatto_filesystem_v2\src\utils\performance.ts ---
-
---- START gatto_filesystem_v2\tsconfig.json ---
+```
+#### Plik: `tsconfig.json`
+```json
 {
   "compilerOptions": {
     "target": "es2022",
-    "module": "esnext",
+    "module": "nodenext",
     "moduleResolution": "nodenext", // or "node" if preferred
     "esModuleInterop": true,
     "strict": true,
@@ -1285,6 +1429,5 @@ export class PerformanceTimer {
     "**/*.spec.ts"
   ]
 }
-
---- END gatto_filesystem_v2\tsconfig.json ---
-
+```
+---
