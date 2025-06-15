@@ -69,6 +69,7 @@ export type ListDirectoryEntry = z.infer<typeof ListDirectoryEntrySchema>;
 
 export const ListDirectoryArgsSchema = z.object({
   path: z.string(),
+  recursive: z.boolean().optional().default(false).describe('List directory contents recursively')
 });
 
 // Zaktualizowany schemat z dodanym `maxDepth`
@@ -124,7 +125,7 @@ export const GetFileInfoArgsSchema = z.object({
 export const CallToolRequestSchema = z.object({
   method: z.literal('tools/call'),
   params: z.object({
-    name: z.string(),
+    toolName: z.string(), // Corrected from 'name' to 'toolName'
     arguments: z.any()
   })
 });

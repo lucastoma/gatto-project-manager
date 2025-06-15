@@ -112,9 +112,9 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
   // Handler for tools/call
   server.setRequestHandler(schemas.CallToolRequestSchema, async (request) => {
     requestCount++;
-    logger.info({ tool: request.params.name, args: request.params.arguments }, `Tool request: ${request.params.name}`);
+    logger.info({ tool: request.params.toolName, args: request.params.arguments }, `Tool request: ${request.params.toolName}`);
     try {
-      switch (request.params.name) {
+      switch (request.params.toolName) {
         case 'list_allowed_directories': {
           const parsed = schemas.ListAllowedDirectoriesArgsSchema.safeParse(request.params.arguments ?? {});
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) });
@@ -267,32 +267,79 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         case 'list_directory': {
           const parsed = schemas.ListDirectoryArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) });
-          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
-          const entries = await fs.readdir(validPath, { withFileTypes: true });
-          const results: ListDirectoryEntry[] = [];
-          for (const dirent of entries) {
-            const entryPath = path.join(validPath, dirent.name);
-            if (shouldSkipPath(entryPath, config)) {
-              continue;
-            }
+          const { path: targetPathFromArgs, recursive: isRecursiveMode } = parsed.data; // Destructure recursive here
+          const initialValidatedPath = await validatePath(targetPathFromArgs, allowedDirectories, logger, config);
 
-            let type: ListDirectoryEntry['type'] = 'other';
-            if (dirent.isFile()) type = 'file';
-            else if (dirent.isDirectory()) type = 'directory';
-            else if (dirent.isSymbolicLink()) type = 'symlink';
+          const collectedEntries: ListDirectoryEntry[] = [];
 
-            let size: number | undefined = undefined;
-            if (type === 'file') {
-              try {
-                const stats = await fs.stat(entryPath);
-                size = stats.size;
-              } catch (statError) {
-                logger.warn({ path: entryPath, error: statError }, 'Failed to get stats for file in list_directory');
+          async function _listDirectoryRecursive(currentPhysicalPath: string, currentRelativeBase: string, depth: number) {
+            const dirents = await fs.readdir(currentPhysicalPath, { withFileTypes: true });
+
+            for (const dirent of dirents) {
+              const entryPhysicalPath = path.join(currentPhysicalPath, dirent.name);
+              // Construct the relative path for the response: join currentRelativeBase with dirent.name
+              const entryRelativePath = path.join(currentRelativeBase, dirent.name).replace(/\\/g, '/');
+
+              if (shouldSkipPath(entryPhysicalPath, config)) {
+                logger.debug({ path: entryPhysicalPath, reason: 'skipped_by_filter' }, 'Skipping path in list_directory');
+                continue;
+              }
+
+              let type: ListDirectoryEntry['type'] = 'other';
+              if (dirent.isFile()) type = 'file';
+              else if (dirent.isDirectory()) type = 'directory';
+              else if (dirent.isSymbolicLink()) type = 'symlink';
+
+              const resultEntry: ListDirectoryEntry = { name: dirent.name, type, path: entryRelativePath }; 
+              if (type === 'file') {
+                try {
+                  const stats = await fs.stat(entryPhysicalPath);
+                  resultEntry.size = stats.size;
+                } catch (statError: any) {
+                  logger.warn({ path: entryPhysicalPath, error: statError.message }, 'Failed to get stats for file in list_directory');
+                }
+              }
+              collectedEntries.push(resultEntry);
+
+              if (type === 'directory' && isRecursiveMode) { // Use the destructured isRecursiveMode
+                 // For the next level of recursion, the new currentRelativeBase is the entryRelativePath we just constructed
+                await _listDirectoryRecursive(entryPhysicalPath, entryRelativePath, depth + 1);
               }
             }
-            results.push({ name: dirent.name, path: path.relative(allowedDirectories[0], entryPath).replace(/\\/g, '/'), type, size });
           }
-          return { result: { entries: results } };
+
+          if (isRecursiveMode) { // Use the destructured isRecursiveMode
+            // Initial call: currentRelativeBase is empty as paths should be relative to the requested directory itself
+            await _listDirectoryRecursive(initialValidatedPath, '', 0);
+          } else {
+            const dirents = await fs.readdir(initialValidatedPath, { withFileTypes: true });
+            for (const dirent of dirents) {
+              const entryPhysicalPath = path.join(initialValidatedPath, dirent.name);
+              // For non-recursive, path is just the entry name, relative to the initialValidatedPath
+              const entryRelativePath = dirent.name.replace(/\\/g, '/');
+
+              if (shouldSkipPath(entryPhysicalPath, config)) {
+                logger.debug({ path: entryPhysicalPath, reason: 'skipped_by_filter' }, 'Skipping path in list_directory');
+                continue;
+              }
+              let type: ListDirectoryEntry['type'] = 'other';
+              if (dirent.isFile()) type = 'file';
+              else if (dirent.isDirectory()) type = 'directory';
+              else if (dirent.isSymbolicLink()) type = 'symlink';
+              
+              const resultEntry: ListDirectoryEntry = { name: dirent.name, type, path: entryRelativePath }; 
+              if (type === 'file') {
+                try {
+                  const stats = await fs.stat(entryPhysicalPath);
+                  resultEntry.size = stats.size;
+                } catch (statError: any) {
+                  logger.warn({ path: entryPhysicalPath, error: statError.message }, 'Failed to get stats for file in list_directory');
+                }
+              }
+              collectedEntries.push(resultEntry);
+            }
+          }
+          return { result: { entries: collectedEntries.sort((a, b) => a.path.localeCompare(b.path)) } };
         }
 
         case 'move_file': {
@@ -413,7 +460,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         default:
-          throw createError('UNKNOWN_TOOL', `Unknown tool: ${request.params.name}`);
+          throw createError('UNKNOWN_TOOL', `Unknown tool: ${request.params.toolName}`);
       }
     } catch (error) {
       let structuredError: StructuredError;
@@ -422,7 +469,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
       } else {
         structuredError = createError('UNKNOWN_ERROR', error instanceof Error ? error.message : String(error));
       }
-      logger.error({ error: structuredError, tool: request.params.name }, `Tool request failed: ${request.params.name}`);
+      logger.error({ error: structuredError, tool: request.params.toolName }, `Tool request failed: ${request.params.toolName}`);
       return {
         content: [{ type: 'text', text: `Error (${structuredError.code}): ${structuredError.message}` }],
         isError: true,

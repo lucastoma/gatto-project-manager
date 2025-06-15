@@ -136,7 +136,7 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       jsonrpc: "2.0",
       method: "tools/call",
       params: {
-        name: "read_file",
+        toolName: "read_file",
         arguments: {
           path: "test.cl"
         }
@@ -152,29 +152,134 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
     expect(response.result.result.content).toContain('kernel'); // test.cl contains __kernel
   });
 
-  it('can call list_directory tool', async () => {
-    const request = {
-      jsonrpc: "2.0",
-      method: "tools/call",
-      params: {
-        name: "list_directory",
-        arguments: {
-          path: "."
-        }
-      },
-      id: 4
-    };
+  describe('list_directory tool', () => {
+    const testDirName = 'list_directory_test_root';
+    const testDir = path.join(process.cwd(), testDirName); // Assuming tests run from project root
 
-    const response = await runServerCommand(request);
+    beforeAll(async () => {
+      // Create a controlled test directory structure
+      if (fs.existsSync(testDir)) {
+        await fs.promises.rm(testDir, { recursive: true, force: true });
+      }
+      await fs.promises.mkdir(testDir, { recursive: true });
+      await fs.promises.writeFile(path.join(testDir, 'file1.txt'), 'content1');
+      await fs.promises.writeFile(path.join(testDir, 'file2.ts'), 'content2'); // This might be filtered by default
+      await fs.promises.mkdir(path.join(testDir, 'sub_dir'), { recursive: true });
+      await fs.promises.writeFile(path.join(testDir, 'sub_dir', 'sub_file.txt'), 'sub_content');
+      await fs.promises.mkdir(path.join(testDir, 'sub_dir', 'nested_dir'), { recursive: true });
+      await fs.promises.writeFile(path.join(testDir, 'sub_dir', 'nested_dir', 'deep_file.md'), 'deep_content');
+      await fs.promises.mkdir(path.join(testDir, 'empty_dir'), { recursive: true });
+    });
 
-    expect(response.result).toBeDefined();
-    expect(response.result.result.entries).toBeDefined();
-    expect(Array.isArray(response.result.result.entries)).toBe(true);
+    afterAll(async () => {
+      await fs.promises.rm(testDir, { recursive: true, force: true });
+    });
 
-    // Should find some common files
-    const entryNames = response.result.result.entries.map((e: any) => e.name);
-    expect(entryNames).toContain('package.json');
-    expect(entryNames).toContain('src');
+    it('should list directory contents non-recursively', async () => {
+      const response = await runServerCommand({
+        jsonrpc: '2.0',
+        id: 'list-non-recursive',
+        method: 'tools/call',
+        params: {
+          toolName: 'list_directory',
+          arguments: { path: testDirName, recursive: false },
+        },
+      });
+      expect(response.id).toBe('list-non-recursive');
+      expect(response.result).toBeDefined();
+      expect(response.result.result.entries).toBeDefined();
+      const entries = response.result.result.entries;
+      expect(entries).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: 'file1.txt', type: 'file', path: 'file1.txt' }),
+        // file2.ts is excluded by default config in this test setup if defaultExcludes = ['*.ts']
+        // expect.objectContaining({ name: 'file2.ts', type: 'file', path: 'file2.ts' }), 
+        expect.objectContaining({ name: 'sub_dir', type: 'directory', path: 'sub_dir' }),
+        expect.objectContaining({ name: 'empty_dir', type: 'directory', path: 'empty_dir' }),
+      ]));
+      // Check that sub_file.txt is NOT present (non-recursive)
+      expect(entries.find((e:any) => e.path === 'sub_dir/sub_file.txt')).toBeUndefined();
+      // Verify filtered items are not present if applicable by your test config
+      // For example, if *.ts is filtered by default test config:
+      expect(entries.find((e:any) => e.name === 'file2.ts')).toBeUndefined(); 
+    });
+
+    it('should list directory contents recursively', async () => {
+      const response = await runServerCommand({
+        jsonrpc: '2.0',
+        id: 'list-recursive',
+        method: 'tools/call',
+        params: {
+          toolName: 'list_directory',
+          arguments: { path: testDirName, recursive: true },
+        },
+      });
+      expect(response.id).toBe('list-recursive');
+      expect(response.result).toBeDefined();
+      const entries = response.result.result.entries;
+      expect(entries).toEqual(expect.arrayContaining([
+        expect.objectContaining({ name: 'file1.txt', type: 'file', path: 'file1.txt' }),
+        // file2.ts (still assuming filtered by default test config)
+        expect.objectContaining({ name: 'sub_dir', type: 'directory', path: 'sub_dir' }),
+        expect.objectContaining({ name: 'sub_file.txt', type: 'file', path: 'sub_dir/sub_file.txt' }),
+        expect.objectContaining({ name: 'nested_dir', type: 'directory', path: 'sub_dir/nested_dir' }),
+        expect.objectContaining({ name: 'deep_file.md', type: 'file', path: 'sub_dir/nested_dir/deep_file.md' }),
+        expect.objectContaining({ name: 'empty_dir', type: 'directory', path: 'empty_dir' }),
+      ]));
+      // Ensure order by path
+      const paths = entries.map((e:any) => e.path);
+      expect(paths).toEqual([...paths].sort());
+      // Verify filtered items are not present if applicable by your test config
+      expect(entries.find((e:any) => e.name === 'file2.ts')).toBeUndefined(); 
+    });
+
+    it('should list empty directory recursively', async () => {
+      const response = await runServerCommand({
+        jsonrpc: '2.0',
+        id: 'list-empty-recursive',
+        method: 'tools/call',
+        params: {
+          toolName: 'list_directory',
+          arguments: { path: `${testDirName}/empty_dir`, recursive: true },
+        },
+      });
+      expect(response.id).toBe('list-empty-recursive');
+      expect(response.result.result.entries).toEqual([]);
+    });
+
+    it('should return an error for non-existent directory when listing', async () => {
+      const response = await runServerCommand({
+        jsonrpc: '2.0',
+        id: 'list-non-existent',
+        method: 'tools/call',
+        params: {
+          toolName: 'list_directory',
+          arguments: { path: 'non_existent_dir123', recursive: false },
+        },
+      });
+      expect(response.id).toBe('list-non-existent');
+      expect(response.error).toBeDefined();
+      expect(response.error.code).toBe(-32001); // ACCESS_DENIED (Path does not exist)
+      expect(response.error.message).toContain('Path does not exist or is not accessible');
+    });
+
+    // Test to ensure original functionality of checking project root (like package.json) is still possible if needed
+    // This test runs on the actual project root, not the temporary testDir.
+    it('can list project root and find package.json and src (non-recursive)', async () => {
+      const response = await runServerCommand({
+        jsonrpc: '2.0',
+        id: 'list-project-root',
+        method: 'tools/call',
+        params: {
+          toolName: 'list_directory',
+          arguments: { path: '.', recursive: false }, // path: '.' refers to CWD of server, which is project root
+        },
+      });
+      expect(response.id).toBe('list-project-root');
+      expect(response.result).toBeDefined();
+      const entries = response.result.result.entries;
+      expect(entries.find((e:any) => e.name === 'package.json' && e.type === 'file')).toBeDefined();
+      expect(entries.find((e:any) => e.name === 'src' && e.type === 'directory')).toBeDefined();
+    });
   });
 
   it('can call server_stats tool', async () => {
@@ -182,7 +287,7 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       jsonrpc: "2.0",
       method: "tools/call",
       params: {
-        name: "server_stats",
+        toolName: "server_stats",
         arguments: {}
       },
       id: 5
