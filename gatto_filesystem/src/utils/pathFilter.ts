@@ -15,8 +15,14 @@ export function shouldSkipPath(filePath: string, config: Config): boolean {
     // 2) rozszerzenia, jeśli forceTextFiles aktywne
     if (config.fileFiltering.forceTextFiles) {
         const ext = path.extname(filePath).toLowerCase();
-        const allowed = [...DEFAULT_ALLOWED_EXTENSIONS, ...config.fileFiltering.allowedExtensions];
-        if (!allowed.some(p => minimatch(`*${ext}`, p, { nocase: true }))) return true;
+        // Only apply extension filtering if there IS an extension.
+        // Directories (ext === '') or files without extensions should not be skipped by this rule.
+        if (ext !== '') {
+            const allowed = [...DEFAULT_ALLOWED_EXTENSIONS, ...config.fileFiltering.allowedExtensions];
+            if (!allowed.some(p => minimatch(`*${ext}`, p, { nocase: true }))) {
+                return true; // Skip if extension is present but not in allowed list
+            }
+        }
     }
     return false;
 }
