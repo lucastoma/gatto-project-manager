@@ -2,7 +2,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { minimatch } from 'minimatch';
 import { lookup as mimeLookup } from 'mime-types';
-import { isBinaryFile } from '../utils/binaryDetect.js';
+import { classifyFileType, FileType } from '../utils/binaryDetect.js';
 import { PerformanceTimer } from '../utils/performance.js';
 import { validatePath } from './security.js';
 import { shouldSkipPath } from '../utils/pathFilter.js';
@@ -38,7 +38,8 @@ export async function getFileStats(filePath: string, logger: Logger, config: Con
         const buffer = Buffer.alloc(FILE_STAT_READ_BUFFER_SIZE);
         const { bytesRead } = await fileHandle.read(buffer, 0, FILE_STAT_READ_BUFFER_SIZE, 0);
         const actualBuffer = bytesRead < FILE_STAT_READ_BUFFER_SIZE ? buffer.subarray(0, bytesRead) : buffer;
-        isBinary = isBinaryFile(actualBuffer, filePath);
+        const fileType = classifyFileType(actualBuffer, filePath);
+        isBinary = fileType === FileType.CONFIRMED_BINARY;
       } finally {
         await fileHandle.close();
       }
@@ -236,7 +237,8 @@ export async function readMultipleFilesContent(
         // For 'auto', we need to read a small chunk to detect binary, similar to getFileStats
         // This re-reads a small part if the file is large, could be optimized if rawBuffer is small enough already.
         const checkBuffer = rawBuffer.length > FILE_STAT_READ_BUFFER_SIZE ? rawBuffer.subarray(0, FILE_STAT_READ_BUFFER_SIZE) : rawBuffer;
-        if (isBinaryFile(checkBuffer, validPath)) {
+        const fileType = classifyFileType(checkBuffer, validPath);
+        if (fileType === FileType.CONFIRMED_BINARY || fileType === FileType.POTENTIAL_TEXT_WITH_CAVEATS) {
           content = rawBuffer.toString('base64');
           finalEncoding = 'base64';
         } else {

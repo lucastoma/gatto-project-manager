@@ -1,16 +1,17 @@
 ﻿# Projekt: gatto nero mcp no node and dist
 ## Katalog główny: `/home/lukasz/projects/gatto-ps-ai`
-## Łączna liczba unikalnych plików: 23
+## Łączna liczba unikalnych plików: 24
 ---
 ## Grupa: gatto nero mcp no node and dist
 **Opis:** kod gatto nerro mcp filesystem
-**Liczba plików w grupie:** 23
+**Liczba plików w grupie:** 24
 
 ### Lista plików:
 - `index.ts`
 - `src/constants/extensions.ts`
 - `src/utils/hintMap.ts`
 - `src/utils/pathFilter.test.ts`
+- `src/utils/__tests__/binaryDetect.test.ts`
 - `src/utils/pathFilter.ts`
 - `src/utils/binaryDetect.ts`
 - `src/utils/performance.ts`
@@ -211,6 +212,119 @@ describe('shouldSkipPath', () => {
   });
 });
 ```
+#### Plik: `src/utils/__tests__/binaryDetect.test.ts`
+```ts
+/// <reference types="jest" />
+
+import { classifyFileType, FileType } from '../binaryDetect';
+import { Buffer } from 'buffer';
+
+// Mock mime-types lookup
+// We'll need to enhance this mock for more specific MIME type tests
+jest.mock('mime-types', () => ({
+  lookup: jest.fn((filename: string) => {
+    if (filename.endsWith('.jpg')) return 'image/jpeg';
+    if (filename.endsWith('.png')) return 'image/png';
+    if (filename.endsWith('.pdf')) return 'application/pdf';
+    if (filename.endsWith('.zip')) return 'application/zip';
+    if (filename.endsWith('.txt')) return 'text/plain';
+    if (filename.endsWith('.csv')) return 'text/csv';
+    if (filename.endsWith('.log')) return 'text/plain'; // Or application/octet-stream if unknown by mime
+    if (filename.endsWith('.dat')) return false; // Simulate unknown MIME for .dat
+    return false; // Default for unknown types
+  }),
+}));
+
+describe('classifyFileType', () => {
+  // Test cases for CONFIRMED_BINARY
+  describe('CONFIRMED_BINARY', () => {
+    it('should classify files with STRICT_BINARY_EXTENSIONS as CONFIRMED_BINARY', () => {
+      const buffer = Buffer.from('some content');
+      expect(classifyFileType(buffer, 'test.exe')).toBe(FileType.CONFIRMED_BINARY);
+      expect(classifyFileType(buffer, 'image.jpg')).toBe(FileType.CONFIRMED_BINARY);
+      expect(classifyFileType(buffer, 'archive.zip')).toBe(FileType.CONFIRMED_BINARY);
+      expect(classifyFileType(buffer, 'document.pdf')).toBe(FileType.CONFIRMED_BINARY);
+      expect(classifyFileType(buffer, 'compiled.wasm')).toBe(FileType.CONFIRMED_BINARY);
+    });
+
+    it('should classify files with binary MIME types as CONFIRMED_BINARY', () => {
+      const buffer = Buffer.from('some content');
+      // Mocked 'mime-types' will return 'image/jpeg' for .jpg
+      expect(classifyFileType(buffer, 'photo.jpg')).toBe(FileType.CONFIRMED_BINARY);
+      // Mocked 'mime-types' will return 'application/pdf' for .pdf
+      expect(classifyFileType(buffer, 'manual.pdf')).toBe(FileType.CONFIRMED_BINARY);
+    });
+
+    it('should classify non-UTF8 buffers as CONFIRMED_BINARY', () => {
+      // Create a buffer with invalid UTF-8 sequence (0xFF is not valid in UTF-8)
+      const nonUtf8Buffer = Buffer.from([0x48, 0x65, 0x6C, 0x6C, 0x6F, 0xFF]); // "Hello" + invalid byte
+      expect(classifyFileType(nonUtf8Buffer, 'test.txt')).toBe(FileType.CONFIRMED_BINARY);
+    });
+
+    it('should classify files with high non-printable char ratio as CONFIRMED_BINARY', () => {
+      // Buffer with >10% non-printable chars (e.g., many control chars < 32, excluding tab, lf, cr)
+      const nonPrintableByteArray = Array(100).fill(0x01); // 100 SOH characters as byte values
+      const mostlyNonPrintableBuffer = Buffer.from(nonPrintableByteArray);
+      expect(classifyFileType(mostlyNonPrintableBuffer, 'control.dat')).toBe(FileType.CONFIRMED_BINARY);
+    });
+  });
+
+  // Test cases for POTENTIAL_TEXT_WITH_CAVEATS
+  describe('POTENTIAL_TEXT_WITH_CAVEATS', () => {
+    it('should classify UTF-8 text files with NUL bytes as POTENTIAL_TEXT_WITH_CAVEATS', () => {
+      const textWithNul = Buffer.from('This is a text file with a \x00 NUL byte.');
+      expect(classifyFileType(textWithNul, 'text_with_nul.txt')).toBe(FileType.POTENTIAL_TEXT_WITH_CAVEATS);
+    });
+
+    it('should classify CSV with NUL bytes as POTENTIAL_TEXT_WITH_CAVEATS', () => {
+      const csvWithNul = Buffer.from('col1,col2\nval1,val\x002'); // NUL byte followed by '2'
+      expect(classifyFileType(csvWithNul, 'data.csv')).toBe(FileType.POTENTIAL_TEXT_WITH_CAVEATS);
+    });
+  });
+
+  // Test cases for TEXT
+  describe('TEXT', () => {
+    it('should classify clean UTF-8 text files as TEXT', () => {
+      const cleanText = Buffer.from('This is a perfectly normal text file.');
+      expect(classifyFileType(cleanText, 'clean.txt')).toBe(FileType.TEXT);
+    });
+
+    it('should classify clean CSV files as TEXT', () => {
+      const cleanCsv = Buffer.from('header1,header2\nvalue1,value2');
+      expect(classifyFileType(cleanCsv, 'data.csv')).toBe(FileType.TEXT);
+    });
+
+    it('should classify clean log files as TEXT', () => {
+      const cleanLog = Buffer.from('[INFO] This is a log entry.');
+      expect(classifyFileType(cleanLog, 'app.log')).toBe(FileType.TEXT);
+    });
+
+    it('should classify a .dat file with text content as TEXT (if no NULs and UTF8)', () => {
+      const textDat = Buffer.from('Some textual data in a .dat file');
+      // .dat is not in STRICT_BINARY_EXTENSIONS, and mime-types mock returns false for .dat
+      expect(classifyFileType(textDat, 'config.dat')).toBe(FileType.TEXT);
+    });
+  });
+
+  // Edge cases and ambiguous files
+  describe('Edge Cases', () => {
+    it('should handle empty files as TEXT', () => {
+      const emptyBuffer = Buffer.from('');
+      expect(classifyFileType(emptyBuffer, 'empty.txt')).toBe(FileType.TEXT);
+    });
+
+    it('should handle a .dat file with NUL bytes as POTENTIAL_TEXT_WITH_CAVEATS', () => {
+      const datWithNul = Buffer.from('data with\x00nul');
+      expect(classifyFileType(datWithNul, 'ambiguous.dat')).toBe(FileType.POTENTIAL_TEXT_WITH_CAVEATS);
+    });
+
+    it('should handle a .dat file with binary-like content (non-UTF8) as CONFIRMED_BINARY', () => {
+      const binaryDat = Buffer.from([0x01, 0x02, 0x03, 0xFF]);
+      expect(classifyFileType(binaryDat, 'binary.dat')).toBe(FileType.CONFIRMED_BINARY);
+    });
+  });
+});
+```
 #### Plik: `src/utils/pathFilter.ts`
 ```ts
 import path from 'node:path';
@@ -240,51 +354,93 @@ export function shouldSkipPath(filePath: string, config: Config): boolean {
 ```ts
 import path from 'node:path';
 import { isUtf8 as bufferIsUtf8 } from 'buffer';
+import { lookup } from 'mime-types';
 
 const NUL_BYTE_CHECK_SAMPLE_SIZE = 8192; // Check first 8KB for NUL bytes
 
-const BINARY_EXTENSIONS = new Set([
-  '.exe', '.dll', '.so', '.dylib', '.bin', '.dat',
+// Enum for file type classification
+export enum FileType {
+  TEXT,
+  POTENTIAL_TEXT_WITH_CAVEATS, // e.g., text with NULs, or very large but seems text-based
+  CONFIRMED_BINARY
+}
+
+// More conservative list of extensions that are almost certainly binary
+const STRICT_BINARY_EXTENSIONS = new Set([
+  '.exe', '.dll', '.so', '.dylib', '.bin', // .dat removed, see note below
   '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.ico',
   '.mp3', '.mp4', '.avi', '.mov', '.wmv', '.flv',
   '.pdf', '.zip', '.rar', '.tar', '.gz', '.7z',
   '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
   '.wasm', '.o', '.a', '.obj', '.lib', '.class', '.pyc', '.pyo', '.pyd', // Compiled code/objects
-  '.sqlite', '.db', '.mdb', '.accdb', '.swf', '.fla' // Databases and flash
+  '.sqlite', '.db', '.mdb', '.accdb', '.swf', '.fla', // Databases and flash
+  // Note: .dat is removed as it's too ambiguous. Content checks will be more important.
 ]);
 
-export function isBinaryFile(buffer: Buffer, filename?: string): boolean {
+// List of MIME types that strongly indicate a binary file
+const BINARY_MIME_TYPE_PATTERNS = [
+  /^image\//,
+  /^audio\//,
+  /^video\//,
+  /^application\/(zip|x-rar-compressed|x-tar|gzip|x-7z-compressed)$/,
+  /^application\/(pdf|vnd\.openxmlformats-officedocument.*|msword|octet-stream)$/
+];
+
+export function classifyFileType(buffer: Buffer, filename?: string): FileType {
   const isUtf8 = (Buffer as any).isUtf8 ?? bufferIsUtf8;
-  if (isUtf8 && !isUtf8(buffer)) {
-    return true;
+  const isUtf8Internal = (Buffer as any).isUtf8 ?? bufferIsUtf8;
+
+  // Check 1: Strict extension check
+  if (filename) {
+    const ext = path.extname(filename).toLowerCase();
+    if (STRICT_BINARY_EXTENSIONS.has(ext)) {
+      return FileType.CONFIRMED_BINARY;
+    }
+
+    // Check 2: MIME type check
+    const mimeType = lookup(filename);
+    if (mimeType) {
+      for (const pattern of BINARY_MIME_TYPE_PATTERNS) {
+        if (pattern.test(mimeType)) {
+          return FileType.CONFIRMED_BINARY;
+        }
+      }
+    }
   }
 
+  // Check 3: UTF-8 validity
+  // If a buffer is not valid UTF-8, it's highly likely binary or an unsupported encoding.
+  if (!isUtf8Internal(buffer)) {
+    return FileType.CONFIRMED_BINARY;
+  }
+
+  // Check 4: Non-printable character percentage (strong indicator for binary)
+  let nonPrintable = 0;
+  const checkLength = Math.min(buffer.length, 1024); // Check up to the first 1KB
+  for (let i = 0; i < checkLength; i++) {
+    const byte = buffer[i];
+    // Allow TAB, LF, CR. Consider other control characters as non-printable for this check.
+    if (byte < 32 && byte !== 9 && byte !== 10 && byte !== 13) {
+      nonPrintable++;
+    }
+  }
+  // If a significant portion of the initial part is non-printable, classify as binary.
+  // Threshold can be adjusted. 0.1 means 10%.
+  if (checkLength > 0 && (nonPrintable / checkLength) > 0.10) {
+    return FileType.CONFIRMED_BINARY;
+  }
+
+  // Check 5: NUL bytes (indicator for POTENTIAL_TEXT_WITH_CAVEATS if not already CONFIRMED_BINARY)
   // Check for NUL bytes only in a sample of the buffer to avoid performance issues with large files.
   const sampleForNulCheck = buffer.length > NUL_BYTE_CHECK_SAMPLE_SIZE 
     ? buffer.subarray(0, NUL_BYTE_CHECK_SAMPLE_SIZE) 
     : buffer;
   if (sampleForNulCheck.includes(0)) {
-    return true;
+    return FileType.POTENTIAL_TEXT_WITH_CAVEATS;
   }
 
-  if (filename) {
-    const ext = path.extname(filename).toLowerCase();
-    if (BINARY_EXTENSIONS.has(ext)) {
-      return true;
-    }
-  }
-
-  let nonPrintable = 0;
-  const sampleSize = Math.min(1024, buffer.length);
-  
-  for (let i = 0; i < sampleSize; i++) {
-    const byte = buffer[i];
-    if (byte < 32 && byte !== 9 && byte !== 10 && byte !== 13) {
-      nonPrintable++;
-    }
-  }
-
-  return (nonPrintable / sampleSize) > 0.1;
+  // If none of the above, assume it's text
+  return FileType.TEXT;
 }
 ```
 #### Plik: `src/utils/performance.ts`
@@ -342,6 +498,9 @@ export function expandHome(filepath: string): string {
 
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import { SseServerTransport } from '@modelcontextprotocol/sdk/server/sse.js'; // New import - Renamed and path changed
+import express from 'express'; // New import
+import * as http from 'node:http'; // New import for type
 import * as pino from 'pino';
 import { promises as fs } from 'node:fs';
 import fsSync from 'node:fs';
@@ -349,63 +508,82 @@ import path from 'node:path';
 
 import { getConfig } from './config.js';
 import { setupToolHandlers } from '../core/toolHandlers.js';
-import * as schemas from '../core/schemas.js';
+// import * as schemas from '../core/schemas.js'; // This line seems unused, can be kept or removed
 import { expandHome, normalizePath } from '../utils/pathUtils.js';
 
 let runningServer: Server | undefined;
+let httpServer: http.Server | undefined; // New global for HTTP server instance
 
 async function shutdown(signal: NodeJS.Signals, logger: pino.Logger) {
   logger.info({ signal }, 'Received termination signal, shutting down gracefully');
   try {
     if (runningServer) {
-      // await runningServer.disconnect(); // Not supported by SDK, just exit
+      // await runningServer.disconnect(); // Not supported by SDK
+    }
+    if (httpServer) {
+      await new Promise<void>((resolve, reject) => {
+        httpServer!.close((err) => { // Added null assertion as httpServer will be defined if this branch is hit
+          if (err) {
+            logger.error({ err }, 'Error closing HTTP server');
+            reject(err);
+            return;
+          }
+          logger.info('HTTP server closed.');
+          resolve();
+        });
+      });
     }
   } catch (err) {
     logger.error({ err }, 'Error during graceful shutdown');
   } finally {
-    // Give some time for logs to flush
-    setTimeout(() => process.exit(0), 100);
+    // Give some time for logs and server to close
+    setTimeout(() => process.exit(0), 500); // Increased timeout
   }
 }
 
 async function main() {
-  // TODO: parse process.argv or pass args if needed
-  const config = await getConfig([]);
+  const config = await getConfig(process.argv.slice(2)); // Pass CLI args to getConfig
 
-  // Create logs directory if it doesn't exist
   const logsDir = path.join(process.cwd(), 'logs');
   try {
     await fs.mkdir(logsDir, { recursive: true });
   } catch (err) {
+    // Log to console as logger might not be set up yet
     console.error('Could not create logs directory:', err);
   }
 
-  // Create file stream for logging
   const fileStream = fsSync.createWriteStream(path.join(logsDir, 'mcp-filesystem.log'), { flags: 'a' });
 
   const logger = pino.pino(
     {
       level: config.logging.level,
-      timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
-      base: { service: 'mcp-filesystem-server', version: '0.7.0' }
+      timestamp: () => `,"timestamp":"${new Date().toISOString()}"`, // Ensure correct JSON formatting for timestamp
+      base: { service: 'mcp-filesystem-server', version: '0.7.0' } // Updated version or make dynamic
     },
     pino.multistream([
       { stream: process.stdout },
-      { stream: fileStream, level: 'info' }
+      { stream: fileStream, level: 'info' } // Ensure fileStream is correctly initialized
     ])
   );
 
-  // Add path information for debug logs
-  const logWithPaths = (logFn: Function) => (obj: any) => {
+  // Logger wrappers (ensure these are robust)
+  const logWithPaths = (logFn: pino.LogFn) => (objOrMsg: any, ...args: any[]) => {
+    let logObject: any = {};
+    if (typeof objOrMsg === 'string') {
+      logObject.msg = objOrMsg;
+    } else {
+      logObject = { ...objOrMsg };
+    }
+
     if (config.logging.level === 'debug') {
-      if (obj.path && typeof obj.path === 'string') {
-        obj.absolutePath = normalizePath(path.resolve(obj.path));
+      if (logObject.path && typeof logObject.path === 'string') {
+        logObject.absolutePath = normalizePath(path.resolve(logObject.path));
       }
-      if (obj.directory && typeof obj.directory === 'string') {
-        obj.absoluteDirectory = normalizePath(path.resolve(obj.directory));
+      if (logObject.directory && typeof logObject.directory === 'string') {
+        logObject.absoluteDirectory = normalizePath(path.resolve(logObject.directory));
       }
     }
-    return logFn(obj);
+    return logFn(logObject, ...args);
   };
 
   logger.info = logWithPaths(logger.info.bind(logger));
@@ -413,13 +591,14 @@ async function main() {
   logger.error = logWithPaths(logger.error.bind(logger));
   logger.warn = logWithPaths(logger.warn.bind(logger));
 
+
   const allowedDirectories = config.allowedDirectories.map((dir: string) => normalizePath(path.resolve(expandHome(dir))));
 
   await Promise.all(allowedDirectories.map(async (dir: string) => {
     try {
       const stats = await fs.stat(dir);
       if (!stats.isDirectory()) {
-        logger.error(`Error: ${dir} is not a directory`);
+        logger.error({ directory: dir }, `Error: ${dir} is not a directory`); // Pass object to logger
         process.exit(1);
       }
     } catch (error) {
@@ -429,26 +608,83 @@ async function main() {
   }));
 
   const server = new Server(
-    { name: 'secure-filesystem-server', version: '0.7.0' },
+    { name: 'secure-filesystem-server', version: '0.7.0' }, // Ensure version is consistent or dynamic
     { capabilities: { tools: {} } }
   );
 
   runningServer = server;
-
   setupToolHandlers(server, allowedDirectories, logger, config);
-  // list_tools jest już zarejestrowane w toolHandlers.ts, więc usuwamy duplikat
 
-  const transport = new StdioServerTransport();
-  await server.connect(transport);
+  const transportType = process.env.MCP_SERVER_TRANSPORT || 'stdio'; // Default to stdio
+  const serverPort = parseInt(process.env.MCP_SERVER_PORT || '3001', 10);
 
-  logger.info({ version: '0.7.0', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started');
+  if (transportType.toLowerCase() === 'http') {
+    const app = express();
+    app.use(express.json());
 
-  // Setup signal handlers after server is running
+    const httpTransport = new SseServerTransport({ // Renamed
+      // For E2E tests, a simple setup without session management initially.
+      // Session ID generator can be undefined for stateless or simple stateful.
+      // onsessioninitialized and onclose can be added if session management becomes complex.
+    });
+
+    await server.connect(httpTransport);
+
+    app.post('/mcp', async (req, res) => {
+      try {
+        await httpTransport.handleRequest(req, res, req.body);
+      } catch (e: any) {
+        logger.error({ err: e, path: req.path, method: req.method }, "Error handling HTTP POST request");
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Internal server error" });
+        }
+      }
+    });
+
+    app.get('/mcp', async (req, res) => {
+      try {
+        await httpTransport.handleRequest(req, res); // For SSE
+      } catch (e: any) {
+        logger.error({ err: e, path: req.path, method: req.method }, "Error handling HTTP GET request");
+        if (!res.headersSent) {
+          // SSE might have already set headers, so check
+          res.status(500).json({ error: "Internal server error" });
+        }
+      }
+    });
+
+    app.delete('/mcp', async (req, res) => {
+      try {
+        await httpTransport.handleRequest(req, res); // For session termination, if supported by transport
+      } catch (e: any) {
+        logger.error({ err: e, path: req.path, method: req.method }, "Error handling HTTP DELETE request");
+        if (!res.headersSent) {
+          res.status(500).json({ error: "Internal server error" });
+        }
+      }
+    });
+
+    httpServer = app.listen(serverPort, () => {
+      logger.info({ version: '0.7.0', transport: 'HTTP', port: serverPort, allowedDirectories, config }, 'Enhanced MCP Filesystem Server started via HTTP');
+    });
+
+    httpServer.on('error', (err) => {
+      logger.error({ err }, "HTTP server error");
+      process.exit(1);
+    });
+
+  } else {
+    const stdioTransport = new StdioServerTransport();
+    await server.connect(stdioTransport);
+    logger.info({ version: '0.7.0', transport: 'Stdio', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started via Stdio');
+  }
+
   process.once('SIGINT', (sig) => shutdown(sig, logger));
   process.once('SIGTERM', (sig) => shutdown(sig, logger));
 }
 
 main().catch((error) => {
+  // Use console.error as logger might not be initialized or might have failed
   console.error('Fatal error running server:', error);
   process.exit(1);
 });
@@ -697,7 +933,7 @@ export function getGlobalSemaphore() {
 ```ts
 import fs from 'node:fs/promises';
 import { createTwoFilesPatch } from 'diff';
-import { isBinaryFile } from '../utils/binaryDetect';
+import { classifyFileType, FileType } from '../utils/binaryDetect';
 import { createError } from '../types/errors';
 import { get as fastLevenshtein } from 'fast-levenshtein';
 import { PerformanceTimer } from '../utils/performance';
@@ -770,14 +1006,31 @@ export async function applyFileEdits(
   let levenshteinIterations = 0;
 
   try {
-    const buffer = await fs.readFile(filePath);
-    if (await isBinaryFile(buffer, filePath)) {
+    // Phase 2: File Size Limit Check (Early Exit)
+    const stats = await fs.stat(filePath);
+    if (stats.size > globalConfig.limits.maxReadBytes) {
       throw createError(
-        'BINARY_FILE_ERROR',
-        'Cannot edit binary files',
-        { filePath, detectedAs: 'binary' }
+        'FILE_TOO_LARGE',
+        `File exceeds maximum readable size of ${globalConfig.limits.maxReadBytes} bytes: ${filePath}`,
+        { filePath, fileSize: stats.size, maxSize: globalConfig.limits.maxReadBytes }
       );
     }
+    const buffer = await fs.readFile(filePath);
+
+    // Phase 2: Update File Type Classification & Adjust Logic
+    const fileType = classifyFileType(buffer, filePath);
+
+    if (fileType === FileType.CONFIRMED_BINARY) {
+      throw createError(
+        'BINARY_FILE_ERROR',
+        'Cannot edit confirmed binary files',
+        { filePath, detectedAs: 'CONFIRMED_BINARY' }
+      );
+    } else if (fileType === FileType.POTENTIAL_TEXT_WITH_CAVEATS) {
+      logger.warn(`Attempting to edit file which may be binary or contains NUL bytes: ${filePath}`);
+      // Proceed with edit for POTENTIAL_TEXT_WITH_CAVEATS
+    }
+    // For FileType.TEXT, proceed as normal
 
     const originalContent = normalizeLineEndings(buffer.toString('utf-8'));
     let modifiedContent = originalContent;
@@ -786,6 +1039,11 @@ export async function applyFileEdits(
     validateEdits(edits, config.debug, logger);
 
     for (const [editIndex, edit] of edits.entries()) {
+      // If caseSensitive is true, and oldText is not found exactly, throw immediately.
+      if (config.caseSensitive && !modifiedContent.includes(edit.oldText)) {
+        throw createError('NO_MATCH_FOUND', `No case-sensitive match found for "${edit.oldText}"`);
+      }
+
       let replaced = false;
       const normalizedOld = normalizeLineEndings(edit.oldText);
       const normalizedNew = normalizeLineEndings(edit.newText);
@@ -808,9 +1066,6 @@ export async function applyFileEdits(
           replaced = true;
         }
       }
-
-      // If still not replaced and caseSensitive, throw early
-
 
       const exactMatchIndex = modifiedContent.indexOf(normalizedOld);
       if (exactMatchIndex !== -1) {
@@ -891,9 +1146,80 @@ export async function applyFileEdits(
           similarity: 0,
           windowSize: 0
         };
-        // ... (tu znajduje się dalsza logika fuzzy match)
-        // Jeśli fuzzy match się powiedzie, ustaw replaced = true;
-        // Jeśli nie, replaced pozostaje false
+        // Pętla do wyszukiwania najlepszego dopasowania
+        for (let i = 0; i <= contentLines.length - oldLines.length; i++) {
+          const windowLines = contentLines.slice(i, i + oldLines.length);
+          const windowText = windowLines.join('\n');
+          
+          const processedWindowText = preprocessText(windowText, config);
+
+          if (processedOld.length === 0 && processedWindowText.length > 0) continue;
+
+          levenshteinIterations++;
+          const distance = fastLevenshtein(processedOld, processedWindowText);
+          const maxLength = Math.max(processedOld.length, processedWindowText.length);
+          const similarity = maxLength > 0 ? 1 - distance / maxLength : 1;
+
+          if (similarity > bestMatch.similarity) {
+            bestMatch = {
+              distance,
+              index: i,
+              text: windowText, // Store original window text for applying indent
+              similarity,
+              windowSize: oldLines.length
+            };
+          }
+        }
+        
+        const distanceRatio = bestMatch.text.length > 0 || normalizedOld.length > 0 ? 
+                            bestMatch.distance / Math.max(bestMatch.text.length, normalizedOld.length) : 0;
+
+        if (bestMatch.index !== -1 && bestMatch.similarity >= config.minSimilarity && distanceRatio <= config.maxDistanceRatio) {
+          const fuzzyMatchedLines = bestMatch.text.split('\n');
+          const newLinesForFuzzy = normalizedNew.split('\n');
+          // Use the line where the best match starts to get its original indent
+          const originalIndentFuzzy = contentLines[bestMatch.index].match(/^\s*/)?.[0] ?? '';
+
+          const indentedNewLinesFuzzy = applyRelativeIndentation(
+            newLinesForFuzzy,
+            fuzzyMatchedLines, // original lines from the best match window
+            originalIndentFuzzy,
+            config.preserveLeadingWhitespace
+          );
+
+          const currentFuzzyEditTargetRange = {
+            startLine: bestMatch.index,
+            endLine: bestMatch.index + bestMatch.windowSize - 1,
+          };
+
+          for (const appliedRange of appliedRanges) {
+            if (doRangesOverlap(appliedRange, currentFuzzyEditTargetRange)) {
+              throw createError(
+                'OVERLAPPING_EDIT',
+                `Edit ${editIndex + 1} (fuzzy match) overlaps with previously applied edit ${appliedRange.editIndex + 1}. ` +
+                `Current edit targets lines ${currentFuzzyEditTargetRange.startLine + 1}-${currentFuzzyEditTargetRange.endLine + 1}. ` +
+                `Previous edit affected lines ${appliedRange.startLine + 1}-${appliedRange.endLine + 1}.`,
+                {
+                  conflictingEditIndex: editIndex,
+                  previousEditIndex: appliedRange.editIndex,
+                  currentEditTargetRange: currentFuzzyEditTargetRange,
+                  previousEditAffectedRange: appliedRange
+                }
+              );
+            }
+          }
+          
+          const tempContentLinesFuzzy = modifiedContent.split('\n');
+          tempContentLinesFuzzy.splice(bestMatch.index, bestMatch.windowSize, ...indentedNewLinesFuzzy);
+          modifiedContent = tempContentLinesFuzzy.join('\n');
+          
+          appliedRanges.push({
+            startLine: currentFuzzyEditTargetRange.startLine,
+            endLine: currentFuzzyEditTargetRange.startLine + indentedNewLinesFuzzy.length - 1,
+            editIndex
+          });
+          replaced = true;
+        }
       }
 
       if (config.caseSensitive && !replaced) {
@@ -954,6 +1280,8 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { applyFileEdits, FuzzyMatchConfig } from '../fuzzyEdit';
+import * as binaryDetect from '../../utils/binaryDetect';
+import { StructuredError } from '../../types/errors';
 import type { Config } from '../../server/config';
 
 // Minimal stub config for tests
@@ -1028,7 +1356,15 @@ describe('applyFileEdits', () => {
             debug: false
         };
 
-        await expect(applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig)).rejects.toThrow();
+        try {
+            await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig);
+            // If it reaches here, the test should fail because an error was expected
+            throw new Error('applyFileEdits should have thrown an error for caseSensitive no match');
+        } catch (e) {
+            const error = e as StructuredError;
+            expect(error.code).toBe('NO_MATCH_FOUND');
+            expect(error.message).toBe('No case-sensitive match found for "hello"');
+        }
     });
 
     it('handles ignoreWhitespace option', async () => {
@@ -1048,6 +1384,74 @@ describe('applyFileEdits', () => {
         const res = await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig);
         expect(res.modifiedContent).toBe('gamma');
     });
+
+    it('successfully edits a text file containing NUL bytes (POTENTIAL_TEXT_WITH_CAVEATS)', async () => {
+        const originalContent = 'Line one\nText with a NUL\x00byte here\nLine three';
+        const filePath = await createTempFile(originalContent);
+
+        const edits = [{ oldText: 'NUL\x00byte here', newText: 'null character was here', forcePartialMatch: false }];
+        const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: 0.25,
+            minSimilarity: 0.7,
+            caseSensitive: false,
+            ignoreWhitespace: false, // Important for NUL byte matching
+            preserveLeadingWhitespace: 'auto',
+            debug: false
+        };
+
+        const warnSpy = jest.spyOn(noopLogger, 'warn');
+
+        const res = await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig);
+
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining(`Attempting to edit file which may be binary or contains NUL bytes: ${filePath}`));
+        expect(res.modifiedContent).toBe('Line one\nText with a null character was here\nLine three');
+        
+        warnSpy.mockRestore();
+    });
+
+    it('rejects editing a file classified as CONFIRMED_BINARY', async () => {
+        const filePath = await createTempFile('fake binary content');
+        // Mock classifyFileType to return CONFIRMED_BINARY for this specific file path or any
+        const classifySpy = jest.spyOn(binaryDetect, 'classifyFileType').mockReturnValue(binaryDetect.FileType.CONFIRMED_BINARY);
+
+        const edits = [{ oldText: 'fake', newText: 'hacked', forcePartialMatch: false }];
+        const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: 0.25, minSimilarity: 0.7, caseSensitive: false, ignoreWhitespace: true, preserveLeadingWhitespace: 'auto', debug: false
+        } as FuzzyMatchConfig;
+
+        try {
+            await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig);
+            throw new Error('applyFileEdits should have thrown for a binary file');
+        } catch (e) {
+            const error = e as StructuredError;
+            expect(error.code).toBe('BINARY_FILE_ERROR');
+            expect(error.message).toContain('Cannot edit confirmed binary files');
+        }
+        classifySpy.mockRestore();
+    });
+
+    it('rejects editing a file exceeding maxReadBytes limit', async () => {
+        const smallLimitConfig = {
+            ...testConfig,
+            limits: { ...testConfig.limits, maxReadBytes: 10 }
+        } as Config;
+        const originalContent = 'This content is definitely longer than ten bytes.';
+        const filePath = await createTempFile(originalContent);
+
+        const edits = [{ oldText: 'content', newText: 'stuff', forcePartialMatch: false }];
+        const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: 0.25, minSimilarity: 0.7, caseSensitive: false, ignoreWhitespace: true, preserveLeadingWhitespace: 'auto', debug: false
+        } as FuzzyMatchConfig;
+
+        try {
+            await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, smallLimitConfig);
+            throw new Error('applyFileEdits should have thrown for exceeding maxReadBytes');
+        } catch (e) {
+            const error = e as StructuredError;
+            expect(error.code).toBe('FILE_TOO_LARGE');
+            expect(error.message).toContain('File exceeds maximum readable size');
+        }
+    });
 });
 ```
 #### Plik: `src/core/fileInfo.ts`
@@ -1056,7 +1460,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import { minimatch } from 'minimatch';
 import { lookup as mimeLookup } from 'mime-types';
-import { isBinaryFile } from '../utils/binaryDetect.js';
+import { classifyFileType, FileType } from '../utils/binaryDetect.js';
 import { PerformanceTimer } from '../utils/performance.js';
 import { validatePath } from './security.js';
 import { shouldSkipPath } from '../utils/pathFilter.js';
@@ -1092,7 +1496,8 @@ export async function getFileStats(filePath: string, logger: Logger, config: Con
         const buffer = Buffer.alloc(FILE_STAT_READ_BUFFER_SIZE);
         const { bytesRead } = await fileHandle.read(buffer, 0, FILE_STAT_READ_BUFFER_SIZE, 0);
         const actualBuffer = bytesRead < FILE_STAT_READ_BUFFER_SIZE ? buffer.subarray(0, bytesRead) : buffer;
-        isBinary = isBinaryFile(actualBuffer, filePath);
+        const fileType = classifyFileType(actualBuffer, filePath);
+        isBinary = fileType === FileType.CONFIRMED_BINARY;
       } finally {
         await fileHandle.close();
       }
@@ -1290,7 +1695,8 @@ export async function readMultipleFilesContent(
         // For 'auto', we need to read a small chunk to detect binary, similar to getFileStats
         // This re-reads a small part if the file is large, could be optimized if rawBuffer is small enough already.
         const checkBuffer = rawBuffer.length > FILE_STAT_READ_BUFFER_SIZE ? rawBuffer.subarray(0, FILE_STAT_READ_BUFFER_SIZE) : rawBuffer;
-        if (isBinaryFile(checkBuffer, validPath)) {
+        const fileType = classifyFileType(checkBuffer, validPath);
+        if (fileType === FileType.CONFIRMED_BINARY || fileType === FileType.POTENTIAL_TEXT_WITH_CAVEATS) {
           content = rawBuffer.toString('base64');
           finalEncoding = 'base64';
         } else {
@@ -1326,7 +1732,7 @@ import { createError, StructuredError } from '../types/errors.js';
 import { shouldSkipPath } from '../utils/pathFilter.js';
 
 import { PerformanceTimer } from '../utils/performance.js';
-import { isBinaryFile } from '../utils/binaryDetect.js';
+import { classifyFileType, FileType } from '../utils/binaryDetect.js';
 import { validatePath } from './security.js';
 import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit.js';
 import { getFileStats, searchFiles, readMultipleFilesContent, getDirectoryTree } from './fileInfo.js';
@@ -1437,9 +1843,10 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
 
             let content: string;
             let encodingUsed: 'utf-8' | 'base64' = 'utf-8';
-            const isBinary = isBinaryFile(rawBuffer, validatedPath);
+            const fileType = classifyFileType(rawBuffer, validatedPath);
 
-            if (parsed.data.encoding === 'base64' || (parsed.data.encoding === 'auto' && isBinary)) {
+            if (parsed.data.encoding === 'base64' || 
+                (parsed.data.encoding === 'auto' && (fileType === FileType.CONFIRMED_BINARY || fileType === FileType.POTENTIAL_TEXT_WITH_CAVEATS))) {
               content = rawBuffer.toString('base64');
               encodingUsed = 'base64';
             } else {
@@ -1982,7 +2389,8 @@ export const DeleteDirectoryArgsSchema = z.object({
     "pino": "^8.17.2",
     "zod-to-json-schema": "^3.23.5",
     "mime-types": "^2.1.35",
-    "fast-levenshtein": "^3.0.0"
+    "fast-levenshtein": "^3.0.0",
+    "express": "^4.19.2"
   },
   "devDependencies": {
     "@types/diff": "^5.0.9",
@@ -1994,6 +2402,7 @@ export const DeleteDirectoryArgsSchema = z.object({
     "typescript": "^5.3.3",
     "@types/jest": "^29.5.12",
     "@types/mime-types": "^2.1.4",
+    "@types/express": "^4.17.21",
     "jest": "^29.7.0",
     "ts-jest": "^29.1.2"
   },

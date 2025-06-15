@@ -1,6 +1,6 @@
 import fs from 'node:fs/promises';
 import { createTwoFilesPatch } from 'diff';
-import { isBinaryFile } from '../utils/binaryDetect';
+import { classifyFileType, FileType } from '../utils/binaryDetect';
 import { createError } from '../types/errors';
 import { get as fastLevenshtein } from 'fast-levenshtein';
 import { PerformanceTimer } from '../utils/performance';
@@ -73,14 +73,31 @@ export async function applyFileEdits(
   let levenshteinIterations = 0;
 
   try {
-    const buffer = await fs.readFile(filePath);
-    if (await isBinaryFile(buffer, filePath)) {
+    // Phase 2: File Size Limit Check (Early Exit)
+    const stats = await fs.stat(filePath);
+    if (stats.size > globalConfig.limits.maxReadBytes) {
       throw createError(
-        'BINARY_FILE_ERROR',
-        'Cannot edit binary files',
-        { filePath, detectedAs: 'binary' }
+        'FILE_TOO_LARGE',
+        `File exceeds maximum readable size of ${globalConfig.limits.maxReadBytes} bytes: ${filePath}`,
+        { filePath, fileSize: stats.size, maxSize: globalConfig.limits.maxReadBytes }
       );
     }
+    const buffer = await fs.readFile(filePath);
+
+    // Phase 2: Update File Type Classification & Adjust Logic
+    const fileType = classifyFileType(buffer, filePath);
+
+    if (fileType === FileType.CONFIRMED_BINARY) {
+      throw createError(
+        'BINARY_FILE_ERROR',
+        'Cannot edit confirmed binary files',
+        { filePath, detectedAs: 'CONFIRMED_BINARY' }
+      );
+    } else if (fileType === FileType.POTENTIAL_TEXT_WITH_CAVEATS) {
+      logger.warn(`Attempting to edit file which may be binary or contains NUL bytes: ${filePath}`);
+      // Proceed with edit for POTENTIAL_TEXT_WITH_CAVEATS
+    }
+    // For FileType.TEXT, proceed as normal
 
     const originalContent = normalizeLineEndings(buffer.toString('utf-8'));
     let modifiedContent = originalContent;

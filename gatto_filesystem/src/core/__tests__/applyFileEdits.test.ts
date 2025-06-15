@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { applyFileEdits, FuzzyMatchConfig } from '../fuzzyEdit';
+import * as binaryDetect from '../../utils/binaryDetect';
 import { StructuredError } from '../../types/errors';
 import type { Config } from '../../server/config';
 
@@ -105,5 +106,73 @@ describe('applyFileEdits', () => {
 
         const res = await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig);
         expect(res.modifiedContent).toBe('gamma');
+    });
+
+    it('successfully edits a text file containing NUL bytes (POTENTIAL_TEXT_WITH_CAVEATS)', async () => {
+        const originalContent = 'Line one\nText with a NUL\x00byte here\nLine three';
+        const filePath = await createTempFile(originalContent);
+
+        const edits = [{ oldText: 'NUL\x00byte here', newText: 'null character was here', forcePartialMatch: false }];
+        const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: 0.25,
+            minSimilarity: 0.7,
+            caseSensitive: false,
+            ignoreWhitespace: false, // Important for NUL byte matching
+            preserveLeadingWhitespace: 'auto',
+            debug: false
+        };
+
+        const warnSpy = jest.spyOn(noopLogger, 'warn');
+
+        const res = await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig);
+
+        expect(warnSpy).toHaveBeenCalledWith(expect.stringContaining(`Attempting to edit file which may be binary or contains NUL bytes: ${filePath}`));
+        expect(res.modifiedContent).toBe('Line one\nText with a null character was here\nLine three');
+        
+        warnSpy.mockRestore();
+    });
+
+    it('rejects editing a file classified as CONFIRMED_BINARY', async () => {
+        const filePath = await createTempFile('fake binary content');
+        // Mock classifyFileType to return CONFIRMED_BINARY for this specific file path or any
+        const classifySpy = jest.spyOn(binaryDetect, 'classifyFileType').mockReturnValue(binaryDetect.FileType.CONFIRMED_BINARY);
+
+        const edits = [{ oldText: 'fake', newText: 'hacked', forcePartialMatch: false }];
+        const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: 0.25, minSimilarity: 0.7, caseSensitive: false, ignoreWhitespace: true, preserveLeadingWhitespace: 'auto', debug: false
+        } as FuzzyMatchConfig;
+
+        try {
+            await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig);
+            throw new Error('applyFileEdits should have thrown for a binary file');
+        } catch (e) {
+            const error = e as StructuredError;
+            expect(error.code).toBe('BINARY_FILE_ERROR');
+            expect(error.message).toContain('Cannot edit confirmed binary files');
+        }
+        classifySpy.mockRestore();
+    });
+
+    it('rejects editing a file exceeding maxReadBytes limit', async () => {
+        const smallLimitConfig = {
+            ...testConfig,
+            limits: { ...testConfig.limits, maxReadBytes: 10 }
+        } as Config;
+        const originalContent = 'This content is definitely longer than ten bytes.';
+        const filePath = await createTempFile(originalContent);
+
+        const edits = [{ oldText: 'content', newText: 'stuff', forcePartialMatch: false }];
+        const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: 0.25, minSimilarity: 0.7, caseSensitive: false, ignoreWhitespace: true, preserveLeadingWhitespace: 'auto', debug: false
+        } as FuzzyMatchConfig;
+
+        try {
+            await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, smallLimitConfig);
+            throw new Error('applyFileEdits should have thrown for exceeding maxReadBytes');
+        } catch (e) {
+            const error = e as StructuredError;
+            expect(error.code).toBe('FILE_TOO_LARGE');
+            expect(error.message).toContain('File exceeds maximum readable size');
+        }
     });
 });

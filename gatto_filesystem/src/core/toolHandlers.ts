@@ -10,7 +10,7 @@ import { createError, StructuredError } from '../types/errors.js';
 import { shouldSkipPath } from '../utils/pathFilter.js';
 
 import { PerformanceTimer } from '../utils/performance.js';
-import { isBinaryFile } from '../utils/binaryDetect.js';
+import { classifyFileType, FileType } from '../utils/binaryDetect.js';
 import { validatePath } from './security.js';
 import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit.js';
 import { getFileStats, searchFiles, readMultipleFilesContent, getDirectoryTree } from './fileInfo.js';
@@ -121,9 +121,10 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
 
             let content: string;
             let encodingUsed: 'utf-8' | 'base64' = 'utf-8';
-            const isBinary = isBinaryFile(rawBuffer, validatedPath);
+            const fileType = classifyFileType(rawBuffer, validatedPath);
 
-            if (parsed.data.encoding === 'base64' || (parsed.data.encoding === 'auto' && isBinary)) {
+            if (parsed.data.encoding === 'base64' || 
+                (parsed.data.encoding === 'auto' && (fileType === FileType.CONFIRMED_BINARY || fileType === FileType.POTENTIAL_TEXT_WITH_CAVEATS))) {
               content = rawBuffer.toString('base64');
               encodingUsed = 'base64';
             } else {
