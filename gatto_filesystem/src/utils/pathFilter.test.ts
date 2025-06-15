@@ -1,16 +1,47 @@
 import { shouldSkipPath } from './pathFilter.js';
 import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
 
+import { Config } from '../server/config.js'; // Import the Config type
+
+// Define the type for overrides to allow partial nested objects
+type MockConfigOverrides = {
+  allowedDirectories?: string[];
+  fileFiltering?: Partial<Config['fileFiltering']>;
+  fuzzyMatching?: Partial<Config['fuzzyMatching']>;
+  logging?: Partial<Config['logging']>;
+  concurrency?: Partial<Config['concurrency']>;
+  limits?: Partial<Config['limits']>;
+};
+
 describe('shouldSkipPath', () => {
-  const mockConfig = (overrides = {}) => ({
-    allowedDirectories: ['/allowed'],
+  const mockConfig = (overrides: MockConfigOverrides = {}): Config => ({
+    allowedDirectories: overrides.allowedDirectories || ['/allowed'],
     fileFiltering: {
-      defaultExcludes: [],
-      allowedExtensions: [],
-      forceTextFiles: false,
-      ...overrides
+      defaultExcludes: overrides.fileFiltering?.defaultExcludes ?? DEFAULT_EXCLUDE_PATTERNS,
+      allowedExtensions: overrides.fileFiltering?.allowedExtensions ?? DEFAULT_ALLOWED_EXTENSIONS,
+      forceTextFiles: overrides.fileFiltering?.forceTextFiles ?? true, // Default from ConfigSchema (true)
+    },
+    fuzzyMatching: {
+      maxDistanceRatio: overrides.fuzzyMatching?.maxDistanceRatio ?? 0.25,
+      minSimilarity: overrides.fuzzyMatching?.minSimilarity ?? 0.7,
+      caseSensitive: overrides.fuzzyMatching?.caseSensitive ?? false,
+      ignoreWhitespace: overrides.fuzzyMatching?.ignoreWhitespace ?? true,
+      preserveLeadingWhitespace: (overrides.fuzzyMatching?.preserveLeadingWhitespace ?? 'auto') as 'auto' | 'strict' | 'normalize', // Matches ConfigSchema
+    },
+    logging: {
+      level: (overrides.logging?.level ?? 'info') as 'trace' | 'debug' | 'info' | 'warn' | 'error', // Matches ConfigSchema
+      performance: overrides.logging?.performance ?? false,
+    },
+    concurrency: {
+      maxConcurrentEdits: overrides.concurrency?.maxConcurrentEdits ?? 10,
+      maxGlobalConcurrentEdits: overrides.concurrency?.maxGlobalConcurrentEdits ?? 20,
+    },
+    limits: {
+      maxReadBytes: overrides.limits?.maxReadBytes ?? 5 * 1024 * 1024,
+      maxWriteBytes: overrides.limits?.maxWriteBytes ?? 5 * 1024 * 1024,
     }
   });
+
 
   it('should allow basic file when no filters', () => {
     expect(shouldSkipPath('/allowed/file.txt', mockConfig())).toBe(false);

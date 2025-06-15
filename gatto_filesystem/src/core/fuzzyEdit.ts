@@ -89,21 +89,32 @@ export async function applyFileEdits(
     validateEdits(edits, config.debug, logger);
 
     for (const [editIndex, edit] of edits.entries()) {
+      // If caseSensitive is true, and oldText is not found exactly, throw immediately.
+      if (config.caseSensitive && !modifiedContent.includes(edit.oldText)) {
+        throw createError('NO_MATCH_FOUND', `No case-sensitive match found for "${edit.oldText}"`);
+      }
+
       let replaced = false;
       const normalizedOld = normalizeLineEndings(edit.oldText);
       const normalizedNew = normalizeLineEndings(edit.newText);
 
-      // caseSensitive: require direct oldText match
-      if (config.caseSensitive && !modifiedContent.includes(edit.oldText)) {
-        throw createError('NO_MATCH', `Exact text "${edit.oldText}" not found and caseSensitive enabled`);
-      }
-      // Simple exact match replacement for single-line edits
-      if (!normalizedOld.includes('\n') && modifiedContent.includes(config.caseSensitive ? edit.oldText : normalizedOld)) {
+      // Simple exact match replacement for single-line edits (exact spaces)
+      if (!normalizedOld.includes('\n') && modifiedContent.includes(config.caseSensitive ? edit.oldText : (config.ignoreWhitespace ? normalizedOld.replace(/\s+/g,' ') : normalizedOld))) {
         const searchText = config.caseSensitive ? edit.oldText : normalizedOld;
         const replaceText = config.caseSensitive ? edit.newText : normalizedNew;
         modifiedContent = modifiedContent.replace(searchText, replaceText);
         replaced = true;
         continue;
+      }
+
+      if (!replaced && config.ignoreWhitespace && !normalizedOld.includes('\n')) {
+        const whitespacePattern = edit.oldText.replace(/\s+/g, "\\s+");
+        const flags = config.caseSensitive ? 'g' : 'gi';
+        const regex = new RegExp(whitespacePattern, flags);
+        if (regex.test(modifiedContent)) {
+          modifiedContent = modifiedContent.replace(regex, edit.newText);
+          replaced = true;
+        }
       }
 
       const exactMatchIndex = modifiedContent.indexOf(normalizedOld);
@@ -185,12 +196,82 @@ export async function applyFileEdits(
           similarity: 0,
           windowSize: 0
         };
-        // ... (tu znajduje się dalsza logika fuzzy match)
-        // Jeśli fuzzy match się powiedzie, ustaw replaced = true;
-        // Jeśli nie, replaced pozostaje false
+        // Pętla do wyszukiwania najlepszego dopasowania
+        for (let i = 0; i <= contentLines.length - oldLines.length; i++) {
+          const windowLines = contentLines.slice(i, i + oldLines.length);
+          const windowText = windowLines.join('\n');
+          
+          const processedWindowText = preprocessText(windowText, config);
+
+          if (processedOld.length === 0 && processedWindowText.length > 0) continue;
+
+          levenshteinIterations++;
+          const distance = fastLevenshtein(processedOld, processedWindowText);
+          const maxLength = Math.max(processedOld.length, processedWindowText.length);
+          const similarity = maxLength > 0 ? 1 - distance / maxLength : 1;
+
+          if (similarity > bestMatch.similarity) {
+            bestMatch = {
+              distance,
+              index: i,
+              text: windowText, // Store original window text for applying indent
+              similarity,
+              windowSize: oldLines.length
+            };
+          }
+        }
+        
+        const distanceRatio = bestMatch.text.length > 0 || normalizedOld.length > 0 ? 
+                            bestMatch.distance / Math.max(bestMatch.text.length, normalizedOld.length) : 0;
+
+        if (bestMatch.index !== -1 && bestMatch.similarity >= config.minSimilarity && distanceRatio <= config.maxDistanceRatio) {
+          const fuzzyMatchedLines = bestMatch.text.split('\n');
+          const newLinesForFuzzy = normalizedNew.split('\n');
+          // Use the line where the best match starts to get its original indent
+          const originalIndentFuzzy = contentLines[bestMatch.index].match(/^\s*/)?.[0] ?? '';
+
+          const indentedNewLinesFuzzy = applyRelativeIndentation(
+            newLinesForFuzzy,
+            fuzzyMatchedLines, // original lines from the best match window
+            originalIndentFuzzy,
+            config.preserveLeadingWhitespace
+          );
+
+          const currentFuzzyEditTargetRange = {
+            startLine: bestMatch.index,
+            endLine: bestMatch.index + bestMatch.windowSize - 1,
+          };
+
+          for (const appliedRange of appliedRanges) {
+            if (doRangesOverlap(appliedRange, currentFuzzyEditTargetRange)) {
+              throw createError(
+                'OVERLAPPING_EDIT',
+                `Edit ${editIndex + 1} (fuzzy match) overlaps with previously applied edit ${appliedRange.editIndex + 1}. ` +
+                `Current edit targets lines ${currentFuzzyEditTargetRange.startLine + 1}-${currentFuzzyEditTargetRange.endLine + 1}. ` +
+                `Previous edit affected lines ${appliedRange.startLine + 1}-${appliedRange.endLine + 1}.`,
+                {
+                  conflictingEditIndex: editIndex,
+                  previousEditIndex: appliedRange.editIndex,
+                  currentEditTargetRange: currentFuzzyEditTargetRange,
+                  previousEditAffectedRange: appliedRange
+                }
+              );
+            }
+          }
+          
+          const tempContentLinesFuzzy = modifiedContent.split('\n');
+          tempContentLinesFuzzy.splice(bestMatch.index, bestMatch.windowSize, ...indentedNewLinesFuzzy);
+          modifiedContent = tempContentLinesFuzzy.join('\n');
+          
+          appliedRanges.push({
+            startLine: currentFuzzyEditTargetRange.startLine,
+            endLine: currentFuzzyEditTargetRange.startLine + indentedNewLinesFuzzy.length - 1,
+            editIndex
+          });
+          replaced = true;
+        }
       }
 
-      // Po wszystkich próbach: jeśli nie było żadnej podmiany i caseSensitive, rzuć wyjątek
       if (config.caseSensitive && !replaced) {
         throw createError('NO_MATCH', `No match found for edit "${edit.oldText}" (caseSensitive)`);
       }

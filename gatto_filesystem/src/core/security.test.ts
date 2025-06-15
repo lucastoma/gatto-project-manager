@@ -1,22 +1,50 @@
 import { validatePath } from './security.js';
 import { createError } from '../types/errors.js';
 import path from 'node:path';
+import pino from 'pino'; // Import pino
+import { Config } from '../server/config.js'; // Import Config type
+import { DEFAULT_EXCLUDE_PATTERNS, DEFAULT_ALLOWED_EXTENSIONS } from '../constants/extensions.js';
+
+const testLogger = pino({ level: 'silent' }); // Create a silent pino instance for tests
 
 describe('validatePath', () => {
-  const mockLogger = {
+  // Use the pino instance, or a simplified mock if direct pino usage is problematic
+  const mockLogger = testLogger; 
+  /* const mockLogger = {
     info: jest.fn(),
     debug: jest.fn(),
-    error: jest.fn()
-  };
+    error: jest.fn(),
+    fatal: jest.fn(),
+    warn: jest.fn(),
+    trace: jest.fn(),
+    silent: jest.fn(),
+    level: 'test',
+    child: jest.fn().mockReturnThis()
+  }; */
   
-  const mockConfig = {
+  const mockConfig: Config = {
     allowedDirectories: ['/allowed'],
     fileFiltering: {
-      defaultExcludes: [],
-      allowedExtensions: [],
-      forceTextFiles: false
+      defaultExcludes: DEFAULT_EXCLUDE_PATTERNS, // From constants
+      allowedExtensions: DEFAULT_ALLOWED_EXTENSIONS, // From constants
+      forceTextFiles: true // Default from ConfigSchema
     },
-    logging: { level: 'info' }
+    logging: { level: 'info', performance: false }, // Matches ConfigSchema defaults
+    fuzzyMatching: {
+      maxDistanceRatio: 0.25,
+      minSimilarity: 0.7,
+      caseSensitive: false,
+      ignoreWhitespace: true,
+      preserveLeadingWhitespace: 'auto' as 'auto', // Ensure literal type
+    },
+    concurrency: {
+      maxConcurrentEdits: 10,
+      maxGlobalConcurrentEdits: 20 // Matches ConfigSchema defaults
+    },
+    limits: {
+      maxReadBytes: 5 * 1024 * 1024, // Matches ConfigSchema defaults
+      maxWriteBytes: 5 * 1024 * 1024 // Matches ConfigSchema defaults
+    }
   };
 
   it('should allow paths within allowed directories', async () => {
@@ -27,7 +55,7 @@ describe('validatePath', () => {
   it('should reject paths outside allowed directories', async () => {
     await expect(validatePath('/outside/file.txt', ['/allowed'], mockLogger, mockConfig))
       .rejects
-      .toThrow(createError('ACCESS_DENIED', expect.any(String)));
+      .toHaveProperty('type', 'ACCESS_DENIED');
   });
 
   it('should resolve relative paths against first allowed directory', async () => {

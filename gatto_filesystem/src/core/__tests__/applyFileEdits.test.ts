@@ -3,6 +3,7 @@ import fs from 'node:fs/promises';
 import path from 'node:path';
 import os from 'node:os';
 import { applyFileEdits, FuzzyMatchConfig } from '../fuzzyEdit';
+import { StructuredError } from '../../types/errors';
 import type { Config } from '../../server/config';
 
 // Minimal stub config for tests
@@ -77,7 +78,15 @@ describe('applyFileEdits', () => {
             debug: false
         };
 
-        await expect(applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig)).rejects.toThrow();
+        try {
+            await applyFileEdits(filePath, edits, fuzzyConfig, noopLogger, testConfig);
+            // If it reaches here, the test should fail because an error was expected
+            throw new Error('applyFileEdits should have thrown an error for caseSensitive no match');
+        } catch (e) {
+            const error = e as StructuredError;
+            expect(error.code).toBe('NO_MATCH_FOUND');
+            expect(error.message).toBe('No case-sensitive match found for "hello"');
+        }
     });
 
     it('handles ignoreWhitespace option', async () => {
