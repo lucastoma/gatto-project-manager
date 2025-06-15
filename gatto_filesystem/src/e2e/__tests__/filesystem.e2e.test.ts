@@ -1,71 +1,187 @@
 import path from 'path';
 import fs from 'fs';
-import type { ChildProcess } from 'child_process';
-
-// Używamy require, ponieważ jest to sprawdzona metoda ładowania tego SDK w projekcie
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { Client } = require('@modelcontextprotocol/sdk/client');
-// eslint-disable-next-line @typescript-eslint/no-var-requires
-const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio');
+import { spawn, ChildProcess } from 'child_process';
 
 jest.setTimeout(30000);
 
 describe('MCP Filesystem – E2E (Stdio)', () => {
-  let transport: any; // typ 'any' jest tu akceptowalny dla uproszczenia
-  let client: typeof Client;
 
-  beforeAll(async () => {
+  async function runServerCommand(request: any): Promise<any> {
     const projectRoot = process.cwd();
     const serverPath = path.join(projectRoot, 'src/server/index.ts');
     const tsxBin = path.join(projectRoot, 'node_modules/.bin/tsx');
 
-    console.log('Project root:', projectRoot);
-    console.log('Server path:', serverPath);
-    console.log('TSX binary path:', tsxBin);
-    console.log('TSX exists:', fs.existsSync(tsxBin));
+    return new Promise((resolve, reject) => {
+      console.log(`[TEST] Sending request: ${JSON.stringify(request)}`);
 
-    transport = new StdioClientTransport({
-      command: tsxBin,
-      args: [serverPath],
-      stderr: 'pipe',
-    });
-
-    if ((transport as any).proc?.stderr) {
-      (transport as any).proc.stderr.on('data', (data: Buffer) => {
-        console.error(`[SERVER STDERR]: ${data.toString()}`);
+      const process = spawn(tsxBin, [serverPath], {
+        stdio: ['pipe', 'pipe', 'pipe']
       });
-    }
 
-    client = new Client({ name: 'e2e-test-client', version: '0.0.0' });
-    await client.connect(transport);
+      let stdout = '';
+      let stderr = '';
+      let foundResponse = false;
+
+      process.stdout.on('data', (data) => {
+        const chunk = data.toString();
+        stdout += chunk;
+
+        // Look for JSON response lines
+        const lines = chunk.split('\n');
+        for (const line of lines) {
+          const trimmed = line.trim();
+          if (trimmed.startsWith('{') && trimmed.includes('"jsonrpc"') && trimmed.includes(`"id":${request.id}`)) {
+            try {
+              const response = JSON.parse(trimmed);
+              if (!foundResponse) {
+                foundResponse = true;
+                console.log(`[TEST] Received response: ${JSON.stringify(response)}`);
+                process.kill();
+                resolve(response);
+              }
+            } catch (e) {
+              console.log(`[TEST] Failed to parse JSON: ${trimmed}`);
+            }
+          }
+        }
+      });
+
+      process.stderr.on('data', (data) => {
+        stderr += data.toString();
+      });
+
+      process.on('close', (code) => {
+        if (!foundResponse) {
+          console.error('[TEST] Server stdout:', stdout);
+          console.error('[TEST] Server stderr:', stderr);
+          reject(new Error(`Process exited with code ${code}, no JSON response found`));
+        }
+      });
+
+      process.on('error', (err) => {
+        console.error('[TEST] Process error:', err);
+        reject(err);
+      });
+
+      // Send the request
+      const requestStr = JSON.stringify(request) + '\n';
+      process.stdin.write(requestStr);
+      process.stdin.end();
+
+      // Timeout
+      setTimeout(() => {
+        if (!foundResponse) {
+          process.kill();
+          reject(new Error('Request timeout after 15 seconds'));
+        }
+      }, 15000);
+    });
+  }
+
+  it('responds to initialize request', async () => {
+    const request = {
+      jsonrpc: "2.0",
+      method: "initialize",
+      params: {
+        protocolVersion: "2024-11-05",
+        capabilities: {},
+        clientInfo: { name: "test", version: "1.0.0" }
+      },
+      id: 1
+    };
+
+    const response = await runServerCommand(request);
+
+    expect(response.result).toBeDefined();
+    expect(response.result.serverInfo).toBeDefined();
+    expect(response.result.serverInfo.name).toBe('mcp-filesystem-server');
   });
 
-  afterAll(async () => {
-    try {
-      if (client?.isConnected) {
-        await client.close();
-      }
-    } catch {/* ignore */ }
-    await transport?.close();
+  it('responds to tools/list request', async () => {
+    const request = {
+      jsonrpc: "2.0",
+      method: "tools/list",
+      params: {},
+      id: 2
+    };
+
+    const response = await runServerCommand(request);
+
+    expect(response.result).toBeDefined();
+    expect(response.result.tools).toBeDefined();
+    expect(Array.isArray(response.result.tools)).toBe(true);
+    expect(response.result.tools.length).toBeGreaterThan(5);
+
+    const toolNames = response.result.tools.map((t: any) => t.name);
+    expect(toolNames).toContain('read_file');
+    expect(toolNames).toContain('write_file');
+    expect(toolNames).toContain('list_directory');
+    expect(toolNames).toContain('edit_file');
+    expect(toolNames).toContain('search_files');
   });
 
-  it('initializes and lists available tools', async () => {
-    console.log('Client connected. Sending tools/list request...');
+  it('can call read_file tool', async () => {
+    const request = {
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: {
+        name: "read_file",
+        arguments: {
+          path: "test.cl"
+        }
+      },
+      id: 3
+    };
 
-    try {
-      const listToolsResp = await client.request('tools/list', {});
-      console.log('Tools response:', JSON.stringify(listToolsResp, null, 2));
+    const response = await runServerCommand(request);
 
-      const tools = (listToolsResp as any)?.tools;
-      expect(tools).toBeDefined();
-      expect(tools).toEqual(expect.arrayContaining([
-        expect.objectContaining({ name: 'read_file' }),
-        expect.objectContaining({ name: 'write_file' }),
-        expect.objectContaining({ name: 'list_directory' }),
-      ]));
-    } catch (error) {
-      console.error('Error calling tools/list:', error);
-      throw error;
-    }
+    expect(response.result).toBeDefined();
+    expect(response.result.result.content).toBeDefined();
+    expect(typeof response.result.result.content).toBe('string');
+    expect(response.result.result.content).toContain('kernel'); // test.cl contains __kernel
+  });
+
+  it('can call list_directory tool', async () => {
+    const request = {
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: {
+        name: "list_directory",
+        arguments: {
+          path: "."
+        }
+      },
+      id: 4
+    };
+
+    const response = await runServerCommand(request);
+
+    expect(response.result).toBeDefined();
+    expect(response.result.result.entries).toBeDefined();
+    expect(Array.isArray(response.result.result.entries)).toBe(true);
+
+    // Should find some common files
+    const entryNames = response.result.result.entries.map((e: any) => e.name);
+    expect(entryNames).toContain('package.json');
+    expect(entryNames).toContain('src');
+  });
+
+  it('can call server_stats tool', async () => {
+    const request = {
+      jsonrpc: "2.0",
+      method: "tools/call",
+      params: {
+        name: "server_stats",
+        arguments: {}
+      },
+      id: 5
+    };
+
+    const response = await runServerCommand(request);
+
+    expect(response.result).toBeDefined();
+    expect(response.result.result.requestCount).toBeDefined();
+    expect(response.result.result.config).toBeDefined();
+    expect(typeof response.result.result.requestCount).toBe('number');
   });
 });

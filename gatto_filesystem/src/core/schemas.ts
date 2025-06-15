@@ -6,8 +6,16 @@ export const HandshakeRequestSchema = z.object({
   params: z.object({}).optional()
 });
 
+export const InitializeRequestSchema = z.object({
+  method: z.literal('initialize'),
+  params: z.object({
+    // According to MCP spec, clientInfo might be here, but for now, keep it simple
+    // clientInfo: z.object({ name: z.string(), version: z.string() }).optional()
+  }).optional()
+});
+
 export const ListToolsRequestSchema = z.object({
-  method: z.literal('list_tools'),
+  method: z.literal('tools/list'),
   params: z.object({}).optional()
 });
 
@@ -114,10 +122,10 @@ export const GetFileInfoArgsSchema = z.object({
 });
 
 export const CallToolRequestSchema = z.object({
-  method: z.literal('call_tool'),
+  method: z.literal('tools/call'),
   params: z.object({
     name: z.string(),
-    args: z.any()
+    arguments: z.any()
   })
 });
 

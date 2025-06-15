@@ -1,10 +1,10 @@
 ﻿# Projekt: gatto nero mcp no node and dist
 ## Katalog główny: `/home/lukasz/projects/gatto-ps-ai`
-## Łączna liczba unikalnych plików: 28
+## Łączna liczba unikalnych plików: 29
 ---
 ## Grupa: gatto nero mcp no node and dist
 **Opis:** kod gatto nerro mcp filesystem
-**Liczba plików w grupie:** 28
+**Liczba plików w grupie:** 29
 
 ### Lista plików:
 - `index.ts`
@@ -31,6 +31,7 @@
 - `src/core/schemas.ts`
 - `test.cl`
 - `package.json`
+- `test-config.json`
 - `debug-e2e.js`
 - `tsconfig.json`
 - `test-filtering.js`
@@ -79,33 +80,51 @@ const { StdioClientTransport } = require('@modelcontextprotocol/sdk/client/stdio
 jest.setTimeout(30000);
 
 describe('MCP Filesystem – E2E (Stdio)', () => {
-  let transport: any; // typ 'any' jest tu akceptowalny dla uproszczenia
+  let transport: any;
   let client: typeof Client;
+  let serverProcess: ChildProcess;
 
   beforeAll(async () => {
-    const projectRoot = process.cwd();
-    const serverPath = path.join(projectRoot, 'src/server/index.ts');
-    const tsxBin = path.join(projectRoot, 'node_modules/.bin/tsx');
+    try {
+      const projectRoot = process.cwd();
+      const serverPath = path.join(projectRoot, 'src/server/index.ts');
+      const tsxBin = path.join(projectRoot, 'node_modules/.bin/tsx');
 
-    console.log('Project root:', projectRoot);
-    console.log('Server path:', serverPath);
-    console.log('TSX binary path:', tsxBin);
-    console.log('TSX exists:', fs.existsSync(tsxBin));
+      console.log('Project root:', projectRoot);
+      console.log('Server path:', serverPath);
+      console.log('TSX binary path:', tsxBin);
+      console.log('TSX exists:', fs.existsSync(tsxBin));
 
-    transport = new StdioClientTransport({
-      command: tsxBin,
-      args: [serverPath],
-      stderr: 'pipe',
-    });
-
-    if ((transport as any).proc?.stderr) {
-      (transport as any).proc.stderr.on('data', (data: Buffer) => {
-        console.error(`[SERVER STDERR]: ${data.toString()}`);
+      transport = new StdioClientTransport({
+        command: tsxBin,
+        args: [serverPath],
+        stderr: 'pipe',
       });
-    }
 
-    client = new Client({ name: 'e2e-test-client', version: '0.0.0' });
-    await client.connect(transport);
+      serverProcess = (transport as any).proc;
+
+      if (serverProcess?.stderr) {
+        serverProcess.stderr.on('data', (data: Buffer) => {
+          console.error('[SERVER CRASH LOG]', data.toString());
+        });
+      }
+
+      client = new Client({ name: 'e2e-test-client', version: '0.0.0' });
+
+      // Add timeout for connection
+      await Promise.race([
+        client.connect(transport),
+        new Promise((_, reject) => setTimeout(
+          () => reject(new Error('Connection timeout after 5s')),
+          5000
+        ))
+      ]);
+
+      console.log('Transport state after connect:', transport.readyState);
+    } catch (error) {
+      console.error('Error in beforeAll:', error);
+      throw error;
+    }
   });
 
   afterAll(async () => {
@@ -113,15 +132,28 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       if (client?.isConnected) {
         await client.close();
       }
-    } catch {/* ignore */ }
-    await transport?.close();
+      if (serverProcess) {
+        serverProcess.kill();
+      }
+    } catch (error) {
+      console.error('Error in afterAll:', error);
+    }
   });
 
   it('initializes and lists available tools', async () => {
     console.log('Client connected. Sending tools/list request...');
 
+    console.log('Transport state before request:', transport.readyState);
+
     try {
-      const listToolsResp = await client.request('tools/list', {});
+      // Add timeout for the request
+      const listToolsResp = await Promise.race([
+        client.request('list_tools', {}),
+        new Promise((_, reject) =>
+          setTimeout(() => reject(new Error('Request timeout after 5s')), 5000)
+        )
+      ]);
+
       console.log('Tools response:', JSON.stringify(listToolsResp, null, 2));
 
       const tools = (listToolsResp as any)?.tools;
@@ -590,6 +622,23 @@ import { getConfig } from './config';
 import { setupToolHandlers } from '../core/toolHandlers';
 import { expandHome, normalizePath } from '../utils/pathUtils';
 
+// Initialize a basic console logger for early logging
+const logger = pino.pino({
+  level: 'info',
+  timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+  base: { service: 'mcp-filesystem-server', version: '0.7.0' }
+}, pino.destination(1));
+
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'Uncaught exception - server will exit');
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.fatal({ reason, promise }, 'Unhandled rejection - server will exit');
+  process.exit(1);
+});
+
 async function main() {
   const config = await getConfig(process.argv.slice(2));
 
@@ -602,7 +651,8 @@ async function main() {
 
   const fileStream = fsSync.createWriteStream(path.join(logsDir, 'mcp-filesystem.log'), { flags: 'a' });
 
-  const logger = pino.pino(
+  // Update the logger with the configured level and add file stream
+  const childLogger = pino.pino(
     {
       level: config.logging.level,
       timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
@@ -613,6 +663,9 @@ async function main() {
       { stream: fileStream, level: 'info' }
     ])
   );
+  
+  // Replace the global logger with the configured one
+  Object.assign(logger, childLogger);
 
   const logWithPaths = (logFn: pino.LogFn) => (objOrMsg: any, ...args: any[]) => {
     let logObject: any = {};
@@ -651,15 +704,22 @@ async function main() {
     }
   }));
 
+  logger.info('Creating MCP server instance');
   const server = new Server(
-    { name: 'secure-filesystem-server', version: '0.7.0' },
+    { name: 'mcp-filesystem-server', version: '0.7.0' },
     { capabilities: { tools: {} } }
   );
 
+  logger.info('Server instance created, setting up tool handlers');
   setupToolHandlers(server, allowedDirectories, logger, config);
+  logger.info('Tool handlers setup completed');
 
+  logger.info('Creating stdio transport');
   const transport = new StdioServerTransport();
+  logger.info('Connecting transport to server');
   await server.connect(transport);
+  logger.info('Transport connected successfully');
+
   logger.info({ version: '0.7.0', transport: 'Stdio', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started via Stdio');
 
   logger.info('Server is running. Press Ctrl+C to exit.');
@@ -1707,8 +1767,9 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
   const EditFileArgsSchema = schemas.getEditFileArgsSchema(config);
 
   server.setRequestHandler(schemas.ListToolsRequestSchema, async () => {
-    return {
-      tools: [
+    logger.info('Handling list_tools request');
+    try {
+      const tools = [
         { name: 'read_file', description: 'Read file contents.', inputSchema: zodToJsonSchema(schemas.ReadFileArgsSchema) as any },
         { name: 'read_multiple_files', description: 'Read multiple files.', inputSchema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) as any },
         { name: 'list_allowed_directories', description: 'List allowed base directories.', inputSchema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) as any },
@@ -1723,8 +1784,13 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         { name: 'search_files', description: 'Search for files by pattern.', inputSchema: zodToJsonSchema(schemas.SearchFilesArgsSchema) as any },
         { name: 'get_file_info', description: 'Get file/directory metadata.', inputSchema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) as any },
         { name: 'server_stats', description: 'Get server statistics.', inputSchema: zodToJsonSchema(schemas.ServerStatsArgsSchema) as any }
-      ]
-    };
+      ];
+      logger.info({ tools }, 'Sending tools list response');
+      return { tools };
+    } catch (error) {
+      logger.error({ error }, 'Failed to handle tools/list');
+      throw error;
+    }
   });
 
   server.setRequestHandler(schemas.CallToolRequestSchema, async (request) => {
@@ -2352,6 +2418,10 @@ __kernel void vector_add(__global const float *a,
     ]
   }
 }
+```
+#### Plik: `test-config.json`
+```json
+{"allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/gatto_filesystem"],"fileFiltering":{"defaultExcludes":["**/node_modules/**"],"allowedExtensions":["*.ts","*.js","*.json"]}}
 ```
 #### Plik: `debug-e2e.js`
 ```js

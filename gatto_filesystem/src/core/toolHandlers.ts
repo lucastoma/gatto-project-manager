@@ -5,7 +5,6 @@ import { initGlobalSemaphore, getGlobalSemaphore } from './concurrency';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 
-
 import { createError, StructuredError } from '../types/errors';
 import { shouldSkipPath } from '../utils/pathFilter';
 
@@ -14,7 +13,7 @@ import { classifyFileType, FileType } from '../utils/binaryDetect';
 import { validatePath } from './security';
 import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit';
 import { getFileStats, searchFiles, readMultipleFilesContent, getDirectoryTree } from './fileInfo';
-import * as schemas from './schemas'; // <-- BRAKUJĄCY IMPORT ZOSTAŁ DODANY
+import * as schemas from './schemas';
 // Import specific types that were causing issues if not directly imported
 import type { ListDirectoryEntry, DirectoryTreeEntry } from './schemas';
 
@@ -57,19 +56,36 @@ function getFileLock(filePath: string, config: Config, logger: Logger): Mutex {
   }
 }
 
-
-
 export function setupToolHandlers(server: Server, allowedDirectories: string[], logger: Logger, config: Config) {
   initGlobalSemaphore(config);
+
+  // Handler for initialize
+  server.setRequestHandler(schemas.InitializeRequestSchema, async (request: any) => {
+    logger.info({ params: request.params }, 'Handling initialize request');
+    return {
+      protocolVersion: '2024-11-05',
+      capabilities: {
+        tools: {}
+      },
+      serverInfo: {
+        name: 'mcp-filesystem-server',
+        version: '0.7.0'
+      }
+    };
+  });
+
+  // Handler for handshake (existing, kept for compatibility if needed, or can be removed if initialize replaces it)
   server.setRequestHandler(schemas.HandshakeRequestSchema, async () => ({
     serverName: 'mcp-filesystem-server',
     serverVersion: '0.7.0'
   }));
   const EditFileArgsSchema = schemas.getEditFileArgsSchema(config);
 
+  // Handler for tools/list
   server.setRequestHandler(schemas.ListToolsRequestSchema, async () => {
-    return {
-      tools: [
+    logger.info('Handling list_tools request');
+    try {
+      const tools = [
         { name: 'read_file', description: 'Read file contents.', inputSchema: zodToJsonSchema(schemas.ReadFileArgsSchema) as any },
         { name: 'read_multiple_files', description: 'Read multiple files.', inputSchema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) as any },
         { name: 'list_allowed_directories', description: 'List allowed base directories.', inputSchema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) as any },
@@ -84,23 +100,29 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         { name: 'search_files', description: 'Search for files by pattern.', inputSchema: zodToJsonSchema(schemas.SearchFilesArgsSchema) as any },
         { name: 'get_file_info', description: 'Get file/directory metadata.', inputSchema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) as any },
         { name: 'server_stats', description: 'Get server statistics.', inputSchema: zodToJsonSchema(schemas.ServerStatsArgsSchema) as any }
-      ]
-    };
+      ];
+      logger.info({ tools }, 'Sending tools list response');
+      return { tools };
+    } catch (error) {
+      logger.error({ error }, 'Failed to handle tools/list');
+      throw error;
+    }
   });
 
+  // Handler for tools/call
   server.setRequestHandler(schemas.CallToolRequestSchema, async (request) => {
     requestCount++;
-    logger.info({ tool: request.params.name, args: request.params.args }, `Tool request: ${request.params.name}`);
+    logger.info({ tool: request.params.name, args: request.params.arguments }, `Tool request: ${request.params.name}`);
     try {
       switch (request.params.name) {
         case 'list_allowed_directories': {
-          const parsed = schemas.ListAllowedDirectoriesArgsSchema.safeParse(request.params.args ?? {});
+          const parsed = schemas.ListAllowedDirectoriesArgsSchema.safeParse(request.params.arguments ?? {});
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) });
           return { result: { directories: allowedDirectories } };
         }
 
         case 'read_file': {
-          const parsed = schemas.ReadFileArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.ReadFileArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadFileArgsSchema) });
           const timer = new PerformanceTimer('read_file_handler', logger, config);
           try {
@@ -123,8 +145,8 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
             let encodingUsed: 'utf-8' | 'base64' = 'utf-8';
             const fileType = classifyFileType(rawBuffer, validatedPath);
 
-            if (parsed.data.encoding === 'base64' || 
-                (parsed.data.encoding === 'auto' && (fileType === FileType.CONFIRMED_BINARY || fileType === FileType.POTENTIAL_TEXT_WITH_CAVEATS))) {
+            if (parsed.data.encoding === 'base64' ||
+              (parsed.data.encoding === 'auto' && (fileType === FileType.CONFIRMED_BINARY || fileType === FileType.POTENTIAL_TEXT_WITH_CAVEATS))) {
               content = rawBuffer.toString('base64');
               encodingUsed = 'base64';
             } else {
@@ -139,7 +161,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'read_multiple_files': {
-          const parsed = schemas.ReadMultipleFilesArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.ReadMultipleFilesArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) });
           const fileReadResults = await readMultipleFilesContent(
             parsed.data.paths,
@@ -152,7 +174,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'write_file': {
-          const parsed = schemas.WriteFileArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.WriteFileArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.WriteFileArgsSchema) });
           const timer = new PerformanceTimer('write_file_handler', logger, config);
           try {
@@ -187,7 +209,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
 
         case 'edit_file': {
           editOperationCount++;
-          const parsed = EditFileArgsSchema.safeParse(request.params.args);
+          const parsed = EditFileArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
@@ -230,7 +252,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'create_directory': {
-          const parsed = schemas.CreateDirectoryArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.CreateDirectoryArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           const lock = getFileLock(validPath, config, logger);
@@ -243,7 +265,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'list_directory': {
-          const parsed = schemas.ListDirectoryArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.ListDirectoryArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           const entries = await fs.readdir(validPath, { withFileTypes: true });
@@ -274,7 +296,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'move_file': {
-          const parsed = schemas.MoveFileArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.MoveFileArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.MoveFileArgsSchema) });
 
           const validSource = await validatePath(parsed.data.source, allowedDirectories, logger, config);
@@ -304,7 +326,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'delete_file': {
-          const parsed = schemas.DeleteFileArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.DeleteFileArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DeleteFileArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
@@ -320,7 +342,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'delete_directory': {
-          const parsed = schemas.DeleteDirectoryArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.DeleteDirectoryArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DeleteDirectoryArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
@@ -336,7 +358,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'search_files': {
-          const parsed = schemas.SearchFilesArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.SearchFilesArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.SearchFilesArgsSchema) });
           const timer = new PerformanceTimer('search_files_handler', logger, config);
           try {
@@ -365,7 +387,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'get_file_info': {
-          const parsed = schemas.GetFileInfoArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.GetFileInfoArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           if (shouldSkipPath(validPath, config)) {
@@ -376,7 +398,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'directory_tree': {
-          const parsed = schemas.DirectoryTreeArgsSchema.safeParse(request.params.args);
+          const parsed = schemas.DirectoryTreeArgsSchema.safeParse(request.params.arguments);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DirectoryTreeArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
           const tree = await getDirectoryTree(validPath, allowedDirectories, logger, config, 0, parsed.data.maxDepth ?? -1);
@@ -384,7 +406,7 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
         }
 
         case 'server_stats': {
-          const parsed = schemas.ServerStatsArgsSchema.safeParse(request.params.args ?? {});
+          const parsed = schemas.ServerStatsArgsSchema.safeParse(request.params.arguments ?? {});
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ServerStatsArgsSchema) });
           const stats = { requestCount, editOperationCount, activeLocks: fileLocks.size, config };
           return { result: stats };

@@ -16,7 +16,25 @@ import { getConfig } from './config';
 import { setupToolHandlers } from '../core/toolHandlers';
 import { expandHome, normalizePath } from '../utils/pathUtils';
 
+// Initialize a basic console logger for early logging
+const logger = pino.pino({
+  level: 'info',
+  timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+  base: { service: 'mcp-filesystem-server', version: '0.7.0' }
+}, pino.destination(1));
+
+process.on('uncaughtException', (err) => {
+  logger.fatal({ err }, 'Uncaught exception - server will exit');
+  process.exit(1);
+});
+
+process.on('unhandledRejection', (reason, promise) => {
+  logger.fatal({ reason, promise }, 'Unhandled rejection - server will exit');
+  process.exit(1);
+});
+
 async function main() {
+  console.log('Starting MCP Filesystem Server...');
   const config = await getConfig(process.argv.slice(2));
 
   const logsDir = path.join(process.cwd(), 'logs');
@@ -28,7 +46,8 @@ async function main() {
 
   const fileStream = fsSync.createWriteStream(path.join(logsDir, 'mcp-filesystem.log'), { flags: 'a' });
 
-  const logger = pino.pino(
+  // Update the logger with the configured level and add file stream
+  const childLogger = pino.pino(
     {
       level: config.logging.level,
       timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
@@ -39,6 +58,9 @@ async function main() {
       { stream: fileStream, level: 'info' }
     ])
   );
+
+  // Replace the global logger with the configured one
+  Object.assign(logger, childLogger);
 
   const logWithPaths = (logFn: pino.LogFn) => (objOrMsg: any, ...args: any[]) => {
     let logObject: any = {};
@@ -77,15 +99,24 @@ async function main() {
     }
   }));
 
+  logger.info('Creating MCP server instance');
   const server = new Server(
-    { name: 'secure-filesystem-server', version: '0.7.0' },
+    { name: 'mcp-filesystem-server', version: '0.7.0' },
     { capabilities: { tools: {} } }
   );
 
+  logger.info('Server instance created, setting up tool handlers');
   setupToolHandlers(server, allowedDirectories, logger, config);
+  logger.info('Tool handlers setup completed');
 
+  logger.info('Creating stdio transport');
   const transport = new StdioServerTransport();
+  logger.info('Connecting transport to server');
+  console.log('Server setup completed, connecting transport...');
   await server.connect(transport);
+  console.log('Transport connected, server ready!');
+  logger.info('Transport connected successfully');
+
   logger.info({ version: '0.7.0', transport: 'Stdio', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started via Stdio');
 
   logger.info('Server is running. Press Ctrl+C to exit.');
