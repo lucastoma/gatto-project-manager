@@ -46,421 +46,303 @@ The server is started using `tsx` (a TypeScript runner). Commands should be run 
 ```bash
 npx tsx src/server/index.ts /path/to/allowed/dir1 /path/to/another/allowed/dir2
 ```
-If no directories are specified, it defaults to the current working directory from where the server is launched.
+If no directories are specified, it defaults to the current working directory.
 
 **Option 2: Using a configuration file:**
 
-Create a `config.json` file (see [Configuration](#configuration) section below for details).
+Create a `mcpconfig.json` (or `.yaml`, `.js`) in the project root or specify a path with `--config`.
+
 ```bash
-npx tsx src/server/index.ts --config /path/to/your/config.json
+npx tsx src/server/index.ts --config /path/to/your/mcpconfig.json
 ```
 
-The server will then listen for JSON-RPC messages on stdin.
-
-### Basic Usage (Example JSON-RPC)
-
-Once the server is running, an MCP client can send requests.
-
-**Example: Initialize connection**
+Example `mcpconfig.json`:
 ```json
 {
-  "jsonrpc": "2.0",
-  "method": "initialize",
-  "params": {
-    "protocolVersion": "2024-11-05",
-    "capabilities": {},
-    "clientInfo": { "name": "my-test-client", "version": "1.0.0" }
+  "allowedDirectories": ["/home/user/projects", "/mnt/shared_data"],
+  "logLevel": "info",
+  "fileFiltering": {
+    "defaultExcludes": [".git", "node_modules", ".DS_Store"],
+    "forceTextFiles": false,
+    "allowedExtensions": []
   },
-  "id": 1
+  "concurrency": {
+    "maxConcurrentRequests": 10,
+    "maxConcurrentEdits": 5
+  },
+  "fuzzyMatching": {
+    "minSimilarity": 0.7,
+    "maxCandidates": 5,
+    "contextWindow": 2,
+    "caseSensitive": false,
+    "ignoreWhitespace": true
+  }
 }
 ```
 
-**Example: List available tools**
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "tools/list",
-  "params": {},
-  "id": 2
-}
+### Building for Production
+
+```bash
+npm run build
 ```
-The server will respond on stdout.
+This creates a `dist` directory with the compiled JavaScript. You can then run `node dist/server/index.js`.
 
 ## Configuration
 
-The server can be configured using a JSON file passed with the `--config` flag. If not provided, it uses command-line arguments for `allowedDirectories` and defaults for other settings.
+The server can be configured via a configuration file or command-line arguments.
 
-**Default `ConfigSchema` structure (see `src/server/config.ts`):**
+-   `--config <path>`: Path to a JSON, YAML, or JS configuration file.
+-   `--log-level <level>`: Logging level (e.g., `trace`, `debug`, `info`, `warn`, `error`, `fatal`).
+-   `<allowed_directory_path_1> ...`: Paths to directories the server is allowed to access. If a config file is used, `allowedDirectories` in the file takes precedence. If neither is provided, defaults to the current working directory.
 
-```typescript
-{
-  allowedDirectories: string[], // Paths server is allowed to operate within
-  fileFiltering: {
-    defaultExcludes: string[],  // Glob patterns for files/dirs to exclude
-    allowedExtensions: string[],// Glob patterns for allowed file extensions if forceTextFiles is true
-    forceTextFiles: boolean     // If true, only allows operations on files with allowedExtensions
-  },
-  fuzzyMatching: { // For 'edit_file' tool
-    maxDistanceRatio: number,   // Max Levenshtein distance / length of oldText
-    minSimilarity: number,      // Min similarity for a match
-    caseSensitive: boolean,
-    ignoreWhitespace: boolean,
-    preserveLeadingWhitespace: 'auto' | 'strict' | 'normalize'
-  },
-  logging: {
-    level: 'trace' | 'debug' | 'info' | 'warn' | 'error',
-    performance: boolean        // Enable performance logging for operations
-  },
-  concurrency: {
-    maxConcurrentEdits: number, // Max concurrent edits on a single file
-    maxGlobalConcurrentEdits: number // Max concurrent edits server-wide
-  },
-  limits: {
-    maxReadBytes: number,       // Max bytes for file reads
-    maxWriteBytes: number       // Max bytes for file writes
-  }
-}
-```
-
-**Example `config.json`:**
-```json
-{
-  "allowedDirectories": ["/home/user/projects", "/srv/shared_files"],
-  "fileFiltering": {
-    "forceTextFiles": true,
-    "allowedExtensions": ["*.txt", "*.md", "*.js", "*.json"]
-  },
-  "logging": {
-    "level": "debug",
-    "performance": true
-  }
-}
-```
+See `src/server/config.ts` and `src/types/config.ts` for all available options and their defaults.
 
 ## Available Tools
 
-All tools (except `initialize` and `tools/list`) are invoked using the `tools/call` MCP method.
+The server exposes the following tools via MCP `tools/call` requests:
 
-```json
-{
-  "jsonrpc": "2.0",
-  "method": "tools/call",
-  "params": {
-    "name": "tool_name_here",
-    "arguments": {
-      // tool-specific arguments
+### `read_file`
+
+Reads the content of a file.
+
+**Arguments:**
+
+-   `path` (string, required): Absolute path to the file.
+-   `encoding` (string, optional, default: `auto`): Encoding for file content. Can be `utf-8`, `base64`, or `auto` (attempts to detect binary vs. text). If `auto` detects binary, it returns base64.
+
+**Returns:** An object `{ content: string, encoding: 'utf-8' | 'base64', fileType: 'text' | 'binary' | 'unknown' }`.
+
+### `write_file`
+
+Writes content to a file, overwriting it if it exists, or creating it if it doesn't.
+
+**Arguments:**
+
+-   `path` (string, required): Absolute path to the file.
+-   `content` (string, required): Content to write.
+-   `encoding` (string, optional, default: `utf-8`): Encoding of the provided `content`. Can be `utf-8` or `base64`.
+
+**Returns:** An object `{ success: true }` on success.
+
+### `edit_file`
+
+Applies line-based edits to a text file. Supports fuzzy matching for `oldText`.
+
+**Arguments:**
+
+-   `path` (string, required): Absolute path to the file.
+-   `edits` (array of `EditOperation`, required):
+    ```typescript
+    interface EditOperation {
+      oldText: string; // Text to search for (can be slightly inaccurate for fuzzy matching)
+      newText: string; // Text to replace with
+      forcePartialMatch?: boolean; // If true, allows partial matches above minSimilarity when no exact match is found
     }
-  },
-  "id": "request_id_here"
+    ```
+-   `dryRun` (boolean, optional, default: `false`): If `true`, returns a git-style diff instead of applying changes.
+-   `debug` (boolean, optional, default: `false`): Show detailed matching information in logs.
+-   `caseSensitive` (boolean, optional, default from config): Override config for case sensitivity.
+-   `ignoreWhitespace` (boolean, optional, default from config): Override config for ignoring whitespace.
+-   `matchConfig` (object, optional): Override fuzzy matching parameters for this specific call.
+    ```typescript
+    interface FuzzyMatchConfigOverride {
+      minSimilarity?: number;
+      maxCandidates?: number;
+      contextWindow?: number;
+    }
+    ```
+
+**Returns:** An object `{ diff: string }` if `dryRun` is true, or `{ success: true, operationsAttempted: number, operationsSucceeded: number }` otherwise.
+
+### `list_directory`
+
+Lists the contents of a specified directory.
+
+**Arguments:**
+
+-   `path` (string, required): Absolute path to the directory to list.
+-   `recursive` (boolean, optional, default: `false`): If `true`, recursively lists contents of subdirectories. The output will be a flat list of all entries found recursively.
+-   `includeFiles` (boolean, optional, default: `true`): Whether to include files in the listing.
+-   `includeDirs` (boolean, optional, default: `true`): Whether to include directories in the listing.
+-   `includeHidden` (boolean, optional, default: `false`): Whether to include hidden files/directories (those starting with a dot).
+
+**Returns:** An array of `ListDirectoryEntry` objects.
+
+```typescript
+interface ListDirectoryEntry {
+  name: string;        // Name of the file or directory
+  path: string;        // Full absolute path
+  type: 'file' | 'directory';
+  size?: number;       // Size in bytes (for files)
 }
 ```
 
-### Core MCP Methods
+### `create_directory`
 
-#### 1. `initialize`
-   - **Description:** Initializes the connection between the client and server, exchanging capabilities and server information.
-   - **Request Method:** `initialize`
-   - **Arguments (`params`):**
-     ```json
-     {
-       "protocolVersion": "string", // e.g., "2024-11-05"
-       "capabilities": {}, // Client capabilities
-       "clientInfo": { "name": "string", "version": "string" }
-     }
-     ```
-   - **Response (`result`):**
-     ```json
-     {
-       "protocolVersion": "string",
-       "capabilities": { "tools": {} }, // Server capabilities
-       "serverInfo": { "name": "mcp-filesystem-server", "version": "string" }
-     }
-     ```
+Creates a new directory. Can create multiple nested directories (like `mkdir -p`).
 
-#### 2. `tools/list`
-   - **Description:** Lists all tools provided by the server.
-   - **Request Method:** `tools/list`
-   - **Arguments (`params`):** `{}` (none)
-   - **Response (`result`):**
-     ```json
-     {
-       "tools": [
-         { "name": "tool_name", "description": "...", "arguments_schema": { /* JSON Schema */ }, "response_schema": { /* JSON Schema */ } },
-         // ... more tools
-       ]
-     }
-     ```
-     (Note: `description`, `arguments_schema`, `response_schema` are based on the full tool definition from `src/core/schemas.ts` and `src/core/toolHandlers.ts`)
+**Arguments:**
 
-### Filesystem Tools (invoked via `tools/call`)
+-   `path` (string, required): Absolute path of the directory to create.
 
-For each tool below, the `arguments` object is passed within the `params` of a `tools/call` request.
+**Returns:** An object `{ success: true }` on success.
 
-#### 1. `list_allowed_directories`
-   - **Description:** Lists the root directories the server is configured to access.
-   - **Arguments:** `{}` (none)
-   - **Response (`result.result`):** `{ "directories": ["/path/to/dir1", "/path/to/dir2"] }`
+### `delete_file`
 
-#### 2. `read_file`
-   - **Description:** Reads the content of a file.
-   - **Arguments:**
-     ```json
-     {
-       "path": "string", // Relative or absolute path to the file
-       "encoding": "auto" | "utf-8" | "base64" // (Optional, default: "auto")
-     }
-     ```
-   - **Response (`result.result`):**
-     ```json
-     {
-       "content": "string", // File content (string or base64 encoded string)
-       "encodingUsed": "utf-8" | "base64",
-       "fileType": "TEXT" | "POTENTIAL_TEXT_WITH_CAVEATS" | "CONFIRMED_BINARY",
-       "size": number // File size in bytes
-     }
-     ```
+Deletes a file.
 
-#### 3. `read_multiple_files`
-   - **Description:** Reads content from multiple files.
-   - **Arguments:**
-     ```json
-     {
-       "paths": ["string"], // Array of file paths
-       "encoding": "auto" | "utf-8" | "base64" // (Optional, default: "auto")
-     }
-     ```
-   - **Response (`result.result`):**
-     ```json
-     {
-       "results": [
-         {
-           "path": "string",
-           "success": boolean,
-           "content": "string"?, // Present if success is true
-           "encodingUsed": "utf-8" | "base64"?, // Present if success is true
-           "error": { "code": "string", "message": "string" }? // Present if success is false
-         }
-         // ... more results
-       ]
-     }
-     ```
+**Arguments:**
 
-#### 4. `write_file`
-   - **Description:** Writes content to a file, creating it if it doesn't exist or overwriting it.
-   - **Arguments:**
-     ```json
-     {
-       "path": "string", // Path to the file
-       "content": "string", // Content to write (can be base64 for binary)
-       "encoding": "utf-8" | "base64" // (Optional, default: "utf-8")
-     }
-     ```
-   - **Response (`result.result`):** `{ "message": "File written successfully." }` (or error)
+-   `path` (string, required): Absolute path to the file to delete.
 
-#### 5. `edit_file`
-   - **Description:** Applies a series of edits to a text file. Supports fuzzy matching.
-   - **Arguments:**
-     ```json
-     {
-       "path": "string",
-       "edits": [
-         {
-           "oldText": "string", // Text to find and replace
-           "newText": "string", // Text to replace with
-           "matchConfig": { // Optional, overrides global fuzzy matching config for this edit
-             "maxDistanceRatio": number?,
-             "minSimilarity": number?,
-             "caseSensitive": boolean?,
-             "ignoreWhitespace": boolean?,
-             "preserveLeadingWhitespace": "auto" | "strict" | "normalize"?,
-             "forcePartialMatch": boolean? // If true, attempts partial match even if full match fails
-           }?
-         }
-       ],
-       "globalMatchConfig": { /* Same structure as matchConfig, applies to all edits unless overridden */ }?
-     }
-     ```
-   - **Response (`result.result`):**
-     ```json
-     {
-       "diff": "string", // Unified diff of changes
-       "matches": [ /* Details about matches and replacements */ ]
-     }
-     ```
+**Returns:** An object `{ success: true }` on success.
 
-#### 6. `create_directory`
-   - **Description:** Creates a new directory (and any necessary parent directories).
-   - **Arguments:** `{ "path": "string" }`
-   - **Response (`result.result`):** `{ "message": "Directory created successfully." }`
+### `delete_directory`
 
-#### 7. `list_directory`
-   - **Description:** Lists the contents of a directory.
-   - **Arguments:**
-     ```json
-     {
-       "path": "string", // Path to the directory
-       "recursive": boolean, // (Optional, default: false) - NOT YET IMPLEMENTED, use directory_tree for recursive
-       "includeHidden": boolean // (Optional, default: false) - Filtering based on server config (defaultExcludes)
-     }
-     ```
-   - **Response (`result.result`):**
-     ```json
-     {
-       "entries": [
-         { "name": "string", "type": "file" | "directory" | "symlink", "size": number? /* for files */ }
-         // ... more entries
-       ]
-     }
-     ```
+Deletes a directory.
 
-#### 8. `move_file`
-   - **Description:** Moves or renames a file or directory.
-   - **Arguments:**
-     ```json
-     {
-       "source": "string",
-       "destination": "string"
-     }
-     ```
-   - **Response (`result.result`):** `{ "message": "Moved successfully." }`
+**Arguments:**
 
-#### 9. `delete_file`
-   - **Description:** Deletes a file.
-   - **Arguments:** `{ "path": "string" }`
-   - **Response (`result.result`):** `{ "message": "File deleted successfully." }`
+-   `path` (string, required): Absolute path to the directory to delete.
+-   `recursive` (boolean, optional, default: `false`): If `true`, recursively deletes the directory and its contents (like `rm -rf`). Use with caution.
 
-#### 10. `delete_directory`
-    - **Description:** Deletes a directory.
-    - **Arguments:**
-      ```json
-      {
-        "path": "string",
-        "recursive": boolean // (Optional, default: false)
-      }
-      ```
-    - **Response (`result.result`):** `{ "message": "Directory deleted successfully." }`
+**Returns:** An object `{ success: true }` on success.
 
-#### 11. `search_files`
-    - **Description:** Searches for files and directories matching a pattern.
-    - **Arguments:**
-      ```json
-      {
-        "path": "string", // Starting directory for search
-        "pattern": "string", // Glob pattern to match
-        "excludePatterns": ["string"]?, // Optional array of glob patterns to exclude
-        "maxDepth": number? // Optional maximum depth for recursion
-      }
-      ```
-    - **Response (`result.result`):**
-      ```json
-      {
-        "matches": [
-          { "path": "string", "type": "file" | "directory" }
-          // ... more matches
-        ]
-      }
-      ```
+### `move_file` (or `rename_file`)
 
-#### 12. `get_file_info`
-    - **Description:** Retrieves metadata for a file or directory.
-    - **Arguments:** `{ "path": "string" }`
-    - **Response (`result.result`):**
-      ```json
-      {
-        "path": "string",
-        "type": "file" | "directory" | "symlink" | "other",
-        "size": number, // In bytes
-        "created": "ISO8601_string", // Creation timestamp
-        "modified": "ISO8601_string", // Last modified timestamp
-        "accessed": "ISO8601_string", // Last accessed timestamp
-        "permissions": "string" // e.g., "rw-r--r--"
-      }
-      ```
+Moves or renames a file or directory.
 
-#### 13. `directory_tree`
-    - **Description:** Gets a recursive tree view of files and directories.
-    - **Arguments:**
-      ```json
-      {
-        "path": "string",
-        "maxDepth": number? // Optional, default: unlimited (-1)
-      }
-      ```
-    - **Response (`result.result`):**
-      ```json
-      {
-        "tree": { // DirectoryTreeEntry structure
-          "name": "string",
-          "path": "string",
-          "type": "directory",
-          "children": [ /* Array of DirectoryTreeEntry for files/subdirs */ ]
-        }
-      }
-      // DirectoryTreeEntry for a file: { "name": "string", "path": "string", "type": "file", "size": number }
-      ```
+**Arguments:**
 
-#### 14. `server_stats`
-    - **Description:** Retrieves statistics about the server's operation.
-    - **Arguments:** `{}` (none)
-    - **Response (`result.result`):**
-      ```json
-      {
-        "requestCount": number,
-        "editOperationCount": number,
-        "activeLocks": number,
-        "config": { /* Current server configuration */ }
-      }
-      ```
+-   `source` (string, required): Absolute path to the source file or directory.
+-   `destination` (string, required): Absolute path to the destination.
 
-## Error Handling
+**Returns:** An object `{ success: true }` on success.
 
-The server returns structured errors as per MCP guidelines. Errors include a `code`, `message`, and often `hint` and `details`.
-Refer to `src/types/errors.ts` and `src/utils/hintMap.ts` for common error codes and hints.
+### `get_file_info`
 
-Example error response:
-```json
-{
-  "jsonrpc": "2.0",
-  "error": {
-    "code": -32000, // Generic server error code range for MCP
-    "message": "Tool execution failed",
-    "data": { // This is the StructuredError
-      "code": "ACCESS_DENIED",
-      "message": "Path '/forbidden/file.txt' is outside allowed directories.",
-      "hint": "Path is outside of allowedDirectories. Check the 'path' argument.",
-      "details": { /* ... */ }
-    }
-  },
-  "id": "request_id"
+Retrieves metadata about a file or directory.
+
+**Arguments:**
+
+-   `path` (string, required): Absolute path to the file or directory.
+
+**Returns:** An object with file statistics (size, type, timestamps, etc.).
+```typescript
+interface FileStats {
+  name: string;
+  path: string;
+  type: 'file' | 'directory' | 'symlink' | 'other';
+  size: number; // Size in bytes
+  createdAt: string; // ISO 8601 timestamp
+  modifiedAt: string; // ISO 8601 timestamp
+  accessedAt: string; // ISO 8601 timestamp
+  isReadable: boolean;
+  isWritable: boolean;
+  isExecutable: boolean; // For files
+  // For directories, may include childrenCount if easily available, otherwise omitted
 }
 ```
 
-## Logging
+### `search_files`
 
-The server uses [Pino](https://getpino.io/) for logging.
-- Logs are output to `stderr`.
-- Logs are also written to `logs/mcp-filesystem.log` in the directory where the server is started (info level and above).
-- Log level can be configured (see [Configuration](#configuration)).
-- Performance logs can be enabled for debugging.
+Recursively searches for files and directories matching a pattern.
+
+**Arguments:**
+
+-   `path` (string, required): Root directory to start the search from.
+-   `pattern` (string, required): Glob pattern to match (e.g., `*.ts`, `docs/**/*.md`).
+-   `excludePatterns` (array of string, optional): Glob patterns to exclude.
+-   `useExactPatterns` (boolean, optional, default: `false`): If `true`, uses patterns as provided. If `false` (default), patterns like `*.ts` are treated as `**/*.ts` to search recursively by default.
+-   `maxDepth` (number, optional): Maximum depth for recursion.
+-   `maxResults` (number, optional): Maximum number of results to return.
+
+**Returns:** An array of strings, where each string is the full absolute path of a matched file or directory.
+
+### `directory_tree`
+
+Gets a recursive tree view of files and directories.
+
+**Arguments:**
+
+-   `path` (string, required): Absolute path to the root directory for the tree.
+-   `maxDepth` (number, optional, default: `-1` for unlimited): Maximum depth of the tree.
+
+**Returns:** A `DirectoryTreeEntry` object representing the root of the tree.
+```typescript
+interface DirectoryTreeEntry {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: DirectoryTreeEntry[]; // Undefined for files, array (possibly empty) for directories
+}
+```
+
+### `list_allowed_directories`
+
+Lists the directories the server is configured to allow access to.
+
+**Arguments:** None.
+
+**Returns:** An array of strings, where each string is an absolute path to an allowed directory.
+
+### `server_stats`
+
+Provides statistics about the server's current state.
+
+**Arguments:** None.
+
+**Returns:** An object containing server statistics like request counts, active file locks, and a snapshot of the current configuration.
 
 ## Development
 
+### Setup
+
+```bash
+npm install
+```
+
 ### Running Tests
 
-End-to-end tests are located in `src/e2e/__tests__`.
-To run tests (from the project root, e.g., `/home/lukasz/projects/gatto-ps-ai/`):
+-   Unit tests: `npm test` or `npm run test:unit`
+-   E2E tests: `npm run test:e2e`
+-   All tests: `npm run test:all`
+-   Coverage: `npm run coverage`
+
+### Linting and Formatting
+
+-   Lint: `npm run lint`
+-   Format: `npm run format`
+
+### Building
+
 ```bash
-npm run test:e2e
+npm run build
 ```
-This command uses Jest. The `package.json` includes:
-`"test:e2e": "jest --config jest.e2e.config.js --detectOpenHandles"`
 
-## Potential Issues & Areas for Improvement
+## Protocol Details
 
--   **Legacy `handshake` Method:** The `src/core/toolHandlers.ts` includes a `HandshakeRequestSchema` and handler. The `initialize` method is now the standard MCP way. Consider formally deprecating or removing the `handshake` functionality if it's no longer used or needed.
+The server communicates using JSON-RPC 2.0 messages over stdio. Each message is a JSON string followed by a newline character.
+
+-   **Requests:** Clients send requests with `method`, `params`, and `id`.
+-   **Responses:** Server sends responses with `result` (or `error`) and `id`.
+-   **Notifications:** Can be sent (e.g., `$/progress`), but this server primarily uses request/response.
+
+Standard MCP methods implemented:
+-   `initialize`: Client sends this first. Server may return capabilities.
+-   `tools/list`: Client requests available tools. Server returns a list of tool schemas.
+-   `tools/call`: Client calls a specific tool with arguments.
+
+## Potential Problems and Areas for Improvement
+
+-   **Error Handling Granularity:** While errors are structured, some internal errors might bubble up as generic "UNKNOWN_ERROR". Continuously refining error codes and messages can improve client-side handling.
+-   **Large File Streaming:** For `read_file` and `write_file` with very large files, streaming might be more memory-efficient than reading/writing the entire content at once. This is a common challenge for stdio-based servers.
+-   **Configuration Schema Validation:** The server loads config, but a more formal Zod schema for the entire configuration object (`Config` type in `src/types/config.ts`) could be used at startup to validate `mcpconfig.json` more robustly and provide clearer error messages for invalid configurations.
+-   **Symlink Handling:** The server currently treats symlinks as 'symlink' type in `get_file_info` but doesn't explicitly resolve them for operations like `read_file`. Behavior for operations on symlinks (e.g., reading a symlink to a file vs. reading the target file) should be clearly documented and consistently implemented. Current `fs.realpath` usage in `validatePath` resolves symlinks for path validation, which is good for security.
+-   **`handshake` Method:** The codebase includes a `HandshakeRequestSchema` and handler. The `initialize` method is now the standard MCP way. Consider formally deprecating or removing the `handshake` functionality if it's no longer used or needed.
 -   **Root `index.ts` File:** The `index.ts` file at the project root (`/home/lukasz/projects/gatto-ps-ai/index.ts`) is currently empty. This might be intentional or a remnant. If not serving a purpose, it could be removed or documented.
 -   **SDK Module Loading Style:** In `src/server/index.ts`, the `@modelcontextprotocol/sdk` modules are loaded using `require`, while other modules use ES6 `import`. This was a specific change made during development. It's worth confirming if this mixed style is the intended long-term approach for consistency.
--   **`list_directory` Recursion:** The `list_directory` tool has a `recursive` parameter in its schema, but the implementation notes it's not yet implemented and suggests using `directory_tree`. This could be clarified by removing the `recursive` parameter from `list_directory`'s schema if `directory_tree` is the sole method for recursive listing, or by implementing the recursive functionality in `list_directory`.
 -   **Fuzzy Matching Documentation:** The `edit_file` tool's fuzzy matching is powerful but complex. More examples in this README or separate documentation illustrating different `matchConfig` scenarios would be beneficial for users.
 -   **Performance Considerations:** For tools like `search_files` and `directory_tree` on very large directory structures or with deep recursion, performance could be a concern. Current implementation details (e.g., `maxDepth` limits) help, but further optimization or streaming results might be needed for extreme cases.
 -   **Configuration Precedence:** Clearly document the precedence if both command-line arguments (for allowed directories) and a `--config` file are somehow used (though current `getConfig` logic prioritizes `--config` if present, and command-line args are only used for `allowedDirectories` if `--config` is absent).
+

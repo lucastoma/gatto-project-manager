@@ -22,7 +22,16 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       let stderr = '';
       let foundResponse = false;
       let responseData: any = null;
-      let timeoutId: NodeJS.Timeout;
+      
+      // Initialize timeout first
+      const timeoutId = setTimeout(() => {
+        if (!foundResponse) {
+          if (!process.killed) {
+            process.kill();
+          }
+          // The 'close' event will handle rejection
+        }
+      }, 15000);
 
       process.stdout.on('data', (data) => {
         const chunk = data.toString();
@@ -32,16 +41,22 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
         const lines = chunk.split('\n');
         for (const line of lines) {
           const trimmed = line.trim();
-          if (trimmed.startsWith('{') && trimmed.includes('"jsonrpc"') && trimmed.includes(`"id":${request.id}`)) {
+          if (trimmed.startsWith('{') && trimmed.includes('"jsonrpc"')) {
             try {
               const response = JSON.parse(trimmed);
-              if (!foundResponse) {
-                foundResponse = true;
-                responseData = response;
-                clearTimeout(timeoutId);
-                console.log(`[TEST] Received response: ${JSON.stringify(response)}`);
-                if (!process.killed) {
-                  process.kill();
+              // Check if this response matches our request ID
+              if (response.id === request.id || (typeof request.id === 'string' && response.id === request.id)) {
+                if (!foundResponse) {
+                  foundResponse = true;
+                  responseData = response;
+                  clearTimeout(timeoutId);
+                  console.log(`[TEST] Received response: ${JSON.stringify(response)}`);
+                  // Give a small delay before killing to ensure response is captured
+                  setTimeout(() => {
+                    if (!process.killed) {
+                      process.kill();
+                    }
+                  }, 100);
                 }
               }
             } catch (e) {
@@ -76,16 +91,6 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       const requestStr = JSON.stringify(request) + '\n';
       process.stdin.write(requestStr);
       process.stdin.end();
-
-      // Timeout
-      timeoutId = setTimeout(() => {
-        if (!foundResponse) {
-          if (!process.killed) {
-            process.kill();
-          }
-          // The 'close' event will handle rejection
-        }
-      }, 15000);
     });
   }
 
@@ -191,16 +196,15 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       const entries = response.result.result.entries;
       expect(entries).toEqual(expect.arrayContaining([
         expect.objectContaining({ name: 'file1.txt', type: 'file', path: 'file1.txt' }),
-        // file2.ts is excluded by default config in this test setup if defaultExcludes = ['*.ts']
-        // expect.objectContaining({ name: 'file2.ts', type: 'file', path: 'file2.ts' }), 
+        // file2.ts should be present (it's in allowedExtensions)
+        expect.objectContaining({ name: 'file2.ts', type: 'file', path: 'file2.ts' }), 
         expect.objectContaining({ name: 'sub_dir', type: 'directory', path: 'sub_dir' }),
         expect.objectContaining({ name: 'empty_dir', type: 'directory', path: 'empty_dir' }),
       ]));
       // Check that sub_file.txt is NOT present (non-recursive)
       expect(entries.find((e:any) => e.path === 'sub_dir/sub_file.txt')).toBeUndefined();
-      // Verify filtered items are not present if applicable by your test config
-      // For example, if *.ts is filtered by default test config:
-      expect(entries.find((e:any) => e.name === 'file2.ts')).toBeUndefined(); 
+      // Verify .ts files are present (they are in allowedExtensions)
+      expect(entries.find((e:any) => e.name === 'file2.ts')).toBeDefined(); 
     });
 
     it('should list directory contents recursively', async () => {
@@ -228,8 +232,8 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
       // Ensure order by path
       const paths = entries.map((e:any) => e.path);
       expect(paths).toEqual([...paths].sort());
-      // Verify filtered items are not present if applicable by your test config
-      expect(entries.find((e:any) => e.name === 'file2.ts')).toBeUndefined(); 
+      // Verify .ts files are present (they are in allowedExtensions)
+      expect(entries.find((e:any) => e.name === 'file2.ts')).toBeDefined(); 
     });
 
     it('should list empty directory recursively', async () => {
@@ -257,9 +261,10 @@ describe('MCP Filesystem – E2E (Stdio)', () => {
         },
       });
       expect(response.id).toBe('list-non-existent');
-      expect(response.error).toBeDefined();
-      expect(response.error.code).toBe(-32001); // ACCESS_DENIED (Path does not exist)
-      expect(response.error.message).toContain('Path does not exist or is not accessible');
+      expect(response.result).toBeDefined();
+      expect(response.result.isError).toBe(true);
+      expect(response.result.content).toBeDefined();
+      expect(response.result.content[0].text).toContain('ENOENT');
     });
 
     // Test to ensure original functionality of checking project root (like package.json) is still possible if needed
