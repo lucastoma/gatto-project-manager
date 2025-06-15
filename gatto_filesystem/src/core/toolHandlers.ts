@@ -77,6 +77,7 @@ function shouldSkipPath(filePath: string, config: Config): boolean {
 }
 
 export function setupToolHandlers(server: Server, allowedDirectories: string[], logger: Logger, config: Config) {
+  initGlobalSemaphore(config);
   server.setRequestHandler(schemas.HandshakeRequestSchema, async () => ({
     serverName: 'mcp-filesystem-server',
     serverVersion: '0.7.0'
@@ -192,16 +193,13 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
               }
             }
             
-            const lock = getFileLock(validPath, config, requestLogger);
+            const lock = getFileLock(validPath, config, logger);
             await getGlobalSemaphore().runExclusive(async () => {
-              await getGlobalSemaphore().runExclusive(async () => {
-            await lock.runExclusive(async () => {
-              const contentBuffer = Buffer.from(parsed.data.content, parsed.data.encoding);
-              await fs.writeFile(validPath, contentBuffer);
+              await lock.runExclusive(async () => {
+                const contentBuffer = Buffer.from(parsed.data.content, parsed.data.encoding);
+                await fs.writeFile(validPath, contentBuffer);
               });
-          });
             });
-          });
             timer.end();
             return { content: [{ type: 'text', text: `File written: ${parsed.data.path}` }] };
           } catch (error) {
@@ -227,17 +225,22 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
             debug: config.logging.level === 'debug',
           };
 
-          const lock = getFileLock(validPath, config);
-          const { modifiedContent, formattedDiff } = await getGlobalSemaphore().runExclusive(async () => {
+          const lock = getFileLock(validPath, config, logger);
+          let modifiedContent: string;
+          let formattedDiff: string;
+          
+          await getGlobalSemaphore().runExclusive(async () => {
             await lock.runExclusive(async () => {
-            const editResult = await applyFileEdits(
-              validPath, // Use validated path
-              parsed.data.edits,
-              fuzzyConfig,
-              logger,
-              config
-            );
-            return editResult;
+              const editResult = await applyFileEdits(
+                validPath, // Use validated path
+                parsed.data.edits,
+                fuzzyConfig,
+                logger,
+                config
+              );
+              modifiedContent = editResult.modifiedContent;
+              formattedDiff = editResult.formattedDiff;
+            });
           });
 
           const responseText = parsed.data.dryRun 
@@ -251,7 +254,12 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
           const parsed = schemas.CreateDirectoryArgsSchema.safeParse(request.params.args);
           if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) });
           const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
-          await fs.mkdir(validPath, { recursive: true });
+          const lock = getFileLock(validPath, config);
+          await getGlobalSemaphore().runExclusive(async () => {
+            await lock.runExclusive(async () => {
+              await fs.mkdir(validPath, { recursive: true });
+            });
+          });
           return { content: [{ type: 'text', text: `Directory created: ${parsed.data.path}` }] };
         }
 
@@ -324,8 +332,10 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
             throw createError('FILE_FILTERED_OUT', 'File is excluded by filtering rules', { path: validPath });
           }
           const lock = getFileLock(validPath, config);
-          await lock.runExclusive(async () => {
-            await fs.unlink(validPath);
+          await getGlobalSemaphore().runExclusive(async () => {
+            await lock.runExclusive(async () => {
+              await fs.unlink(validPath);
+            });
           });
           return { content: [{ type: 'text', text: `File deleted: ${parsed.data.path}` }] };
         }
@@ -338,8 +348,10 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
             throw createError('FILE_FILTERED_OUT', 'File is excluded by filtering rules', { path: validPath });
           }
           const lock = getFileLock(validPath, config); // Lock the directory itself
-          await lock.runExclusive(async () => {
-            await fs.rm(validPath, { recursive: parsed.data.recursive || false, force: false }); // force: false for safety
+          await getGlobalSemaphore().runExclusive(async () => {
+            await lock.runExclusive(async () => {
+              await fs.rm(validPath, { recursive: parsed.data.recursive || false, force: false }); // force: false for safety
+            });
           });
           return { content: [{ type: 'text', text: `Directory deleted: ${parsed.data.path}` }] };
         }
