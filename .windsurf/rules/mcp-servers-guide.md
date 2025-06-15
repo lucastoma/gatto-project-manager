@@ -1,5 +1,5 @@
 ---
-trigger: always_on
+trigger: manual
 ---
 
 ## "repomix-docker-linux" and "filesystem" paths

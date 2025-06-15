@@ -5,8 +5,10 @@
   "license": "MIT",
   "author": "Anthropic, PBC (https://anthropic.com)",
   "homepage": "https://modelcontextprotocol.io",
-  "bugs": "https://github.com/modelcontextprotocol/servers/issues",
-  "type": "module",
+  "bugs": {
+    "url": "https://github.com/modelcontextprotocol/servers/issues"
+  },
+  "type": "commonjs",
   "bin": {
     "mcp-server-filesystem": "dist/server/index.js"
   },
@@ -14,29 +16,32 @@
     "dist"
   ],
   "scripts": {
-    "build": "npm run clean && tsc && shx chmod +x dist/server/*.js",
+    "build": "npm run clean && tsc && chmod +x dist/server/*.js",
     "prepare": "npm run build",
     "watch": "tsc --watch",
-    "clean": "rimraf dist",
+    "clean": "npx rimraf dist",
     "prepublishOnly": "npm run build"
   },
   "dependencies": {
-    "async-mutex": "^0.3.2",
-    "pino": "^8.17.2",
     "@modelcontextprotocol/sdk": "0.5.0",
+    "async-mutex": "^0.3.2",
+    "axios": "^1.10.0",
     "diff": "^5.1.0",
     "glob": "^10.3.10",
     "minimatch": "^10.0.1",
+    "pino": "^8.17.2",
     "zod-to-json-schema": "^3.23.5"
   },
   "devDependencies": {
-    "@types/pino": "^7.0.5",
-    "rimraf": "^5.0.5",
     "@types/diff": "^5.0.9",
     "@types/minimatch": "^5.1.2",
-    "@types/node": "^22",
+    "@types/node": "^22.15.31",
+    "@types/pino": "^7.0.5",
+    "rimraf": "^5.0.10",
     "shx": "^0.3.4",
     "typescript": "^5.3.3"
   },
-  "types": "./dist/server/index.d.ts"
+  "types": "./dist/server/index.d.ts",
+  "main": "index.js",
+  "keywords": []
 }

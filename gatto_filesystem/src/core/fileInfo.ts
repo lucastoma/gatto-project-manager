@@ -84,6 +84,19 @@ export async function searchFiles(
             continue;
           }
 
+          // Check if path should be excluded based on file filtering rules
+          if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
+            continue;
+          }
+
+          // Check allowed extensions if forceTextFiles is true
+          if (config.fileFiltering.forceTextFiles) {
+            const ext = path.extname(fullPath).toLowerCase();
+            if (!config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p))) {
+              continue;
+            }
+          }
+
           // Determine the actual glob pattern to use based on useExactPatterns
           // If useExactPatterns is false and the input pattern doesn't contain a path separator,
           // prepend '**/' to match items at any depth.
@@ -157,6 +170,21 @@ export async function getDirectoryTree(
       const dirents = await fs.readdir(validatedPath, { withFileTypes: true });
       for (const dirent of dirents) {
         const childPath = path.join(validatedPath, dirent.name);
+        
+        // Skip excluded paths and disallowed extensions
+        const relativePath = path.relative(basePath, childPath);
+        if (config.fileFiltering.defaultExcludes.some(p => minimatch(relativePath, p, { dot: true }))) {
+          continue;
+        }
+        
+        // Check allowed extensions if forceTextFiles is true
+        if (dirent.isFile() && config.fileFiltering.forceTextFiles) {
+          const ext = path.extname(childPath).toLowerCase();
+          if (!config.fileFiltering.allowedExtensions.some(p => minimatch(`*${ext}`, p))) {
+            continue;
+          }
+        }
+        
         // Recursive call, incrementing currentDepth
         // We pass the original maxDepth down
         const childEntry = await getDirectoryTree(childPath, allowedDirectories, logger, config, currentDepth + 1, maxDepth);

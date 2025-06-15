@@ -27,15 +27,17 @@ export const WriteFileArgsSchema = z.object({
   encoding: z.enum(['utf-8', 'base64']).default('utf-8').describe('Encoding of provided content')
 });
 
-export const EditOperation = z.object({
+export const EditOperationSchema = z.object({
   oldText: z.string().describe('Text to search for - can be slightly inaccurate'),
-  newText: z.string().describe('Text to replace with')
+  newText: z.string().describe('Text to replace with'),
+  forcePartialMatch: z.boolean().optional().default(false)
+    .describe('If true, allows partial matches above minSimilarity threshold when no exact match is found')
 });
-export type EditOperation = z.infer<typeof EditOperation>;
+export type EditOperation = z.infer<typeof EditOperationSchema>;
 
 export const getEditFileArgsSchema = (config: Config) => z.object({
   path: z.string(),
-  edits: z.array(EditOperation),
+  edits: z.array(EditOperationSchema),
   dryRun: z.boolean().default(false).describe('Preview changes using git-style diff format'),
   debug: z.boolean().default(false).describe('Show detailed matching information'),
   caseSensitive: z.boolean().default(config.fuzzyMatching.caseSensitive).describe('Whether to match case sensitively'),

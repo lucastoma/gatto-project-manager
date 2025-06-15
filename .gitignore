@@ -48,5 +48,7 @@ gatto__filesystem/**/*
 gatto__filesystem/dist/**/*
 gatto__filesystem/node_modules/**/*
 
-gatto_filesystem_v2/dist/**/*
-gatto_filesystem_v2/node_modules/**/*
+gatto_filesystem/dist/**/*
+gatto_filesystem/node_modules/**/*
+
+**/dist/**/*

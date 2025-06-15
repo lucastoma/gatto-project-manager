@@ -1,18 +1,24 @@
 {
   "compilerOptions": {
     "target": "es2022",
-    "module": "nodenext",
-    "moduleResolution": "nodenext", // or "node" if preferred
+    "module": "commonjs",
+    "moduleResolution": "node",
     "esModuleInterop": true,
+    "allowSyntheticDefaultImports": true,
     "strict": true,
     "skipLibCheck": true,
     "outDir": "./dist",
     "rootDir": "./src",
-    "declaration": true,
-    "sourceMap": true,
-    "resolveJsonModule": true, // Good for importing config.example.json if needed
     "baseUrl": ".",
-    "forceConsistentCasingInFileNames": true
+    "paths": {
+      "@modelcontextprotocol/sdk/*": ["node_modules/@modelcontextprotocol/sdk/dist/*"]
+    },
+    "types": ["node"],
+    "declaration": true,
+    "emitDeclarationOnly": false,
+    "sourceMap": true,
+    "resolveJsonModule": true,
+    "noEmit": false
   },
   "include": [
     "src/**/*.ts"

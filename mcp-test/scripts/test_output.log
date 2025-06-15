@@ -1,0 +1,116 @@
+Creating test file /home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt
+\n[1/8] Testing exact match replacement
+--- Exact match replacement (edit_file) ---
+JSON: {
+  "path": "/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt",
+  "edits": [
+    {
+      "oldText": "Line 1: This is the first line of the original content.",
+      "newText": "Line 1: Exact match replacement succeeded."
+    }
+  ]
+}
+
+Request: {"id":1,"params":{"args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"oldText":"Line 1: This is the first line of the original content.","newText":"Line 1: Exact match replacement succeeded."}]},"name":"edit_file"},"jsonrpc":"2.0","method":"call_tool"} Testing tool: edit_file... Response: {"level":"info","timestamp":"2025-06-15T01:58:12.887Z","service":"mcp-filesystem-server","version":"0.7.0","version":"0.7.0","allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"config":{"allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"fuzzyMatching":{"maxDistanceRatio":0.25,"minSimilarity":0.7,"caseSensitive":false,"ignoreWhitespace":true,"preserveLeadingWhitespace":"auto"},"logging":{"level":"info","performance":false},"concurrency":{"maxConcurrentEdits":10}},"msg":"Enhanced MCP Filesystem Server started"} {"level":"info","timestamp":"2025-06-15T01:58:12.892Z","service":"mcp-filesystem-server","version":"0.7.0","tool":"edit_file","args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"oldText":"Line 1: This is the first line of the original content.","newText":"Line 1: Exact match replacement succeeded."}]},"msg":"Tool request: edit_file"} {"level":"error","timestamp":"2025-06-15T01:58:12.898Z","service":"mcp-filesystem-server","version":"0.7.0","error":{"errno":-36,"code":"ENAMETOOLONG","syscall":"open","path":"Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n"},"tool":"edit_file","msg":"Tool request failed: edit_file"} {"result":{"content":[{"type":"text","text":"Error (ENAMETOOLONG): ENAMETOOLONG: name too long, open 'Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n'"}],"isError":true,"meta":{}},"jsonrpc":"2.0","id":1}
+\n[2/8] Testing fuzzy replacement (with typo)
+--- Fuzzy replacement (typo in oldText) (edit_file) ---
+JSON: {
+  "path": "/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt",
+  "edits": [
+    {
+      "oldText": "Line 1: Exact matc replacement succeeded.",
+      "newText": "Line 1: Fuzzy edit succeeded – typo corrected."
+    }
+  ]
+}
+
+Request: {"method":"call_tool","params":{"name":"edit_file","args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"oldText":"Line 1: Exact matc replacement succeeded.","newText":"Line 1: Fuzzy edit succeeded – typo corrected."}]}},"id":1,"jsonrpc":"2.0"} Testing tool: edit_file... Response: {"level":"info","timestamp":"2025-06-15T01:58:14.409Z","service":"mcp-filesystem-server","version":"0.7.0","version":"0.7.0","allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"config":{"allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"fuzzyMatching":{"maxDistanceRatio":0.25,"minSimilarity":0.7,"caseSensitive":false,"ignoreWhitespace":true,"preserveLeadingWhitespace":"auto"},"logging":{"level":"info","performance":false},"concurrency":{"maxConcurrentEdits":10}},"msg":"Enhanced MCP Filesystem Server started"} {"level":"info","timestamp":"2025-06-15T01:58:14.415Z","service":"mcp-filesystem-server","version":"0.7.0","tool":"edit_file","args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"oldText":"Line 1: Exact matc replacement succeeded.","newText":"Line 1: Fuzzy edit succeeded – typo corrected."}]},"msg":"Tool request: edit_file"} {"level":"error","timestamp":"2025-06-15T01:58:14.419Z","service":"mcp-filesystem-server","version":"0.7.0","error":{"errno":-36,"code":"ENAMETOOLONG","syscall":"open","path":"Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n"},"tool":"edit_file","msg":"Tool request failed: edit_file"} {"result":{"content":[{"type":"text","text":"Error (ENAMETOOLONG): ENAMETOOLONG: name too long, open 'Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n'"}],"isError":true,"meta":{}},"jsonrpc":"2.0","id":1}
+\n[3/8] Testing overlapping edits (should warn)
+--- Overlapping edits warning (edit_file) ---
+JSON: {
+  "path": "/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt",
+  "edits": [
+    {
+      "oldText": "Line 1: Fuzzy edit succeeded – typo corrected.",
+      "newText": "Line 1: First change for overlapping test."
+    },
+    {
+      "oldText": "Line 1: First change for overlapping test.",
+      "newText": "Line 1: Second change, overlap complete."
+    }
+  ]
+}
+
+Request: {"id":1,"method":"call_tool","jsonrpc":"2.0","params":{"name":"edit_file","args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"oldText":"Line 1: Fuzzy edit succeeded – typo corrected.","newText":"Line 1: First change for overlapping test."},{"oldText":"Line 1: First change for overlapping test.","newText":"Line 1: Second change, overlap complete."}]}}} Testing tool: edit_file... Response: {"level":"info","timestamp":"2025-06-15T01:58:15.926Z","service":"mcp-filesystem-server","version":"0.7.0","version":"0.7.0","allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"config":{"allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"fuzzyMatching":{"maxDistanceRatio":0.25,"minSimilarity":0.7,"caseSensitive":false,"ignoreWhitespace":true,"preserveLeadingWhitespace":"auto"},"logging":{"level":"info","performance":false},"concurrency":{"maxConcurrentEdits":10}},"msg":"Enhanced MCP Filesystem Server started"} {"level":"info","timestamp":"2025-06-15T01:58:15.932Z","service":"mcp-filesystem-server","version":"0.7.0","tool":"edit_file","args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"oldText":"Line 1: Fuzzy edit succeeded – typo corrected.","newText":"Line 1: First change for overlapping test."},{"oldText":"Line 1: First change for overlapping test.","newText":"Line 1: Second change, overlap complete."}]},"msg":"Tool request: edit_file"} {"level":"error","timestamp":"2025-06-15T01:58:15.939Z","service":"mcp-filesystem-server","version":"0.7.0","error":{"errno":-36,"code":"ENAMETOOLONG","syscall":"open","path":"Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n"},"tool":"edit_file","msg":"Tool request failed: edit_file"} {"result":{"content":[{"type":"text","text":"Error (ENAMETOOLONG): ENAMETOOLONG: name too long, open 'Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n'"}],"isError":true,"meta":{}},"jsonrpc":"2.0","id":1}
+\n[4/8] Testing dry-run mode
+--- Dry-run (no write) (edit_file) ---
+JSON: {
+  "dryRun": true,
+  "edits": [
+    {
+      "oldText": "Line 1: Second change, overlap complete.",
+      "newText": "Line 1: This would be written, but dry-run=true"
+    }
+  ],
+  "path": "/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt"
+}
+
+Request: {"jsonrpc":"2.0","id":1,"params":{"args":{"dryRun":true,"edits":[{"oldText":"Line 1: Second change, overlap complete.","newText":"Line 1: This would be written, but dry-run=true"}],"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt"},"name":"edit_file"},"method":"call_tool"} Testing tool: edit_file... Response: {"level":"info","timestamp":"2025-06-15T01:58:17.286Z","service":"mcp-filesystem-server","version":"0.7.0","version":"0.7.0","allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"config":{"allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"fuzzyMatching":{"maxDistanceRatio":0.25,"minSimilarity":0.7,"caseSensitive":false,"ignoreWhitespace":true,"preserveLeadingWhitespace":"auto"},"logging":{"level":"info","performance":false},"concurrency":{"maxConcurrentEdits":10}},"msg":"Enhanced MCP Filesystem Server started"} {"level":"info","timestamp":"2025-06-15T01:58:17.292Z","service":"mcp-filesystem-server","version":"0.7.0","tool":"edit_file","args":{"dryRun":true,"edits":[{"oldText":"Line 1: Second change, overlap complete.","newText":"Line 1: This would be written, but dry-run=true"}],"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt"},"msg":"Tool request: edit_file"} {"level":"error","timestamp":"2025-06-15T01:58:17.297Z","service":"mcp-filesystem-server","version":"0.7.0","error":{"errno":-36,"code":"ENAMETOOLONG","syscall":"open","path":"Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n"},"tool":"edit_file","msg":"Tool request failed: edit_file"} {"result":{"content":[{"type":"text","text":"Error (ENAMETOOLONG): ENAMETOOLONG: name too long, open 'Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n'"}],"isError":true,"meta":{}},"jsonrpc":"2.0","id":1}
+\n[5/8] Testing Partial Match (No Force) - Expect Error
+--- Partial Match (No Force) (edit_file) ---
+JSON: {
+  "path": "/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt",
+  "edits": [
+    {
+      "oldText": "second line, which we will try",
+      "newText": "This should not be written due to partial match error"
+    }
+  ]
+}
+
+Request: {"method":"call_tool","params":{"name":"edit_file","args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"oldText":"second line, which we will try","newText":"This should not be written due to partial match error"}]}},"id":1,"jsonrpc":"2.0"} Testing tool: edit_file... Response: {"level":"info","timestamp":"2025-06-15T01:58:18.581Z","service":"mcp-filesystem-server","version":"0.7.0","version":"0.7.0","allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"config":{"allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"fuzzyMatching":{"maxDistanceRatio":0.25,"minSimilarity":0.7,"caseSensitive":false,"ignoreWhitespace":true,"preserveLeadingWhitespace":"auto"},"logging":{"level":"info","performance":false},"concurrency":{"maxConcurrentEdits":10}},"msg":"Enhanced MCP Filesystem Server started"} {"level":"info","timestamp":"2025-06-15T01:58:18.586Z","service":"mcp-filesystem-server","version":"0.7.0","tool":"edit_file","args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"oldText":"second line, which we will try","newText":"This should not be written due to partial match error"}]},"msg":"Tool request: edit_file"} {"level":"error","timestamp":"2025-06-15T01:58:18.591Z","service":"mcp-filesystem-server","version":"0.7.0","error":{"errno":-36,"code":"ENAMETOOLONG","syscall":"open","path":"Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n"},"tool":"edit_file","msg":"Tool request failed: edit_file"} {"result":{"content":[{"type":"text","text":"Error (ENAMETOOLONG): ENAMETOOLONG: name too long, open 'Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n'"}],"isError":true,"meta":{}},"jsonrpc":"2.0","id":1}
+\n[6/8] Testing Partial Match (Force Accept) - Expect Success
+--- Partial Match (Force Accept) (edit_file) ---
+JSON: {
+  "path": "/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt",
+  "edits": [
+    {
+      "forcePartialMatch": true,
+      "oldText": "second line, which we will try",
+      "newText": "Line 2: Partial match successfully forced and applied."
+    }
+  ]
+}
+
+Request: {"params":{"args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"forcePartialMatch":true,"oldText":"second line, which we will try","newText":"Line 2: Partial match successfully forced and applied."}]},"name":"edit_file"},"jsonrpc":"2.0","method":"call_tool","id":1} Testing tool: edit_file... Response: {"level":"info","timestamp":"2025-06-15T01:58:19.977Z","service":"mcp-filesystem-server","version":"0.7.0","version":"0.7.0","allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"config":{"allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"fuzzyMatching":{"maxDistanceRatio":0.25,"minSimilarity":0.7,"caseSensitive":false,"ignoreWhitespace":true,"preserveLeadingWhitespace":"auto"},"logging":{"level":"info","performance":false},"concurrency":{"maxConcurrentEdits":10}},"msg":"Enhanced MCP Filesystem Server started"} {"level":"info","timestamp":"2025-06-15T01:58:19.983Z","service":"mcp-filesystem-server","version":"0.7.0","tool":"edit_file","args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"forcePartialMatch":true,"oldText":"second line, which we will try","newText":"Line 2: Partial match successfully forced and applied."}]},"msg":"Tool request: edit_file"} {"level":"error","timestamp":"2025-06-15T01:58:19.987Z","service":"mcp-filesystem-server","version":"0.7.0","error":{"errno":-36,"code":"ENAMETOOLONG","syscall":"open","path":"Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n"},"tool":"edit_file","msg":"Tool request failed: edit_file"} {"result":{"content":[{"type":"text","text":"Error (ENAMETOOLONG): ENAMETOOLONG: name too long, open 'Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n'"}],"isError":true,"meta":{}},"jsonrpc":"2.0","id":1}
+\n[7/8] Testing Fuzzy Match (Force Accept, Low Similarity) - Expect Success
+--- Fuzzy Match (Force Accept, Low Similarity) (edit_file) ---
+JSON: {
+  "path": "/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt",
+  "edits": [
+    {
+      "forcePartialMatch": true,
+      "oldText": "A thrd lne fr cntxt nd othr oprtns.",
+      "newText": "Line 3: Fuzzy forced match (low similarity) applied."
+    }
+  ]
+}
+
+Request: {"jsonrpc":"2.0","params":{"args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"forcePartialMatch":true,"oldText":"A thrd lne fr cntxt nd othr oprtns.","newText":"Line 3: Fuzzy forced match (low similarity) applied."}]},"name":"edit_file"},"id":1,"method":"call_tool"} Testing tool: edit_file... Response: {"level":"info","timestamp":"2025-06-15T01:58:21.286Z","service":"mcp-filesystem-server","version":"0.7.0","version":"0.7.0","allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"config":{"allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"fuzzyMatching":{"maxDistanceRatio":0.25,"minSimilarity":0.7,"caseSensitive":false,"ignoreWhitespace":true,"preserveLeadingWhitespace":"auto"},"logging":{"level":"info","performance":false},"concurrency":{"maxConcurrentEdits":10}},"msg":"Enhanced MCP Filesystem Server started"} {"level":"info","timestamp":"2025-06-15T01:58:21.291Z","service":"mcp-filesystem-server","version":"0.7.0","tool":"edit_file","args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"forcePartialMatch":true,"oldText":"A thrd lne fr cntxt nd othr oprtns.","newText":"Line 3: Fuzzy forced match (low similarity) applied."}]},"msg":"Tool request: edit_file"} {"level":"error","timestamp":"2025-06-15T01:58:21.296Z","service":"mcp-filesystem-server","version":"0.7.0","error":{"errno":-36,"code":"ENAMETOOLONG","syscall":"open","path":"Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n"},"tool":"edit_file","msg":"Tool request failed: edit_file"} {"result":{"content":[{"type":"text","text":"Error (ENAMETOOLONG): ENAMETOOLONG: name too long, open 'Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n'"}],"isError":true,"meta":{}},"jsonrpc":"2.0","id":1}
+\n[8/8] Testing No Match (Force Accept, Below Threshold) - Expect FUZZY_MATCH_FAILED
+--- No Match (Force Accept, Below Threshold) (edit_file) ---
+JSON: {
+  "path": "/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt",
+  "edits": [
+    {
+      "forcePartialMatch": true,
+      "oldText": "Completely unrelated gibberish text that will not match anything.",
+      "newText": "This text should never be written."
+    }
+  ]
+}
+
+Request: {"id":1,"method":"call_tool","params":{"args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"forcePartialMatch":true,"oldText":"Completely unrelated gibberish text that will not match anything.","newText":"This text should never be written."}]},"name":"edit_file"},"jsonrpc":"2.0"} Testing tool: edit_file... Response: {"level":"info","timestamp":"2025-06-15T01:58:22.494Z","service":"mcp-filesystem-server","version":"0.7.0","version":"0.7.0","allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"config":{"allowedDirectories":["/home/lukasz/projects/gatto-ps-ai/mcp-test"],"fuzzyMatching":{"maxDistanceRatio":0.25,"minSimilarity":0.7,"caseSensitive":false,"ignoreWhitespace":true,"preserveLeadingWhitespace":"auto"},"logging":{"level":"info","performance":false},"concurrency":{"maxConcurrentEdits":10}},"msg":"Enhanced MCP Filesystem Server started"} {"level":"info","timestamp":"2025-06-15T01:58:22.500Z","service":"mcp-filesystem-server","version":"0.7.0","tool":"edit_file","args":{"path":"/home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt","edits":[{"forcePartialMatch":true,"oldText":"Completely unrelated gibberish text that will not match anything.","newText":"This text should never be written."}]},"msg":"Tool request: edit_file"} {"level":"error","timestamp":"2025-06-15T01:58:22.504Z","service":"mcp-filesystem-server","version":"0.7.0","error":{"errno":-36,"code":"ENAMETOOLONG","syscall":"open","path":"Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n"},"tool":"edit_file","msg":"Tool request failed: edit_file"} {"result":{"content":[{"type":"text","text":"Error (ENAMETOOLONG): ENAMETOOLONG: name too long, open 'Line 1: This is the first line of the original content.\nLine 2: Here is the second line, which we will try to partially match.\nLine 3: A third line for context and other operations.\nLine 4: Another line for good measure.\nLine 5: The final line before edits begin.\n'"}],"isError":true,"meta":{}},"jsonrpc":"2.0","id":1}
+\nAll 8 edit_file scenarios executed. Check:
+1. Content of /home/lukasz/projects/gatto-ps-ai/mcp-test/scripts/edit-test.txt
+2. Server logs (if LOG_LEVEL=debug)

@@ -9,8 +9,8 @@ param (
 )
 
 # Test variables
-$SERVER_PATH = "D:/projects/gatto-ps-ai-link1/gatto_filesystem_v2/dist/server/index.js"
-$TEST_DIR = "D:/projects/gatto-ps-ai-link1/mcp-test"
+$SERVER_PATH = "/home/lukasz/projects/gatto-ps-ai/gatto_filesystem/dist/server/index.js"
+$TEST_DIR = "/home/lukasz/projects/gatto-ps-ai/mcp-test"
 
 # Parse params with error handling
 $params = try {

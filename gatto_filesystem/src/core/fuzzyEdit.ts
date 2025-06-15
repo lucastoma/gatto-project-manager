@@ -4,6 +4,7 @@ import { isBinaryFile } from '../utils/binaryDetect.js';
 import { createError } from '../types/errors.js';
 import { PerformanceTimer } from '../utils/performance.js';
 import type { Logger } from 'pino';
+import type { EditOperation } from './schemas.js';
 import type { Config } from '../server/config.js';
 
 export interface FuzzyMatchConfig {
@@ -13,6 +14,7 @@ export interface FuzzyMatchConfig {
   ignoreWhitespace: boolean;
   preserveLeadingWhitespace: 'auto' | 'strict' | 'normalize';
   debug: boolean;
+  forcePartialMatch?: boolean; // Added for forcePartialMatch option per edit
 }
 
 export interface ApplyFileEditsResult {
@@ -121,9 +123,17 @@ function applyRelativeIndentation(
   }
 }
 
+function getContextLines(text: string, lineNumber: number, contextSize: number): string {
+  const lines = text.split('\n');
+  const start = Math.max(0, lineNumber - contextSize);
+  const end = Math.min(lines.length, lineNumber + contextSize + 1);
+  // Return actual line numbers, so add 1 to start index for display if lines are 1-indexed in user's mind
+  return lines.slice(start, end).map((line, i) => `${start + i + 1}: ${line}`).join('\n');
+}
+
 export async function applyFileEdits(
   filePath: string,
-  edits: Array<{oldText: string, newText: string}>,
+  edits: EditOperation[], // Updated to use EditOperation type
   config: FuzzyMatchConfig,
   logger: Logger,
   globalConfig: Config
@@ -217,26 +227,44 @@ export async function applyFileEdits(
           modifiedContent = contentLines.join('\n');
           matchFound = true;
         } else if (bestMatch.similarity >= 0.5) {
-            throw createError(
-                'PARTIAL_MATCH',
-                `Found a partial match for edit ${editIndex + 1} with similarity ${bestMatch.similarity.toFixed(3)}. Please adjust 'oldText' or matching parameters.`,
-                { 
-                    editIndex, 
-                    similarity: bestMatch.similarity, 
-                    bestMatchPreview: bestMatch.text.substring(0, 100) 
-                }
+          if (edit.forcePartialMatch) {
+            logger.warn(`Applying forced partial match for edit ${editIndex + 1} (similarity: ${bestMatch.similarity.toFixed(3)}) due to 'forcePartialMatch: true'.`);
+            const newLines = normalizedNew.split('\n');
+            const originalIndent = contentLines[bestMatch.index].match(/^\s*/)?.[0] || '';
+            const oldLinesForIndent = normalizedOld.split('\n');
+            const indentedNewLines = applyRelativeIndentation(
+              newLines, 
+              oldLinesForIndent,
+              originalIndent, 
+              config.preserveLeadingWhitespace
             );
+            contentLines.splice(bestMatch.index, bestMatch.windowSize, ...indentedNewLines);
+            modifiedContent = contentLines.join('\n');
+            matchFound = true;
+          } else {
+            const contextText = getContextLines(normalizeLineEndings(originalContent), bestMatch.index, 3);
+            const partialDiff = createUnifiedDiff(bestMatch.text, processedOld, filePath);
+            throw createError(
+              'PARTIAL_MATCH',
+              `Partial match found for edit ${editIndex + 1} (similarity: ${bestMatch.similarity.toFixed(3)}).` +
+              `\n=== Context (around line ${bestMatch.index + 1} in preprocessed content) ===\n${contextText}\n` +
+              `\n=== Diff (actual found text vs. your preprocessed oldText) ===\n${partialDiff}\n` +
+              `\n=== Suggested Fix ===\n` +
+              `1. Adjust 'oldText' to match the content more closely.\n` +
+              `2. Or set 'forcePartialMatch: true' for this edit operation if this partial match is acceptable.`, 
+              {
+                editIndex,
+                similarity: bestMatch.similarity,
+                bestMatchPreview: bestMatch.text.substring(0, 100),
+                context: contextText,
+                diff: partialDiff
+              }
+            );
+          }
         }
       }
 
-      if (!matchFound) {
-        let errorMessage = `Could not find a close match for edit ${editIndex + 1}:\n---\n${edit.oldText}\n---`;
-        throw createError(
-          'FUZZY_MATCH_FAILED',
-          errorMessage,
-          { editIndex, levenshteinIterations }
-        );
-      }
+
     }
 
     const diff = createUnifiedDiff(originalContent, modifiedContent, filePath);

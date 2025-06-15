@@ -1,1 +1,5 @@
-﻿Initial content plus typo
+Line 1: This is the first line of the original content.
+Line 2: Here is the second line, which we will try to partially match.
+Line 3: A third line for context and other operations.
+Line 4: Another line for good measure.
+Line 5: The final line before edits begin.
