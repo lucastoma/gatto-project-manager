@@ -127,6 +127,16 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
               throw createError('ACCESS_DENIED', 'File access denied due to filtering rules.');
             }
             const rawBuffer = await fs.readFile(validatedPath);
+
+            // Enforce configured maximum read size
+            if (rawBuffer.length > config.limits.maxReadBytes) {
+              throw createError(
+                'FILE_TOO_LARGE',
+                `File size ${rawBuffer.length} exceeds configured maxReadBytes limit of ${config.limits.maxReadBytes} bytes`,
+                { path: validatedPath, size: rawBuffer.length, limit: config.limits.maxReadBytes }
+              );
+            }
+
             let content: string;
             let encodingUsed: 'utf-8' | 'base64' = 'utf-8';
             const isBinary = isBinaryFile(rawBuffer, validatedPath);
@@ -171,6 +181,16 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
             await getGlobalSemaphore().runExclusive(async () => {
               await lock.runExclusive(async () => {
                 const contentBuffer = Buffer.from(parsed.data.content, parsed.data.encoding);
+
+                // Enforce configured maximum write size
+                if (contentBuffer.length > config.limits.maxWriteBytes) {
+                  throw createError(
+                    'WRITE_TOO_LARGE',
+                    `Content size ${contentBuffer.length} exceeds configured maxWriteBytes limit of ${config.limits.maxWriteBytes} bytes`,
+                    { path: validPath, size: contentBuffer.length, limit: config.limits.maxWriteBytes }
+                  );
+                }
+
                 await fs.writeFile(validPath, contentBuffer);
               });
             });
