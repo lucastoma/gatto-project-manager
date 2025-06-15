@@ -47,6 +47,22 @@ class LABColorTransferGPU:
         self._initialize_opencl()
         self._load_kernel()
         self.gpu_mask_buffers_cache = {} # Cache for mask buffers
+        
+        # Method dispatch for GPU operations
+        self._GPU_METHOD_DISPATCH = {
+            "basic": "_execute_basic_on_gpu_buffers",
+            "linear_blend": "_execute_linear_blend_on_gpu_buffers",
+            "selective": "_execute_selective_on_gpu_buffers",
+            "adaptive": "_execute_adaptive_on_gpu_buffers",
+        }
+        
+        # Method dispatch for GPU operations
+        self._GPU_METHOD_DISPATCH = {
+            "basic": "_execute_basic_on_gpu_buffers",
+            "linear_blend": "_execute_linear_blend_on_gpu_buffers",
+            "selective": "_execute_selective_on_gpu_buffers",
+            "adaptive": "_execute_adaptive_on_gpu_buffers",
+        }
     """
     GPU-accelerated version of LABColorTransfer using OpenCL.
     """
@@ -374,6 +390,209 @@ class LABColorTransferGPU:
         cl.enqueue_copy(self.queue, result_lab_f32, result_g).wait()
         return result_lab_f32.astype(source_lab.dtype)
 
+    def _execute_basic_on_gpu_buffers(self, src_buffer: cl.Buffer, tgt_buffer: cl.Buffer, 
+                                     width: int, height: int, **kwargs) -> cl.Buffer:
+        """Execute basic transfer directly on GPU buffers."""
+        result_buffer = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY, src_buffer.size)
+        
+        self.program.basic_transfer(
+            self.queue, (width * height,), None,
+            src_buffer, tgt_buffer, result_buffer,
+            np.int32(width), np.int32(height)
+        ).wait()
+        
+        return result_buffer
+        
+    def _execute_linear_blend_on_gpu_buffers(self, src_buffer: cl.Buffer, tgt_buffer: cl.Buffer,
+                                            width: int, height: int, **kwargs) -> cl.Buffer:
+        """Execute linear blend transfer directly on GPU buffers."""
+        weights = kwargs.get('weights', [0.3, 0.5, 0.5])
+        weights_buffer = cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                                  hostbuf=np.array(weights, dtype=np.float32))
+        
+        result_buffer = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY, src_buffer.size)
+        
+        self.program.linear_blend_transfer(
+            self.queue, (width * height,), None,
+            src_buffer, tgt_buffer, result_buffer, weights_buffer,
+            np.int32(width), np.int32(height)
+        ).wait()
+        
+        return result_buffer
+        
+    def process_image_hybrid_gpu(self,
+                                source_lab: np.ndarray,
+                                target_lab: np.ndarray,
+                                hybrid_pipeline: list | None = None,
+                                return_intermediate_steps: bool = False,
+                                **kwargs) -> np.ndarray | tuple[np.ndarray, list[np.ndarray]]:
+        """
+        Execute configurable pipeline of color transfer methods on GPU.
+        Uses ping-pong buffers to minimize CPU-GPU transfers between steps.
+        """
+        pipeline_config = hybrid_pipeline if hybrid_pipeline is not None else self.config.get("hybrid_pipeline", [])
+        if not isinstance(pipeline_config, list):
+            raise ValueError(f"Hybrid pipeline configuration must be a list, got {type(pipeline_config)}.")
+            
+        # Convert inputs to GPU buffers
+        h, w = source_lab.shape[:2]
+        src_buffer = cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                              hostbuf=source_lab.astype(np.float32))
+        tgt_buffer = cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                              hostbuf=target_lab.astype(np.float32))
+        
+        # Ping-pong buffers
+        buffer_a = src_buffer
+        buffer_b = cl.Buffer(self.context, cl.mem_flags.READ_WRITE, src_buffer.size)
+        
+        intermediate_results = []
+        
+        for idx, step_config in enumerate(pipeline_config):
+            method_name_key = step_config["method"]
+            method_params = {**kwargs, **step_config.get("params", {})}
+            
+            method_to_call_name = self._GPU_METHOD_DISPATCH[method_name_key]
+            method_to_call = getattr(self, method_to_call_name)
+            
+            self.logger.info(f"Hybrid GPU step {idx + 1}/{len(pipeline_config)}: Applying '{method_name_key}'")
+            
+            # Execute step on GPU buffers
+            result_buffer = method_to_call(
+                buffer_a, tgt_buffer,
+                width=w, height=h,
+                **method_params
+            )
+            
+            if return_intermediate_steps:
+                # Copy intermediate result back to CPU
+                intermediate_result = np.empty_like(source_lab, dtype=np.float32)
+                cl.enqueue_copy(self.queue, intermediate_result, result_buffer).wait()
+                intermediate_results.append(intermediate_result)
+            
+            # Swap buffers for next step
+            buffer_a, buffer_b = result_buffer, buffer_a
+            
+        # Get final result
+        final_result = np.empty_like(source_lab, dtype=np.float32)
+        cl.enqueue_copy(self.queue, final_result, buffer_a).wait()
+        
+        if return_intermediate_steps:
+            return final_result, intermediate_results
+        return final_result
+        
+        def _execute_basic_on_gpu_buffers(self, src_buffer: cl.Buffer, tgt_buffer: cl.Buffer, 
+                                     width: int, height: int, **kwargs) -> cl.Buffer:
+        """Execute basic transfer directly on GPU buffers."""
+        result_buffer = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY, src_buffer.size)
+        
+        # Calculate stats if needed
+        stats_src = self._calculate_stats_for_buffer(src_buffer, width, height)
+        stats_tgt = self._calculate_stats_for_buffer(tgt_buffer, width, height)
+        
+        self.program.basic_transfer(
+            self.queue, (width * height,), None,
+            src_buffer, tgt_buffer, result_buffer,
+            np.float32(stats_src[0]), np.float32(stats_src[1]),
+            np.float32(stats_src[2]), np.float32(stats_src[3]),
+            np.float32(stats_src[4]), np.float32(stats_src[5]),
+            np.float32(stats_tgt[0]), np.float32(stats_tgt[1]),
+            np.float32(stats_tgt[2]), np.float32(stats_tgt[3]),
+            np.float32(stats_tgt[4]), np.float32(stats_tgt[5]),
+            np.int32(width), np.int32(height)
+        ).wait()
+        
+        return result_buffer
+        
+    def _execute_selective_on_gpu_buffers(self, src_buffer: cl.Buffer, tgt_buffer: cl.Buffer,
+                                         width: int, height: int, **kwargs) -> cl.Buffer:
+        """Execute selective transfer directly on GPU buffers."""
+        result_buffer = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY, src_buffer.size)
+        
+        # Handle mask
+        mask_param = kwargs.get('mask')
+        mask_buffer = None
+        if mask_param is not None:
+            mask_np = self._ensure_mask_is_numpy(mask_param, height, width)
+            mask_buffer = cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                                   hostbuf=mask_np)
+        
+        process_L = 1 if 'L' in kwargs.get('selective_channels', []) else 0
+        process_a = 1 if 'a' in kwargs.get('selective_channels', []) else 0
+        process_b = 1 if 'b' in kwargs.get('selective_channels', []) else 0
+        blend_factor = float(kwargs.get('blend_factor', 1.0))
+        
+        self.program.selective_transfer(
+            self.queue, (width * height,), None,
+            src_buffer, tgt_buffer, mask_buffer if mask_buffer else src_buffer, result_buffer,
+            np.int32(process_L), np.int32(process_a), np.int32(process_b),
+            np.float32(blend_factor),
+            np.int32(width), np.int32(height)
+        ).wait()
+        
+        return result_buffer
+        
+    def process_image_hybrid_gpu(self,
+                                source_lab: np.ndarray,
+                                target_lab: np.ndarray,
+                                hybrid_pipeline: list | None = None,
+                                return_intermediate_steps: bool = False,
+                                **kwargs) -> np.ndarray | tuple[np.ndarray, list[np.ndarray]]:
+        """
+        Execute configurable pipeline of color transfer methods on GPU.
+        Uses ping-pong buffers to minimize CPU-GPU transfers between steps.
+        """
+        pipeline_config = hybrid_pipeline if hybrid_pipeline is not None else self.config.get("hybrid_pipeline", [])
+        if not isinstance(pipeline_config, list):
+            raise ValueError(f"Hybrid pipeline configuration must be a list, got {type(pipeline_config)}.")
+            
+        # Convert inputs to GPU buffers
+        h, w = source_lab.shape[:2]
+        src_buffer = cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                              hostbuf=source_lab.astype(np.float32))
+        tgt_buffer = cl.Buffer(self.context, cl.mem_flags.READ_ONLY | cl.mem_flags.COPY_HOST_PTR,
+                              hostbuf=target_lab.astype(np.float32))
+        
+        # Ping-pong buffers
+        buffer_a = src_buffer
+        buffer_b = cl.Buffer(self.context, cl.mem_flags.READ_WRITE, src_buffer.size)
+        
+        intermediate_results = []
+        
+        for idx, step_config in enumerate(pipeline_config):
+            method_name_key = step_config["method"]
+            method_params = {**kwargs, **step_config.get("params", {})}
+            
+            method_to_call_name = self._GPU_METHOD_DISPATCH[method_name_key]
+            method_to_call = getattr(self, method_to_call_name)
+            
+            self.logger.info(f"Hybrid GPU step {idx + 1}/{len(pipeline_config)}: Applying '{method_name_key}'")
+            
+            # Execute step on GPU buffers
+            result_buffer = method_to_call(
+                buffer_a, tgt_buffer,
+                width=w, height=h,
+                **method_params
+            )
+            
+            if return_intermediate_steps:
+                # Copy intermediate result back to CPU
+                intermediate_result = np.empty_like(source_lab, dtype=np.float32)
+                cl.enqueue_copy(self.queue, intermediate_result, result_buffer).wait()
+                intermediate_results.append(intermediate_result)
+            
+            # Swap buffers for next step
+            buffer_a, buffer_b = result_buffer, buffer_a
+            
+        # Get final result
+        final_result = np.empty_like(source_lab, dtype=np.float32)
+        cl.enqueue_copy(self.queue, final_result, buffer_a).wait()
+        
+        if return_intermediate_steps:
+            return final_result, intermediate_results
+        return final_result
+        
     def hybrid_transfer(self, source_lab, target_lab, **kwargs):
-        self.logger.info("Executing GPU hybrid_transfer (delegating to adaptive_lab_transfer GPU).")
-        return self.adaptive_lab_transfer(source_lab, target_lab, **kwargs)
+        """Legacy hybrid transfer, now using the new pipeline processor."""
+        return self.process_image_hybrid_gpu(source_lab, target_lab, **kwargs)
+        """Legacy hybrid transfer, now using the new pipeline processor."""
+        return self.process_image_hybrid_gpu(source_lab, target_lab, **kwargs)

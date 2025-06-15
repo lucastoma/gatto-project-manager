@@ -16,13 +16,12 @@ console.error('🚀 Starting MCP Filesystem Server...');
 console.error('📂 Allowed directories:', allowedDirectories);
 
 // Szczegółowe logowanie do pliku
-const logFile = '/home/lukasz/projects/gatto-ps-ai/gatto_filesystem/logs/server-debug.log';
+const logFile = '/tmp/mcp-brutal-debug.log';
 
 async function logToFile(message: string, data?: any) {
   const timestamp = new Date().toISOString();
-  const logEntry = `[${timestamp}] ${message}${data ? '\nData: ' + JSON.stringify(data, null, 2) : ''}\n`;
+  const logEntry = `[${timestamp}] ${message}${data ? '\nData: ' + JSON.stringify(data, null, 2) : ''}\n=================\n`;
   try {
-    await fs.mkdir(path.dirname(logFile), { recursive: true });
     await fs.appendFile(logFile, logEntry);
   } catch (error) {
     console.error('Logging error:', error);
@@ -49,6 +48,92 @@ async function validatePath(targetPath: string): Promise<string> {
   }
   
   return absolutePath;
+}
+
+// Funkcje podobieństwa Levenshtein
+function calculateSimilarity(str1: string, str2: string): number {
+  const len1 = str1.length;
+  const len2 = str2.length;
+  const maxLen = Math.max(len1, len2);
+  
+  if (maxLen === 0) return 1;
+  
+  const matrix = Array(len2 + 1).fill(null).map(() => Array(len1 + 1).fill(null));
+  
+  for (let i = 0; i <= len1; ++i) {
+    matrix[0][i] = i;
+  }
+  for (let j = 0; j <= len2; ++j) {
+    matrix[j][0] = j;
+  }
+  for (let j = 1; j <= len2; ++j) {
+    for (let i = 1; i <= len1; ++i) {
+      if (str1[i - 1] === str2[j - 1]) {
+        matrix[j][i] = matrix[j - 1][i - 1];
+      } else {
+        matrix[j][i] = Math.min(
+          matrix[j - 1][i] + 1,     // deletion
+          matrix[j][i - 1] + 1,     // insertion
+          matrix[j - 1][i - 1] + 1  // substitution
+        );
+      }
+    }
+  }
+  
+  return maxLen === 0 ? 1 : (maxLen - matrix[len2][len1]) / maxLen;
+}
+
+// Znajdowanie najbardziej podobnych fragmentów
+function findBestMatches(content: string, searchText: string, minSimilarity: number = 0.1) {
+  const lines = content.split('\n');
+  const searchLines = searchText.split('\n');
+  const results = [];
+
+  // Sprawdź podobieństwo z pojedynczymi liniami
+  for (let i = 0; i < lines.length; i++) {
+    const line = lines[i].trim();
+    if (line.length < 3) continue; // Skip very short lines
+    
+    for (const searchLine of searchLines) {
+      const cleanSearchLine = searchLine.trim();
+      if (cleanSearchLine.length < 3) continue;
+      
+      const similarity = calculateSimilarity(line, cleanSearchLine);
+      if (similarity > minSimilarity) {
+        results.push({
+          similarity: similarity * 100, // Convert to percentage
+          lineNumber: i + 1,
+          line: line,
+          type: 'single_line' as const
+        });
+      }
+    }
+  }
+
+  // Sprawdź podobieństwo z blokami tekstu (multiple lines)
+  if (searchLines.length > 1) {
+    for (let i = 0; i <= lines.length - searchLines.length; i++) {
+      const block = lines.slice(i, i + searchLines.length).join('\n').trim();
+      const searchBlock = searchText.trim();
+      
+      if (block.length < 10) continue; // Skip very short blocks
+      
+      const similarity = calculateSimilarity(block, searchBlock);
+      if (similarity > minSimilarity) {
+        results.push({
+          similarity: similarity * 100, // Convert to percentage
+          lineNumber: i + 1,
+          block: block,
+          type: 'multi_line' as const
+        });
+      }
+    }
+  }
+
+  // Sort by similarity (highest first)
+  return results
+    .sort((a, b) => b.similarity - a.similarity)
+    .slice(0, 5); // Return top 5 matches
 }
 
 // 1. read_file - Reads the entire content of a single file with automatic encoding detection  
@@ -110,7 +195,7 @@ server.tool(
 
     const result = {
       content: [{
-        type: 'text',
+        type: 'text' as const,
         text: content
       }],
       _meta: { encoding }
@@ -240,42 +325,164 @@ server.tool(
   }
 );
 
-// 5. edit_file - Advanced in-place editing with fuzzy matching
+// 5. edit_file - Advanced in-place editing with smart similarity matching
 server.tool(
   'edit_file',
-  "Performs in-place editing of an existing file by searching for specific text patterns and replacing them with new content. Supports multiple edit operations in a single call and includes a dry-run option for previewing changes.",
+  "Edit a file with intelligent similarity matching. Supports: EXACT (100%), HIGH similarity (98-100% auto-edit), MEDIUM similarity (85-97% with force_edit option), LOW similarity (60-84% diagnostics only). Provides detailed feedback and suggestions.",
   {
     path: z.string().describe('Path to the file to edit'),
     edits: z.array(z.object({
-      oldText: z.string().describe('Text to search for'),
+      oldText: z.string().describe('Text to search for - supports exact matches and high similarity matching (98-100%)'),
       newText: z.string().describe('Text to replace with')
     })).describe('Array of edit operations'),
-    dryRun: z.boolean().optional().default(false).describe('Preview changes without modifying file')
+    dryRun: z.boolean().optional().default(false).describe('Preview changes without modifying file'),
+    force_edit: z.boolean().optional().default(false).describe('Allow edits for MEDIUM similarity matches (85-97%). Use with caution - only when confident the match is correct.')
   },
-  async ({ path: filePath, edits, dryRun = false }) => {
+  async ({ path: filePath, edits, dryRun = false, force_edit = false }) => {
+    await logToFile('edit_file called', { 
+      filePath, 
+      editsCount: edits.length, 
+      dryRun, 
+      force_edit,
+      smartMatchingEnabled: true 
+    });
+    
     const validatedPath = await validatePath(filePath);
     let content = await fs.readFile(validatedPath, 'utf-8');
     
+    await logToFile('edit_file: file read', { 
+      contentLength: content.length,
+      lineCount: content.split('\n').length
+    });
+    
     let changes = 0;
     let preview = content;
+    let editResults = [];
     
-    for (const edit of edits) {
+    for (let i = 0; i < edits.length; i++) {
+      const edit = edits[i];
+      await logToFile(`edit_file: processing edit ${i + 1}`, {
+        oldTextLength: edit.oldText.length,
+        oldTextPreview: edit.oldText.substring(0, 100),
+        newTextLength: edit.newText.length,
+        force_edit
+      });
+      
+      // EXACT MATCH (100% similarity)
       if (preview.includes(edit.oldText)) {
         preview = preview.replace(edit.oldText, edit.newText);
         changes++;
+        editResults.push(`Edit ${i + 1}: ✅ EXACT MATCH - Applied successfully`);
+        await logToFile(`edit_file: edit ${i + 1} - EXACT MATCH successful`);
+        continue;
       }
+      
+      // SIMILARITY ANALYSIS
+      const bestMatches = findBestMatches(content, edit.oldText, 0.1);
+      let applied = false;
+      let diagnosticInfo = '';
+      
+      if (bestMatches.length === 0) {
+        // INSIGNIFICANT (<60% similarity)
+        diagnosticInfo = `🚨 CZEGO KURWA SZUKASZ?! 
+📁 Ten tekst prawdopodobnie nie istnieje w tym pliku!
+🔍 Zero podobieństwa nawet w najmniejszym fragmencie.
+💡 Sprawdź nazwę pliku lub skopiuj tekst bezpośrednio z pliku.`;
+      } else {
+        const best = bestMatches[0];
+        const similarity = best.similarity;
+        
+        if (similarity >= 98) {
+          // HIGH SIMILARITY (98-100%) - AUTO EDIT
+          const targetText = best.type === 'single_line' ? best.line : best.block;
+          if (targetText) {
+            preview = preview.replace(targetText, edit.newText);
+            changes++;
+            applied = true;
+            diagnosticInfo = `✅ HIGH SIMILARITY (${similarity.toFixed(1)}%) - Auto-applied
+🎯 Found in line ${best.lineNumber}: "${targetText.substring(0, 80)}..."
+💫 This was likely a minor typo or formatting difference.`;
+          } else {
+            diagnosticInfo = `❌ HIGH SIMILARITY (${similarity.toFixed(1)}%) but target text is undefined`;
+          }
+          
+        } else if (similarity >= 85) {
+          // MEDIUM SIMILARITY (85-97%) - REQUIRES force_edit
+          const targetText = best.type === 'single_line' ? best.line : best.block;
+          
+          if (force_edit && targetText) {
+            preview = preview.replace(targetText, edit.newText);
+            changes++;
+            applied = true;
+            diagnosticInfo = `⚡ MEDIUM SIMILARITY (${similarity.toFixed(1)}%) - FORCE APPLIED
+🎯 Found in line ${best.lineNumber}: "${targetText.substring(0, 80)}..."
+⚠️  Applied because force_edit=true. Verify the result carefully!`;
+          } else if (targetText) {
+            diagnosticInfo = `🤔 MEDIUM SIMILARITY (${similarity.toFixed(1)}%) - Requires confirmation
+🎯 Found in line ${best.lineNumber}: "${targetText.substring(0, 80)}..."
+💡 If you're confident this is the right match, retry with force_edit=true
+⚠️  Use force_edit carefully - it will apply the change without exact match.`;
+          } else {
+            diagnosticInfo = `❌ MEDIUM SIMILARITY (${similarity.toFixed(1)}%) but target text is undefined`;
+          }
+          
+        } else if (similarity >= 60) {
+          // LOW SIMILARITY (60-84%) - DIAGNOSTICS ONLY
+          const displayText = best.type === 'single_line' ? best.line : (best.block || 'undefined');
+          diagnosticInfo = `📊 LOW SIMILARITY (${similarity.toFixed(1)}%) - Too low for automatic edit
+🎯 Best match in line ${best.lineNumber}: "${displayText.substring(0, 80)}..."
+💡 This might be related but different. Try:
+   • Use more specific/longer text fragment
+   • Check for structural differences
+   • Copy exact text from the file`;
+          
+        } else {
+          // INSIGNIFICANT (<60%) 
+          const displayText = best.type === 'single_line' ? best.line : (best.block || 'undefined');
+          diagnosticInfo = `⚠️  VERY LOW SIMILARITY (${similarity.toFixed(1)}%) 
+🎯 Best match in line ${best.lineNumber}: "${displayText.substring(0, 80)}..."
+🚨 This is probably not what you're looking for.
+💡 Double-check the file path and search text.`;
+        }
+      }
+      
+      const status = applied ? 'SUCCESS' : 'FAILED';
+      editResults.push(`Edit ${i + 1}: ${status}\n${diagnosticInfo}`);
+      
+      await logToFile(`edit_file: edit ${i + 1} - ${status}`, {
+        searchText: edit.oldText,
+        applied,
+        force_edit,
+        bestMatch: bestMatches[0] || null
+      });
     }
     
     if (!dryRun && changes > 0) {
       await fs.writeFile(validatedPath, preview, 'utf-8');
+      await logToFile('edit_file: file written', { changes });
+      // Explicit success feedback to stderr so AI can see it
+      console.error(`✅ SUCCESS: Applied ${changes} changes to ${filePath}`);
     }
     
+    const resultText = dryRun 
+      ? `🔍 DRY RUN: ${changes} changes would be made\n\n📋 Edit Results:\n${editResults.join('\n')}\n\n📄 Preview:\n${preview}`
+      : `✅ SUCCESS: Applied ${changes} changes to ${filePath}\n\n📋 Edit Results:\n${editResults.join('\n')}${changes > 0 ? '\n\n🎯 All changes have been successfully written to disk!' : ''}`;
+    
+    await logToFile('edit_file result', { changes, dryRun, editResults });
+    
+    // Additional success feedback to stderr for visibility
+    if (!dryRun) {
+      if (changes > 0) {
+        console.error(`🎯 EDIT COMPLETED: ${changes} successful changes applied`);
+      } else {
+        console.error(`⚠️  EDIT COMPLETED: No changes applied (see diagnostics above)`);
+      }
+    }
+
     return {
       content: [{
-        type: 'text',
-        text: dryRun 
-          ? `Dry run: ${changes} changes would be made\n\nPreview:\n${preview}`
-          : `Applied ${changes} changes to ${filePath}`
+        type: 'text' as const,
+        text: resultText
       }]
     };
   }

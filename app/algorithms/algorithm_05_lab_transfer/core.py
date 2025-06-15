@@ -17,7 +17,14 @@ class LABColorTransfer:
     def __init__(self, config: LABColorTransferConfig):
         self.config = config
         self.logger = get_logger(self.__class__.__name__)
-        # Ensure other necessary initializations like _CPU_METHOD_DISPATCH are present if not class-level
+        
+        # Method dispatch for CPU operations
+        self._CPU_METHOD_DISPATCH = {
+            "basic": "basic_transfer",
+            "linear_blend": "linear_blend_transfer",
+            "selective": "selective_lab_transfer",
+            "adaptive": "adaptive_lab_transfer",
+        }
     """
     Base class implementing core LAB color transfer methods.
     It now uses scikit-image for robust color conversions and includes
@@ -293,6 +300,20 @@ class LABColorTransfer:
 
         return self.lab_to_rgb_optimized(result_img)
 
+    def _validate_pipeline_step(self, step: dict, step_idx: int):
+        """Validate a single step in the hybrid pipeline."""
+        if not isinstance(step, dict):
+            raise ValueError(f"Hybrid pipeline step {step_idx} must be a dictionary, got {type(step)}.")
+        if "method" not in step:
+            raise ValueError(f"Hybrid pipeline step {step_idx} is missing 'method' key.")
+        if not isinstance(step["method"], str):
+            raise ValueError(f"Hybrid pipeline step {step_idx} 'method' must be a string, got {type(step['method'])}.")
+        if step["method"] not in self._CPU_METHOD_DISPATCH:
+            raise ValueError(f"Hybrid pipeline step {step_idx} has unknown method '{step['method']}'. "
+                             f"Available methods: {list(self._CPU_METHOD_DISPATCH.keys())}")
+        if "params" in step and not isinstance(step["params"], dict):
+            raise ValueError(f"Hybrid pipeline step {step_idx} 'params' must be a dictionary, got {type(step['params'])}.")
+
     def blend_tile_overlap(self, tile: np.ndarray, overlap_size: int) -> np.ndarray:
         """Apply linear alpha blending to tile edges based on overlap size"""
         if overlap_size == 0:
@@ -317,3 +338,44 @@ class LABColorTransfer:
                 blended[-overlap_size:, :] *= alpha_v[::-1][:, np.newaxis, np.newaxis]
                 
         return blended
+        
+    def process_image_hybrid(self,
+                             source_lab: np.ndarray,
+                             target_lab: np.ndarray,
+                             hybrid_pipeline: list | None = None,
+                             return_intermediate_steps: bool = False,
+                             **kwargs) -> np.ndarray | tuple[np.ndarray, list[np.ndarray]]:
+        """
+        Executes a configurable pipeline of color transfer methods on CPU.
+        Each step in `hybrid_pipeline` is a dictionary:
+            { "method": "<name>", "params": { ... } }
+        `kwargs` are passed to each step unless overridden in `step['params']`.
+        """
+        pipeline_config = hybrid_pipeline if hybrid_pipeline is not None else self.config.get("hybrid_pipeline", [])
+        if not isinstance(pipeline_config, list):
+            raise ValueError(f"Hybrid pipeline configuration must be a list, got {type(pipeline_config)}.")
+
+        intermediate_results = []
+        current_src_lab = source_lab.copy() # Work on a copy
+
+        for idx, step_config in enumerate(pipeline_config):
+            self._validate_pipeline_step(step_config, idx)
+            method_name_key = step_config["method"]
+            method_params = {**kwargs, **step_config.get("params", {})}
+
+            method_to_call_name = self._CPU_METHOD_DISPATCH[method_name_key]
+            method_to_call = getattr(self, method_to_call_name)
+            
+            self.logger.info(f"Hybrid CPU step {idx + 1}/{len(pipeline_config)}: Applying '{method_name_key}' with params: {method_params.get('selective_channels', method_params.get('num_segments', 'N/A'))}")
+
+            current_src_lab = method_to_call(
+                current_src_lab, # Result of previous step is input to current
+                target_lab,      # target_lab is constant for all steps
+                **method_params
+            )
+            if return_intermediate_steps:
+                intermediate_results.append(current_src_lab.copy())
+
+        if return_intermediate_steps:
+            return current_src_lab, intermediate_results
+        return current_src_lab
