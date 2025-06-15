@@ -38,8 +38,9 @@ export const ConfigSchema = z.object({
     performance: z.boolean().default(false)
   }).default({}),
   concurrency: z.object({
-    maxConcurrentEdits: z.number().positive().default(10)
-  }).default({})
+  maxConcurrentEdits: z.number().positive().default(10),
+  maxGlobalConcurrentEdits: z.number().positive().default(20)
+}).default({})
 });
 
 export type Config = z.infer<typeof ConfigSchema>;

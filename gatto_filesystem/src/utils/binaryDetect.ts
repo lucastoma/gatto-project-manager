@@ -1,12 +1,16 @@
 import path from 'node:path';
 import { isUtf8 as bufferIsUtf8 } from 'buffer';
 
+const NUL_BYTE_CHECK_SAMPLE_SIZE = 8192; // Check first 8KB for NUL bytes
+
 const BINARY_EXTENSIONS = new Set([
   '.exe', '.dll', '.so', '.dylib', '.bin', '.dat',
   '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.ico',
   '.mp3', '.mp4', '.avi', '.mov', '.wmv', '.flv',
   '.pdf', '.zip', '.rar', '.tar', '.gz', '.7z',
-  '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'
+  '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx',
+  '.wasm', '.o', '.a', '.obj', '.lib', '.class', '.pyc', '.pyo', '.pyd', // Compiled code/objects
+  '.sqlite', '.db', '.mdb', '.accdb', '.swf', '.fla' // Databases and flash
 ]);
 
 export function isBinaryFile(buffer: Buffer, filename?: string): boolean {
@@ -15,7 +19,11 @@ export function isBinaryFile(buffer: Buffer, filename?: string): boolean {
     return true;
   }
 
-  if (buffer.includes(0)) {
+  // Check for NUL bytes only in a sample of the buffer to avoid performance issues with large files.
+  const sampleForNulCheck = buffer.length > NUL_BYTE_CHECK_SAMPLE_SIZE 
+    ? buffer.subarray(0, NUL_BYTE_CHECK_SAMPLE_SIZE) 
+    : buffer;
+  if (sampleForNulCheck.includes(0)) {
     return true;
   }
 

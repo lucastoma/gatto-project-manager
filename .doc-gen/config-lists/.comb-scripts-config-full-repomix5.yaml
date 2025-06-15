@@ -48,4 +48,4 @@ groups:
       - "*legacy*"
       - "*temp*"
     paths:
-      - gatto_filesystem_v2/
+      - gatto_filesystem/

@@ -2,10 +2,21 @@ import fs from 'node:fs/promises';
 import { createTwoFilesPatch } from 'diff';
 import { isBinaryFile } from '../utils/binaryDetect.js';
 import { createError } from '../types/errors.js';
+import { get as fastLevenshtein } from 'fast-levenshtein';
 import { PerformanceTimer } from '../utils/performance.js';
 import type { Logger } from 'pino';
 import type { EditOperation } from './schemas.js';
 import type { Config } from '../server/config.js';
+
+interface AppliedEditRange {
+  startLine: number;
+  endLine: number;
+  editIndex: number; // To identify which edit operation this range belongs to
+}
+
+function doRangesOverlap(range1: AppliedEditRange, range2: {startLine: number, endLine: number}): boolean {
+  return Math.max(range1.startLine, range2.startLine) <= Math.min(range1.endLine, range2.endLine);
+}
 
 export interface FuzzyMatchConfig {
   maxDistanceRatio: number;
@@ -50,7 +61,8 @@ function preprocessText(text: string, config: FuzzyMatchConfig): string {
   return processed;
 }
 
-function levenshteinDistanceOptimized(str1: string, str2: string): number {
+// Using fast-levenshtein, the optimized native JS version is no longer primary
+// function levenshteinDistanceOptimized(str1: string, str2: string): number {
   if (str1 === str2) return 0;
   if (str1.length === 0) return str2.length;
   if (str2.length === 0) return str1.length;
@@ -72,8 +84,8 @@ function levenshteinDistanceOptimized(str1: string, str2: string): number {
     }
     previousRow = currentRow;
   }
-  return previousRow[shorter.length];
-}
+  // return previousRow[shorter.length];
+// }
 
 function calculateSimilarity(distance: number, maxLength: number): number {
   return Math.max(0, 1 - (distance / maxLength));
@@ -140,6 +152,7 @@ export async function applyFileEdits(
 ): Promise<ApplyFileEditsResult> {
   const timer = new PerformanceTimer('applyFileEdits', logger, globalConfig);
   let levenshteinIterations = 0;
+  const appliedRanges: AppliedEditRange[] = [];
   
   try {
     const buffer = await fs.readFile(filePath);
@@ -163,10 +176,69 @@ export async function applyFileEdits(
 
       const exactMatchIndex = modifiedContent.indexOf(normalizedOld);
       if (exactMatchIndex !== -1) {
-        modifiedContent = modifiedContent.substring(0, exactMatchIndex) +
-                          normalizedNew +
-                          modifiedContent.substring(exactMatchIndex + normalizedOld.length);
+        // Preserve indentation for exact matches using the same logic as fuzzy matches
+        const contentLines = modifiedContent.split('\n');
+        const oldLinesForIndent = normalizedOld.split('\n');
+        const newLinesForIndent = normalizedNew.split('\n');
+        
+        // Find the line number of the exact match to get the original indent
+        let charCount = 0;
+        let lineNumberOfMatch = 0;
+        for (let i = 0; i < contentLines.length; i++) {
+          if (charCount + contentLines[i].length + 1 > exactMatchIndex) {
+            lineNumberOfMatch = i;
+            break;
+          }
+          charCount += contentLines[i].length + 1; // +1 for newline
+        }
+        const originalIndent = contentLines[lineNumberOfMatch].match(/^\s*/)?.[0] || '';
+
+        const indentedNewLines = applyRelativeIndentation(
+          newLinesForIndent,
+          oldLinesForIndent,
+          originalIndent,
+          config.preserveLeadingWhitespace
+        );
+        
+        // Reconstruct modifiedContent carefully with the new indented lines
+        const linesBeforeMatch = modifiedContent.substring(0, exactMatchIndex).split('\n');
+        const linesAfterMatch = modifiedContent.substring(exactMatchIndex + normalizedOld.length).split('\n');
+        
+        // The new content replaces a certain number of original lines that constituted normalizedOld.
+        // We need to splice the contentLines array correctly.
+        // The number of lines to replace is oldLinesForIndent.length.
+        // The starting line for replacement is lineNumberOfMatch.
+        const currentEditTargetRange = {
+          startLine: lineNumberOfMatch,
+          endLine: lineNumberOfMatch + oldLinesForIndent.length - 1
+        };
+
+        for (const appliedRange of appliedRanges) {
+          if (doRangesOverlap(appliedRange, currentEditTargetRange)) {
+            throw createError(
+              'OVERLAPPING_EDIT',
+              `Edit ${editIndex + 1} (exact match) overlaps with previously applied edit ${appliedRange.editIndex + 1}. ` +
+              `Current edit targets lines ${currentEditTargetRange.startLine + 1}-${currentEditTargetRange.endLine + 1}. ` +
+              `Previous edit affected lines ${appliedRange.startLine + 1}-${appliedRange.endLine + 1}.`,
+              {
+                conflictingEditIndex: editIndex,
+                previousEditIndex: appliedRange.editIndex,
+                currentEditTargetRange,
+                previousEditAffectedRange: appliedRange
+              }
+            );
+          }
+        }
+
+        const tempContentLines = modifiedContent.split('\n');
+        tempContentLines.splice(lineNumberOfMatch, oldLinesForIndent.length, ...indentedNewLines);
+        modifiedContent = tempContentLines.join('\n');
         matchFound = true;
+        appliedRanges.push({
+          startLine: currentEditTargetRange.startLine,
+          endLine: currentEditTargetRange.startLine + indentedNewLines.length - 1,
+          editIndex
+        });
       } else {
         const contentLines = modifiedContent.split('\n');
         const oldLines = normalizedOld.split('\n');
@@ -197,7 +269,8 @@ export async function applyFileEdits(
             const processedWindow = preprocessText(windowText, config);
             
             levenshteinIterations++;
-            const distance = levenshteinDistanceOptimized(processedOld, processedWindow);
+            // Use fast-levenshtein
+            const distance = fastLevenshtein(processedOld, processedWindow);
             const similarity = calculateSimilarity(distance, Math.max(processedOld.length, processedWindow.length));
 
             if (distance < bestMatch.distance) {
@@ -238,9 +311,37 @@ export async function applyFileEdits(
               originalIndent, 
               config.preserveLeadingWhitespace
             );
+            const currentEditTargetRange = {
+              startLine: bestMatch.index,
+              endLine: bestMatch.index + bestMatch.windowSize - 1
+            };
+
+            for (const appliedRange of appliedRanges) {
+              if (doRangesOverlap(appliedRange, currentEditTargetRange)) {
+                throw createError(
+                  'OVERLAPPING_EDIT',
+                  `Edit ${editIndex + 1} (fuzzy match at line ${bestMatch.index + 1}) overlaps with previously applied edit ${appliedRange.editIndex + 1}. ` +
+                  `Current edit targets lines ${currentEditTargetRange.startLine + 1}-${currentEditTargetRange.endLine + 1}. ` +
+                  `Previous edit affected lines ${appliedRange.startLine + 1}-${appliedRange.endLine + 1}.`,
+                  {
+                    conflictingEditIndex: editIndex,
+                    previousEditIndex: appliedRange.editIndex,
+                    currentEditTargetRange,
+                    previousEditAffectedRange: appliedRange,
+                    similarity: bestMatch.similarity
+                  }
+                );
+              }
+            }
+
             contentLines.splice(bestMatch.index, bestMatch.windowSize, ...indentedNewLines);
             modifiedContent = contentLines.join('\n');
             matchFound = true;
+            appliedRanges.push({
+              startLine: currentEditTargetRange.startLine,
+              endLine: currentEditTargetRange.startLine + indentedNewLines.length - 1,
+              editIndex
+            });
           } else {
             const contextText = getContextLines(normalizeLineEndings(originalContent), bestMatch.index, 3);
             const partialDiff = createUnifiedDiff(bestMatch.text, processedOld, filePath);
@@ -268,7 +369,17 @@ export async function applyFileEdits(
     }
 
     const diff = createUnifiedDiff(originalContent, modifiedContent, filePath);
-    const formattedDiff = "```diff\n" + diff + "\n```\n\n";
+    const MAX_DIFF_LINES = 4000; // Configurable limit for diff lines
+    const diffLines = diff.split('\n');
+    let formattedDiff = "";
+    if (diffLines.length > MAX_DIFF_LINES) {
+      formattedDiff = "```diff\n" +
+                      diffLines.slice(0, MAX_DIFF_LINES).join('\n') +
+                      `\n...diff truncated (${diffLines.length - MAX_DIFF_LINES} lines omitted)\n` +
+                      "```\n\n";
+    } else {
+      formattedDiff = "```diff\n" + diff + "\n```\n\n";
+    }
 
     timer.end({ 
       editsCount: edits.length, 

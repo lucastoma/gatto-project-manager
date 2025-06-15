@@ -1,6 +1,7 @@
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { minimatch } from 'minimatch';
+import { lookup as mimeLookup } from 'mime-types';
 import { isBinaryFile } from '../utils/binaryDetect.js';
 import { PerformanceTimer } from '../utils/performance.js';
 import { validatePath } from './security.js';
@@ -19,13 +20,29 @@ export interface FileInfo {
   mimeType?: string;
 }
 
+const FILE_STAT_READ_BUFFER_SIZE = 8192; // Read 8KB for binary detection
+
 export async function getFileStats(filePath: string, logger: Logger, config: Config): Promise<FileInfo> {
   const timer = new PerformanceTimer('getFileStats', logger, config);
   
   try {
     const stats = await fs.stat(filePath);
-    const buffer = await fs.readFile(filePath);
-    const isBinary = isBinaryFile(buffer, filePath);
+    let isBinary = false;
+    let mimeType: string | false = false;
+
+    if (stats.isFile()) {
+      // For files, read a small chunk to determine if binary and get a better mime type
+      const fileHandle = await fs.open(filePath, 'r');
+      try {
+        const buffer = Buffer.alloc(FILE_STAT_READ_BUFFER_SIZE);
+        const { bytesRead } = await fileHandle.read(buffer, 0, FILE_STAT_READ_BUFFER_SIZE, 0);
+        const actualBuffer = bytesRead < FILE_STAT_READ_BUFFER_SIZE ? buffer.subarray(0, bytesRead) : buffer;
+        isBinary = isBinaryFile(actualBuffer, filePath);
+      } finally {
+        await fileHandle.close();
+      }
+      mimeType = mimeLookup(filePath);
+    }
     
     const result = {
       size: stats.size,
@@ -35,8 +52,8 @@ export async function getFileStats(filePath: string, logger: Logger, config: Con
       isDirectory: stats.isDirectory(),
       isFile: stats.isFile(),
       permissions: stats.mode.toString(8).slice(-3),
-      isBinary,
-      mimeType: isBinary ? 'application/octet-stream' : 'text/plain'
+      isBinary: stats.isFile() ? isBinary : undefined, // isBinary is only relevant for files
+      mimeType: stats.isFile() ? (mimeType || (isBinary ? 'application/octet-stream' : 'text/plain')) : undefined
     };
     
     timer.end({ isBinary, size: stats.size });
@@ -53,23 +70,21 @@ export async function searchFiles(
   logger: Logger,
   config: Config,
   excludePatterns: string[] = [],
-  useExactPatterns: boolean = false
+  useExactPatterns: boolean = false,
+  maxDepth: number = -1 // Add maxDepth, -1 for unlimited
 ): Promise<string[]> {
   const timer = new PerformanceTimer('searchFiles', logger, config);
   const results: string[] = [];
-  const visitedForThisSearch = new Set<string>();
 
-  async function search(currentPath: string): Promise<void> {
+  async function search(currentPath: string, currentDepth: number): Promise<void> { // Add currentDepth
+    if (maxDepth !== -1 && currentDepth > maxDepth) {
+      logger.debug({ path: currentPath, currentDepth, maxDepth }, 'Max depth reached in searchFiles, stopping recursion for this path');
+      return;
+    }
+
     try {
-      const stats = await fs.stat(currentPath);
-      const inodeKey = `${stats.dev}-${stats.ino}`;
-      
-      if (visitedForThisSearch.has(inodeKey)) {
-        logger.debug({ path: currentPath }, 'Skipping already visited inode (symlink loop)');
-        return;
-      }
-      visitedForThisSearch.add(inodeKey);
-
+      // No need for fs.stat here if readdir withFileTypes is used, unless specific inode-based symlink detection is absolutely required.
+      // For basic symlink loop prevention, checking entry.isSymbolicLink() before recursing is often sufficient.
       const entries = await fs.readdir(currentPath, { withFileTypes: true });
 
       for (const entry of entries) {
@@ -113,7 +128,14 @@ export async function searchFiles(
           // The directory itself might have matched the pattern and been added above.
           // Recursion happens to find matching items *within* this directory.
           if (entry.isDirectory()) {
-            await search(fullPath);
+            if (entry.isSymbolicLink()) {
+              // Basic symlink check: if it's a directory and a symlink, be cautious.
+              // For more robust cycle detection, fs.realpath and tracking visited real paths would be needed,
+              // but that adds more I/O. For now, skip recursing into directory symlinks to avoid simple loops.
+              logger.debug({ path: fullPath }, 'Skipping recursion into directory symlink to avoid potential loops.');
+            } else {
+              await search(fullPath, currentDepth + 1); // Increment depth
+            }
           }
         } catch (error) {
           // This catch block might still be relevant if fs.stat or fs.readdir fails for a specific entry
@@ -128,7 +150,7 @@ export async function searchFiles(
     }
   }
 
-  await search(rootPath);
+  await search(rootPath, 0); // Start depth at 0
   timer.end({ resultsCount: results.length });
   return results;
 }
@@ -140,8 +162,8 @@ export async function getDirectoryTree(
   allowedDirectories: string[],
   logger: Logger,
   config: Config,
-  currentDepth: number = 0, // Keep track of current depth
-  maxDepth: number = -1 // Default to no max depth (-1 or undefined)
+  currentDepth: number = 0,
+  maxDepth: number = -1 // Default to no max depth (-1 means unlimited)
 ): Promise<DirectoryTreeEntry> {
   const timer = new PerformanceTimer('getDirectoryTree', logger, config);
   logger.debug({ basePath, currentDepth, maxDepth }, 'Starting getDirectoryTree for path');
@@ -223,24 +245,27 @@ export async function readMultipleFilesContent(
       const validPath = await validatePath(filePath, allowedDirectories, logger, config);
       const rawBuffer = await fs.readFile(validPath);
       let content: string;
-      let encodingUsed: 'utf-8' | 'base64' = 'utf-8'; // Default to utf-8
+      let finalEncoding: 'utf-8' | 'base64' = 'utf-8'; // Default to utf-8
 
       if (requestedEncoding === 'base64') {
         content = rawBuffer.toString('base64');
-        encodingUsed = 'base64';
+        finalEncoding = 'base64';
       } else if (requestedEncoding === 'auto') {
-        if (isBinaryFile(rawBuffer, validPath)) {
+        // For 'auto', we need to read a small chunk to detect binary, similar to getFileStats
+        // This re-reads a small part if the file is large, could be optimized if rawBuffer is small enough already.
+        const checkBuffer = rawBuffer.length > FILE_STAT_READ_BUFFER_SIZE ? rawBuffer.subarray(0, FILE_STAT_READ_BUFFER_SIZE) : rawBuffer;
+        if (isBinaryFile(checkBuffer, validPath)) {
           content = rawBuffer.toString('base64');
-          encodingUsed = 'base64';
+          finalEncoding = 'base64';
         } else {
           content = rawBuffer.toString('utf-8');
-          encodingUsed = 'utf-8';
+          finalEncoding = 'utf-8';
         }
-      } else { // utf-8
+      } else { // utf-8 is the default or explicitly requested
         content = rawBuffer.toString('utf-8');
-        encodingUsed = 'utf-8';
+        finalEncoding = 'utf-8';
       }
-      results.push({ path: filePath, content, encoding: encodingUsed }); // Use 'encoding'
+      results.push({ path: filePath, content, encoding: finalEncoding });
     } catch (error: any) {
       logger.warn({ path: filePath, error: error.message }, 'Failed to read one of the files in readMultipleFilesContent');
       results.push({ path: filePath, content: `Error: ${error.message}`, encoding: 'error' }); // Error in content, encoding='error'

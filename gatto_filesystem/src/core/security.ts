@@ -8,95 +8,78 @@ import type { Config } from '../server/config.js';
 
 export async function validatePath(requestedPath: string, allowedDirectories: string[], logger: Logger, config: Config): Promise<string> {
   const timer = new PerformanceTimer('validatePath', logger, config);
-  
+
   try {
     const expandedPath = expandHome(requestedPath);
-    // If the path is relative, resolve it against the FIRST allowed directory instead of the server CWD.
-    // This makes JSON-RPC requests intuitive: a client can pass "./" or "sub/dir" and it will be treated as relative
-    // to the allowed directory supplied at server start (e.g. "mcp-test").
-    const absolute = path.isAbsolute(expandedPath)
+    // If the path is relative, resolve it against the FIRST allowed directory (which is already absolute and normalized by server setup)
+    // or server CWD if no allowedDirectories are configured (though server setup should ensure at least one).
+    const absoluteInitialPath = path.isAbsolute(expandedPath)
       ? path.resolve(expandedPath)
       : path.resolve(allowedDirectories[0] ?? process.cwd(), expandedPath);
 
-    const normalizedRequested = normalizePath(absolute);
+    const normalizedInitialPath = normalizePath(absoluteInitialPath);
 
-    const isAllowed = allowedDirectories.some(dir => {
-      const relativePath = path.relative(dir, normalizedRequested);
-      return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
-    });
-    
-    if (!isAllowed) {
+    // Helper to check if a given path is within any of the allowed directories.
+    // allowedDirectories are assumed to be absolute and normalized by the caller (server setup).
+    const checkAgainstAllowedDirs = (pathToVerify: string): boolean => {
+      return allowedDirectories.some(allowedDir => {
+        // For Windows, compare paths case-insensitively.
+        // Note: allowedDir is already absolute & normalized.
+        const effectiveAllowedDir = process.platform === 'win32' ? allowedDir.toLowerCase() : allowedDir;
+        const effectivePathToVerify = process.platform === 'win32' ? pathToVerify.toLowerCase() : pathToVerify;
+        
+        const relative = path.relative(effectiveAllowedDir, effectivePathToVerify);
+        // Path is allowed if it's the same as allowedDir (relative is '') 
+        // or if it's a subdirectory (relative doesn't start with '..' and is not '..')
+        return !relative.startsWith('..' + path.sep) && relative !== '..';
+      });
+    };
+
+    // 1. Check if the initially resolved path is within allowed directories.
+    if (!checkAgainstAllowedDirs(normalizedInitialPath)) {
       throw createError(
         'ACCESS_DENIED',
-        `Path outside allowed directories: ${absolute}`,
-        { 
-          requestedPath: absolute, 
-          allowedDirectories: allowedDirectories 
-        }
+        `Initial path '${normalizedInitialPath}' is outside allowed directories.`,
+        { requestedPath: normalizedInitialPath, allowedDirectories }
       );
     }
 
+    // 2. Attempt to get the real path (resolving symlinks).
+    //    If realpath fails (e.g., path doesn't exist like for a new file), we use the normalizedInitialPath.
+    let finalPathToReturn = normalizedInitialPath;
     try {
-      const realPath = await fs.realpath(absolute);
-      const normalizedReal = normalizePath(realPath);
-      const isRealPathAllowed = allowedDirectories.some(dir => {
-        const relativePath = path.relative(dir, normalizedReal);
-        return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
-      });
-      
-      if (!isRealPathAllowed) {
-        throw createError(
-          'ACCESS_DENIED',
-          'Symlink target outside allowed directories',
-          { symlinkTarget: realPath }
-        );
+      const realPathAttempt = await fs.realpath(normalizedInitialPath);
+      finalPathToReturn = normalizePath(realPathAttempt); // Use real path if successful
+    } catch (error: any) {
+      // If realpath fails because the path doesn't exist (ENOENT), it's okay for write/create operations.
+      // We'll continue with normalizedInitialPath. For other errors, log them but still proceed with initial path for now.
+      if (error.code !== 'ENOENT') {
+        logger.debug({ path: normalizedInitialPath, error: error.message }, `fs.realpath failed, proceeding with initial path for further checks.`);
       }
-      
-      timer.end({ result: 'success', realPath });
-      return realPath;
-    } catch (error) {
-      // realpath may fail on Windows for non-existent or locked files/directories.
-      // If the absolute path itself exists (lstat succeeds) and is inside allowedDirectories,
-      // we can safely allow it.
-      try {
-        await fs.lstat(absolute);
-        timer.end({ result: 'success', realPath: absolute });
-        return absolute;
-      } catch {
-        const parentDir = path.dirname(absolute);
-        try {
-          const normalizedParent = normalizePath(parentDir); // parentDir is already absolute here
-        const isParentAllowed = allowedDirectories.some(allowedDir => {
-          const relativePath = path.relative(allowedDir, normalizedParent);
-          // Check if normalizedParent is the same as allowedDir or a subdirectory
-          return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
-        });
-        
-        if (!isParentAllowed) {
-          throw createError(
-            'ACCESS_DENIED',
-            'Parent directory outside allowed directories',
-            { parentDirectory: normalizedParent } // Use normalizedParent for error reporting
-          );
-        }
-        
-        timer.end({ result: 'success', newFile: true });
-        return absolute;
-      } catch (parentError) {
-        if ((parentError as any).code === 'ACCESS_DENIED') throw parentError; // Re-throw our custom error
-        throw createError(
-          'ACCESS_DENIED',
-          `Parent directory does not exist or is not accessible: ${parentDir}`,
-          { parentDirectory: parentDir }
-        );
-      }
-      }
+      // finalPathToReturn remains normalizedInitialPath if realpath fails
     }
-  } catch (error) {
+    
+    // 3. Check if the final path (after potential symlink resolution or if it's a non-existent path)
+    //    is still within allowed directories.
+    if (!checkAgainstAllowedDirs(finalPathToReturn)) {
+      throw createError(
+        'ACCESS_DENIED',
+        `Path '${finalPathToReturn}' (potentially after symlink resolution from '${normalizedInitialPath}') is outside allowed directories.`,
+        { originalPath: normalizedInitialPath, resolvedPath: finalPathToReturn, allowedDirectories }
+      );
+    }
+
+    timer.end({ result: 'success', path: finalPathToReturn });
+    return finalPathToReturn;
+
+  } catch (error: any) {
     timer.end({ result: 'error' });
-    if ((error as any).code) {
+    // If it's already a StructuredError from createError, rethrow it.
+    if (error.code && error.message && error.hint) { 
       throw error;
     }
-    throw createError('VALIDATION_ERROR', (error as Error).message || String(error));
+    // Wrap other unexpected errors.
+    throw createError('VALIDATION_ERROR', (error as Error).message || String(error), { originalErrorDetails: String(error) });
   }
 }
+

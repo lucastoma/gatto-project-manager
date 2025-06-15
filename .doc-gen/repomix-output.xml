@@ -1,0 +1,2909 @@
+This file is a merged representation of the entire codebase, combined into a single document by Repomix.
+
+<file_summary>
+This section contains a summary of this file.
+
+<purpose>
+This file contains a packed representation of the entire repository's contents.
+It is designed to be easily consumable by AI systems for analysis, code review,
+or other automated processes.
+</purpose>
+
+<file_format>
+The content is organized as follows:
+1. This summary section
+2. Repository information
+3. Directory structure
+4. Repository files (if enabled)
+5. Multiple file entries, each consisting of:
+  - File path as an attribute
+  - Full contents of the file
+</file_format>
+
+<usage_guidelines>
+- This file should be treated as read-only. Any changes should be made to the
+  original repository files, not this packed version.
+- When processing this file, use the file path to distinguish
+  between different files in the repository.
+- Be aware that this file may contain sensitive information. Handle it with
+  the same level of security as you would the original repository.
+</usage_guidelines>
+
+<notes>
+- Some files may have been excluded based on .gitignore rules and Repomix's configuration
+- Binary files are not included in this packed representation. Please refer to the Repository Structure section for a complete list of file paths, including binary files
+- Files matching patterns in .gitignore are excluded
+- Files matching default ignore patterns are excluded
+- Files are sorted by Git change count (files with more changes are at the bottom)
+</notes>
+
+</file_summary>
+
+<directory_structure>
+config/
+  context_filters.yaml
+  context_history.json
+config-lists/
+  .comb-scripts-config-full-repomix.yaml
+  .comb-scripts-config-full-repomix2.yaml
+  .comb-scripts-config-full-repomix3.yaml
+  .comb-scripts-config-full-repomix4.yaml
+  .comb-scripts-config-full-repomix5.yaml
+  .comb-scripts-config01.yaml
+export/
+  gatto-nero-mcp-no-node-and-dist.md
+advanced_context_collector.py
+config-selector.py
+quick_context_collector.py
+README.md
+run-config-selector.cmd
+</directory_structure>
+
+<files>
+This section contains the contents of the repository's files.
+
+<file path="config/context_filters.yaml">
+# Configuration file for Quick Context Collector filters
+
+filters:
+  Python Files (*.py):
+    description: "Collects all Python source files."
+    patterns:
+      - "*.py"
+
+  Web Files (HTML, CSS, JS):
+    description: "Collects common web development files."
+    patterns:
+      - "*.html"
+      - "*.css"
+      - "*.js"
+
+  Text & Docs (txt, md, rst):
+    description: "Collects text documents and markup files."
+    patterns:
+      - "*.txt"
+      - "*.md"
+      - "*.rst"
+
+  Configuration Files (yaml, json, ini, xml):
+    description: "Collects common configuration file formats."
+    patterns:
+      - "*.yaml"
+      - "*.yml"
+      - "*.json"
+      - "*.ini"
+      - "*.xml"
+
+  All Source Code (Common Types):
+    description: "Collects a broad range of source code file types."
+    patterns:
+      - "*.py"
+      - "*.js"
+      - "*.java"
+      - "*.c"
+      - "*.cpp"
+      - "*.h"
+      - "*.hpp"
+      - "*.cs"
+      - "*.go"
+      - "*.rb"
+      - "*.php"
+      - "*.swift"
+      - "*.kt"
+      - "*.kts"
+      - "*.rs"
+      - "*.scala"
+      - "*.sh"
+      - "*.ps1"
+      - "*.ts"
+      - "*.tsx"
+      - "*.jsx"
+      - "*.json"
+      - "*.yaml"
+      - "*.yml"
+      - "*.ini"
+      - "*.xml"
+
+  All Files (*.*):
+    description: "Collects all files in the directory (use with caution)."
+    patterns:
+      - "*.*"
+
+  Python & OpenCL (py, cl):
+    description: "Collects Python and OpenCL kernel files."
+    patterns:
+      - "*.py"
+      - "*.cl"
+</file>
+
+<file path="config/context_history.json">
+[
+  {
+    "directory": "D:/projects/gatto-ps-ai-link1/gatto_filesystem_v2/src",
+    "filter_name": "All Source Code (Common Types)"
+  },
+  {
+    "directory": "D:/projects/gatto-ps-ai-link1/gatto_filesystem_v2",
+    "filter_name": "All Source Code (Common Types)"
+  },
+  {
+    "directory": "D:/projects/gatto-ps-ai-link1/gatto_filesystem_v2",
+    "filter_name": "All Files (*.*)"
+  },
+  {
+    "directory": "D:/projects/gatto-ps-ai-link1/app/algorithms/algorithm_05_lab_transfer",
+    "filter_name": "Python & OpenCL (py, cl)"
+  },
+  {
+    "directory": "D:/projects/gatto-ps-ai/app/algorithms/algorithm_01_palette",
+    "filter_name": "All Source Code (Common Types)"
+  }
+]
+</file>
+
+<file path="config-lists/.comb-scripts-config-full-repomix.yaml">
+# Przykładowa konfiguracja z pełnymi opcjami Repomix
+# Wszystkie parametry mają swoje wartości domyślne, ale można je nadpisać
+
+project_name: "Gatto PS AI Project - Full Repomix Config"
+output_file: ".doc-gen/export/comb-scripts-output-full.xml"
+gitignore_file: ".gitignore"
+
+# Globalne opcje Repomix - będą używane dla wszystkich grup, chyba że grupa je nadpisze
+repomix_global_options:
+  # Output options
+  style: "xml" # Format wyjściowy: xml, markdown, plain
+  remove_comments: true # Usuwanie komentarzy z kodu
+  remove_empty_lines: true # Usuwanie pustych linii
+  show_line_numbers: false # Pokazywanie numerów linii
+  calculate_tokens: true # Obliczanie liczby tokenów
+  show_file_stats: true # Pokazywanie statystyk plików
+  show_directory_structure: true # Pokazywanie struktury katalogów
+  top_files_length: 3 # Liczba top plików w statystykach
+  copy_to_clipboard: false # Kopiowanie do schowka
+  include_empty_directories: false # Dołączanie pustych katalogów
+
+  # Compression options
+  compression:
+    enabled: true # Włączenie kompresji
+    keep_signatures: false # Zachowanie sygnatur funkcji
+    keep_docstrings: false # Zachowanie docstringów
+    keep_interfaces: false # Zachowanie interfejsów
+
+  # Security options
+  security_check: true # Sprawdzanie bezpieczeństwa
+
+groups:
+  - name: "Main Source Files"
+    description: "Główne pliki źródłowe aplikacji"
+    paths:
+      - "app"
+    patterns:
+      - "*.py"
+      - "*.jsx"
+      - "*.html"
+      - "*.css"
+      - "*.js"
+    exclude_patterns:
+      - "**/logs/**"
+      - "**/temp_uploads/**"
+      - "**/__pycache__/**"
+      - "**/node_modules/**"
+    # Opcje specyficzne dla tej grupy - nadpisują globalne
+
+  - name: "Documentation"
+    description: "Pliki dokumentacji i konfiguracji"
+    paths:
+      - "."
+    patterns:
+      - "*.md"
+      - "*.yaml"
+      - "*.yml"
+      - "*.json"
+      - "*.txt"
+      - "*.py" # Skrypty konfiguracyjne
+    exclude_patterns:
+      - "**/node_modules/**"
+      - "**/venv/**"
+      - "**/logs/**"
+      - "**/temp_uploads/**"
+      - "**/__pycache__/**"
+      - "**/export/**"
+      - "docs/**" # Pomijamy docs jeśli nie istnieje
+    # Opcje specyficzne dla dokumentacji
+
+  - name: "Configuration Files"
+    description: "Pliki konfiguracyjne systemu"
+    paths:
+      - "."
+    patterns:
+      - ".gitignore"
+      - ".pylintrc"
+      - "requirements.txt"
+      - "Dockerfile"
+      - "*.config.json"
+      - "*.ps1"
+      - "*.cmd"
+      - "*.bat"
+    exclude_patterns:
+      - "**/node_modules/**"
+      - "**/venv/**"
+    # Minimalne opcje dla plików konfiguracyjnych
+</file>
+
+<file path="config-lists/.comb-scripts-config-full-repomix2.yaml">
+# Przykładowa konfiguracja z pełnymi opcjami Repomix
+# Wszystkie parametry mają swoje wartości domyślne, ale można je nadpisać
+
+project_name: "Gatto Nero Ai Manager (PY+JSX+WebView no md)"
+output_file: ".doc-gen/export/comb-scripts.xml"
+gitignore_file: ".gitignore"
+
+# Globalne opcje Repomix - będą używane dla wszystkich grup, chyba że grupa je nadpisze
+repomix_global_options:
+  # Output options
+  style: "xml" # Format wyjściowy: xml, markdown, plain
+  remove_comments: true # Usuwanie komentarzy z kodu
+  remove_empty_lines: true # Usuwanie pustych linii
+  show_line_numbers: false # Pokazywanie numerów linii
+  calculate_tokens: true # Obliczanie liczby tokenów
+  show_file_stats: true # Pokazywanie statystyk plików
+  show_directory_structure: true # Pokazywanie struktury katalogów
+  top_files_length: 3 # Liczba top plików w statystykach
+  copy_to_clipboard: false # Kopiowanie do schowka
+  include_empty_directories: false # Dołączanie pustych katalogów
+
+  # Compression options
+  compression:
+    enabled: true # Włączenie kompresji
+    keep_signatures: false # Zachowanie sygnatur funkcji
+    keep_docstrings: false # Zachowanie docstringów
+    keep_interfaces: false # Zachowanie interfejsów
+
+  # Security options
+  security_check: true # Sprawdzanie bezpieczeństwa
+
+groups:
+  - name: "Kod główny"
+    description: "Pliki Markdown z dokumentacją algorytmów"
+    patterns:
+      - "*.py"
+      - "*.json"
+    exclude_patterns:
+      - "*test*"
+      - "*__pycache__*"
+      - "*.pyc"
+      - "*legacy*"
+      - "*temp*"
+    paths:
+      - "**/*"
+  - name: "Webview"
+    description: "Wszystkie pliki Python w workspace"
+    patterns:
+      - "*.py"
+      - "*.html"
+      - "*.css"
+      - "*.js"
+      - "*.json"
+    exclude_patterns:
+      - "*test*"
+      - "*__pycache__*"
+      - "*.pyc"
+      - "*temp*"
+      - "*backup*"
+      - "*old*"
+      - "*legacy*"
+    paths:
+      - "app/webview"
+  - name: "Skrypty JSX"
+    description: "Skrypty Adobe JSX dla Photoshop"
+    patterns:
+      - "*.jsx"
+    exclude_patterns:
+      - "*backup*"
+      - "*old*"
+      - "*legacy*"
+      - "*temp*"
+    paths:
+      - "app/scripts"
+</file>
+
+<file path="config-lists/.comb-scripts-config-full-repomix3.yaml">
+# Przykładowa konfiguracja z pełnymi opcjami Repomix
+# Wszystkie parametry mają swoje wartości domyślne, ale można je nadpisać
+
+project_name: "Gatto Nero Ai Manager (PY+noJSX+WebView no md)"
+output_file: ".doc-gen/export/comb-scripts.xml"
+gitignore_file: ".gitignore"
+
+# Globalne opcje Repomix - będą używane dla wszystkich grup, chyba że grupa je nadpisze
+repomix_global_options:
+  # Output options
+  style: "xml" # Format wyjściowy: xml, markdown, plain
+  remove_comments: true # Usuwanie komentarzy z kodu
+  remove_empty_lines: true # Usuwanie pustych linii
+  show_line_numbers: false # Pokazywanie numerów linii
+  calculate_tokens: true # Obliczanie liczby tokenów
+  show_file_stats: true # Pokazywanie statystyk plików
+  show_directory_structure: true # Pokazywanie struktury katalogów
+  top_files_length: 3 # Liczba top plików w statystykach
+  copy_to_clipboard: false # Kopiowanie do schowka
+  include_empty_directories: false # Dołączanie pustych katalogów
+
+  # Compression options
+  compression:
+    enabled: false # Włączenie kompresji
+    keep_signatures: true # Zachowanie sygnatur funkcji
+    keep_docstrings: true # Zachowanie docstringów
+    keep_interfaces: true # Zachowanie interfejsów
+
+  # Security options
+  security_check: true # Sprawdzanie bezpieczeństwa
+
+groups:
+  - name: "Kod główny"
+    description: "Pliki Markdown z dokumentacją algorytmów"
+    patterns:
+      - "*.py"
+      - "*.json"
+    exclude_patterns:
+      - "*test*"
+      - "*__pycache__*"
+      - "*.pyc"
+      - "*legacy*"
+      - "*temp*"
+    paths:
+      - "**/*"
+  - name: "Webview"
+    description: "Wszystkie pliki Python w workspace"
+    patterns:
+      - "*.py"
+      - "*.html"
+      - "*.css"
+      - "*.js"
+      - "*.json"
+    exclude_patterns:
+      - "*test*"
+      - "*__pycache__*"
+      - "*.pyc"
+      - "*temp*"
+      - "*backup*"
+      - "*old*"
+      - "*legacy*"
+    paths:
+      - "app/webview"
+  - name: "Skrypty JSX"
+    description: "Skrypty Adobe JSX dla Photoshop"
+    patterns:
+      - "--------"
+    exclude_patterns:
+      - "*backup*"
+      - "*old*"
+      - "*legacy*"
+      - "*temp*"
+    paths:
+      - "app/scripts"
+</file>
+
+<file path="config-lists/.comb-scripts-config-full-repomix4.yaml">
+# Przykładowa konfiguracja z pełnymi opcjami Repomix
+# Wszystkie parametry mają swoje wartości domyślne, ale można je nadpisać
+
+project_name: "lab transfer algorytm"
+output:
+  filename: ".doc-gen/export/lab-transfer"
+  style: "md"
+gitignore_file: ".gitignore"
+
+# Globalne opcje Repomix - będą używane dla wszystkich grup, chyba że grupa je nadpisze
+repomix_global_options:
+  # Output options
+  # style: "xml" # Ten parametr jest teraz ignorowany, styl końcowy jest w sekcji 'output'
+  remove_comments: false # Usuwanie komentarzy z kodu
+  remove_empty_lines: false # Usuwanie pustych linii
+  show_line_numbers: false # Pokazywanie numerów linii
+  calculate_tokens: false # Obliczanie liczby tokenów
+  show_file_stats: false # Pokazywanie statystyk plików
+  show_directory_structure: tfalserue # Pokazywanie struktury katalogów
+  top_files_length: 3 # Liczba top plików w statystykach
+  copy_to_clipboard: false # Kopiowanie do schowka
+  include_empty_directories: false # Dołączanie pustych katalogów
+
+  # Compression options
+  compression:
+    enabled: false # Włączenie kompresji
+    keep_signatures: true # Zachowanie sygnatur funkcji
+    keep_docstrings: true # Zachowanie docstringów
+    keep_interfaces: true # Zachowanie interfejsów
+
+  # Security options
+  security_check: true # Sprawdzanie bezpieczeństwa
+
+groups:
+  - name: "lab transfer"
+    description: "Pliki z algorytmem - przed integracją z glównym programem"
+    patterns:
+      - "*.py"
+      - "*.json"
+    exclude_patterns:
+      - "*test*"
+      - "*__pycache__*"
+      - "*.pyc"
+      - "*legacy*"
+      - "*temp*"
+    paths:
+      - Knowledge/WORKING-ON/lab_transfer
+</file>
+
+<file path="config-lists/.comb-scripts-config-full-repomix5.yaml">
+# Przykładowa konfiguracja z pełnymi opcjami Repomix
+# Wszystkie parametry mają swoje wartości domyślne, ale można je nadpisać
+
+project_name: "gatto nero mcp no node and dist"
+output:
+  filename: ".doc-gen/export/gatto-nero-mcp-no-node-and-dist"
+  style: "md"
+gitignore_file: ".gitignore"
+
+# Globalne opcje Repomix - będą używane dla wszystkich grup, chyba że grupa je nadpisze
+repomix_global_options:
+  # Output options
+  # style: "xml" # Ten parametr jest teraz ignorowany, styl końcowy jest w sekcji 'output'
+  remove_comments: false # Usuwanie komentarzy z kodu
+  remove_empty_lines: false # Usuwanie pustych linii
+  show_line_numbers: false # Pokazywanie numerów linii
+  calculate_tokens: false # Obliczanie liczby tokenów
+  show_file_stats: false # Pokazywanie statystyk plików
+  show_directory_structure: tfalserue # Pokazywanie struktury katalogów
+  top_files_length: 3 # Liczba top plików w statystykach
+  copy_to_clipboard: false # Kopiowanie do schowka
+  include_empty_directories: false # Dołączanie pustych katalogów
+
+  # Compression options
+  compression:
+    enabled: false # Włączenie kompresji
+    keep_signatures: true # Zachowanie sygnatur funkcji
+    keep_docstrings: true # Zachowanie docstringów
+    keep_interfaces: true # Zachowanie interfejsów
+
+  # Security options
+  security_check: true # Sprawdzanie bezpieczeństwa
+
+groups:
+  - name: "gatto nero mcp no node and dist"
+    description: "kod gatto nerro mcp filesystem"
+    patterns:
+      - "*.ts"
+      - "*.js"
+      - "*.json"
+      - "*.yaml"
+      - "*.yml"
+    exclude_patterns:
+      - "**node_modules/**"
+      - "**dist/**"
+      - "**build/**"
+      - "**.cache/**"
+      - "*legacy*"
+      - "*temp*"
+    paths:
+      - gatto_filesystem/
+</file>
+
+<file path="config-lists/.comb-scripts-config01.yaml">
+project_name: "GattoNeroPhotoshop Test Project"
+output:
+  filename: "gatto-nero-test-output"
+  style: "md" # Dostępne opcje: 'xml', 'md', 'markdown'
+
+groups:
+  - name: "Python Scripts"
+    description: "Wszystkie skrypty Python w projekcie."
+    paths:
+      - "."
+    patterns:
+      - "**/*.py"
+    exclude_patterns:
+      - "**/node_modules/**"
+      - "**/.venv/**"
+  - name: "Documentation Files"
+    description: "Pliki z dokumentacją w formacie Markdown i tekstowym."
+    paths:
+      - "."
+    patterns:
+      - "**/*.md"
+      - "**/*.txt"
+</file>
+
+<file path="export/gatto-nero-mcp-no-node-and-dist.md">
+# Projekt: gatto nero mcp no node and dist
+## Katalog główny: `D:\projects\gatto-ps-ai-link1`
+## Łączna liczba unikalnych plików: 15
+---
+## Grupa: gatto nero mcp no node and dist
+**Opis:** kod gatto nerro mcp filesystem
+**Liczba plików w grupie:** 15
+
+### Lista plików:
+- `index.ts`
+- `package.json`
+- `src/core/fileInfo.ts`
+- `src/core/fuzzyEdit.ts`
+- `src/core/schemas.ts`
+- `src/core/security.ts`
+- `src/core/toolHandlers.ts`
+- `src/server/config.ts`
+- `src/server/index.ts`
+- `src/types/errors.ts`
+- `src/utils/binaryDetect.ts`
+- `src/utils/hintMap.ts`
+- `src/utils/pathUtils.ts`
+- `src/utils/performance.ts`
+- `tsconfig.json`
+
+### Zawartość plików:
+#### Plik: `index.ts`
+```ts
+// This file is intentionally left blank after refactoring to src/server/index.ts
+```
+#### Plik: `package.json`
+```json
+{
+  "name": "@modelcontextprotocol/server-filesystem",
+  "version": "0.6.3",
+  "description": "MCP server for filesystem access",
+  "license": "MIT",
+  "author": "Anthropic, PBC (https://anthropic.com)",
+  "homepage": "https://modelcontextprotocol.io",
+  "bugs": "https://github.com/modelcontextprotocol/servers/issues",
+  "type": "module",
+  "bin": {
+    "mcp-server-filesystem": "dist/server/index.js"
+  },
+  "files": [
+    "dist"
+  ],
+  "scripts": {
+    "build": "npm run clean && tsc && shx chmod +x dist/server/*.js",
+    "prepare": "npm run build",
+    "watch": "tsc --watch",
+    "clean": "rimraf dist",
+    "prepublishOnly": "npm run build"
+  },
+  "dependencies": {
+    "async-mutex": "^0.3.2",
+    "pino": "^8.17.2",
+    "@modelcontextprotocol/sdk": "0.5.0",
+    "diff": "^5.1.0",
+    "glob": "^10.3.10",
+    "minimatch": "^10.0.1",
+    "zod-to-json-schema": "^3.23.5"
+  },
+  "devDependencies": {
+    "@types/pino": "^7.0.5",
+    "rimraf": "^5.0.5",
+    "@types/diff": "^5.0.9",
+    "@types/minimatch": "^5.1.2",
+    "@types/node": "^22",
+    "shx": "^0.3.4",
+    "typescript": "^5.3.3"
+  },
+  "types": "./dist/server/index.d.ts"
+}
+```
+#### Plik: `src/core/fileInfo.ts`
+```ts
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { minimatch } from 'minimatch';
+import { isBinaryFile } from '../utils/binaryDetect.js';
+import { PerformanceTimer } from '../utils/performance.js';
+import { validatePath } from './security.js';
+import type { Logger } from 'pino';
+import type { Config } from '../server/config.js';
+
+export interface FileInfo {
+  size: number;
+  created: Date;
+  modified: Date;
+  accessed: Date;
+  isDirectory: boolean;
+  isFile: boolean;
+  permissions: string;
+  isBinary?: boolean;
+  mimeType?: string;
+}
+
+export async function getFileStats(filePath: string, logger: Logger, config: Config): Promise<FileInfo> {
+  const timer = new PerformanceTimer('getFileStats', logger, config);
+  
+  try {
+    const stats = await fs.stat(filePath);
+    const buffer = await fs.readFile(filePath);
+    const isBinary = isBinaryFile(buffer, filePath);
+    
+    const result = {
+      size: stats.size,
+      created: stats.birthtime,
+      modified: stats.mtime,
+      accessed: stats.atime,
+      isDirectory: stats.isDirectory(),
+      isFile: stats.isFile(),
+      permissions: stats.mode.toString(8).slice(-3),
+      isBinary,
+      mimeType: isBinary ? 'application/octet-stream' : 'text/plain'
+    };
+    
+    timer.end({ isBinary, size: stats.size });
+    return result;
+  } catch (error) {
+    timer.end({ result: 'error' });
+    throw error;
+  }
+}
+
+export async function searchFiles(
+  rootPath: string,
+  pattern: string,
+  logger: Logger,
+  config: Config,
+  excludePatterns: string[] = [],
+  useExactPatterns: boolean = false
+): Promise<string[]> {
+  const timer = new PerformanceTimer('searchFiles', logger, config);
+  const results: string[] = [];
+  const visitedForThisSearch = new Set<string>();
+
+  async function search(currentPath: string): Promise<void> {
+    try {
+      const stats = await fs.stat(currentPath);
+      const inodeKey = `${stats.dev}-${stats.ino}`;
+      
+      if (visitedForThisSearch.has(inodeKey)) {
+        logger.debug({ path: currentPath }, 'Skipping already visited inode (symlink loop)');
+        return;
+      }
+      visitedForThisSearch.add(inodeKey);
+
+      const entries = await fs.readdir(currentPath, { withFileTypes: true });
+
+      for (const entry of entries) {
+        const fullPath = path.join(currentPath, entry.name);
+
+        try {
+          const relativePath = path.relative(rootPath, fullPath);
+          // Match exclude patterns against the relative path, case-insensitively
+          const shouldExclude = excludePatterns.some(p => minimatch(relativePath, p, { dot: true, nocase: true }));
+
+          if (shouldExclude) {
+            continue;
+          }
+
+          // Determine the actual glob pattern to use based on useExactPatterns
+          // If useExactPatterns is false and the input pattern doesn't contain a path separator,
+          // prepend '**/' to match items at any depth.
+          const globPatternToUse = useExactPatterns 
+            ? pattern 
+            : (pattern.includes('/') ? pattern : `**/${pattern}`);
+
+          // Match the effective glob pattern against the relative path, case-insensitively
+          if (minimatch(relativePath, globPatternToUse, { dot: true, nocase: true })) {
+            results.push(fullPath); // Add full path of the matching file/directory
+          }
+
+          // If it's a directory (and wasn't excluded), recurse into it.
+          // The directory itself might have matched the pattern and been added above.
+          // Recursion happens to find matching items *within* this directory.
+          if (entry.isDirectory()) {
+            await search(fullPath);
+          }
+        } catch (error) {
+          // This catch block might still be relevant if fs.stat or fs.readdir fails for a specific entry
+          // even if the parent was accessible. However, the validatePath call was the primary source of errors here.
+          logger.debug({ path: fullPath, error: (error as Error).message }, 'Error processing entry during search');
+          continue;
+        }
+      }
+    } catch (error) {
+      logger.debug({ path: currentPath, error: (error as Error).message }, 'Skipping inaccessible path');
+      return;
+    }
+  }
+
+  await search(rootPath);
+  timer.end({ resultsCount: results.length });
+  return results;
+}
+
+import type { DirectoryTreeEntry } from './schemas.js';
+
+export async function getDirectoryTree(
+  basePath: string,
+  allowedDirectories: string[],
+  logger: Logger,
+  config: Config,
+  currentDepth: number = 0, // Keep track of current depth
+  maxDepth: number = -1 // Default to no max depth (-1 or undefined)
+): Promise<DirectoryTreeEntry> {
+  const timer = new PerformanceTimer('getDirectoryTree', logger, config);
+  logger.debug({ basePath, currentDepth, maxDepth }, 'Starting getDirectoryTree for path');
+
+  const validatedPath = await validatePath(basePath, allowedDirectories, logger, config);
+  const stats = await fs.stat(validatedPath);
+  const name = path.basename(validatedPath);
+
+  const entry: DirectoryTreeEntry = {
+    name,
+    path: validatedPath,
+    type: stats.isDirectory() ? 'directory' : 'file',
+  };
+
+  if (stats.isDirectory()) {
+    // Check if maxDepth is set and if currentDepth has reached it
+    if (maxDepth !== -1 && currentDepth >= maxDepth) {
+      logger.debug({ basePath, currentDepth, maxDepth }, 'Max depth reached, not traversing further');
+      entry.children = []; // Indicate that there might be more, but not traversing
+      timer.end({ path: basePath, type: 'directory', depthReached: true });
+      return entry;
+    }
+
+    entry.children = [];
+    try {
+      const dirents = await fs.readdir(validatedPath, { withFileTypes: true });
+      for (const dirent of dirents) {
+        const childPath = path.join(validatedPath, dirent.name);
+        // Recursive call, incrementing currentDepth
+        // We pass the original maxDepth down
+        const childEntry = await getDirectoryTree(childPath, allowedDirectories, logger, config, currentDepth + 1, maxDepth);
+        entry.children.push(childEntry);
+      }
+    } catch (error: any) {
+      logger.warn({ path: validatedPath, error: error.message }, 'Failed to read directory contents in getDirectoryTree');
+      // Optionally, add an error node or just skip: entry.children.push({ name: 'Error reading directory', path: validatedPath, type: 'error' });
+    }
+  }
+
+  timer.end({ path: basePath, type: entry.type, childrenCount: entry.children?.length });
+  return entry;
+}
+
+// Add this function to src/core/fileInfo.ts
+
+export interface FileReadResult {
+  path: string;
+  content?: string;
+  encoding?: 'utf-8' | 'base64' | 'error'; // Changed from encodingUsed, added 'error'
+}
+
+export async function readMultipleFilesContent(
+  filePaths: string[],
+  requestedEncoding: 'utf-8' | 'base64' | 'auto',
+  allowedDirectories: string[],
+  logger: Logger,
+  config: Config
+): Promise<FileReadResult[]> {
+  const timer = new PerformanceTimer('readMultipleFilesContent', logger, config);
+  const results: FileReadResult[] = [];
+
+  for (const filePath of filePaths) {
+    try {
+      const validPath = await validatePath(filePath, allowedDirectories, logger, config);
+      const rawBuffer = await fs.readFile(validPath);
+      let content: string;
+      let encodingUsed: 'utf-8' | 'base64' = 'utf-8'; // Default to utf-8
+
+      if (requestedEncoding === 'base64') {
+        content = rawBuffer.toString('base64');
+        encodingUsed = 'base64';
+      } else if (requestedEncoding === 'auto') {
+        if (isBinaryFile(rawBuffer, validPath)) {
+          content = rawBuffer.toString('base64');
+          encodingUsed = 'base64';
+        } else {
+          content = rawBuffer.toString('utf-8');
+          encodingUsed = 'utf-8';
+        }
+      } else { // utf-8
+        content = rawBuffer.toString('utf-8');
+        encodingUsed = 'utf-8';
+      }
+      results.push({ path: filePath, content, encoding: encodingUsed }); // Use 'encoding'
+    } catch (error: any) {
+      logger.warn({ path: filePath, error: error.message }, 'Failed to read one of the files in readMultipleFilesContent');
+      results.push({ path: filePath, content: `Error: ${error.message}`, encoding: 'error' }); // Error in content, encoding='error'
+    }
+  }
+
+  timer.end({ filesCount: filePaths.length, resultsCount: results.length });
+  return results;
+}
+```
+#### Plik: `src/core/fuzzyEdit.ts`
+```ts
+import fs from 'node:fs/promises';
+import { createTwoFilesPatch } from 'diff';
+import { isBinaryFile } from '../utils/binaryDetect.js';
+import { createError } from '../types/errors.js';
+import { PerformanceTimer } from '../utils/performance.js';
+import type { Logger } from 'pino';
+import type { Config } from '../server/config.js';
+
+export interface FuzzyMatchConfig {
+  maxDistanceRatio: number;
+  minSimilarity: number;
+  caseSensitive: boolean;
+  ignoreWhitespace: boolean;
+  preserveLeadingWhitespace: 'auto' | 'strict' | 'normalize';
+  debug: boolean;
+}
+
+export interface ApplyFileEditsResult {
+  modifiedContent: string;
+  formattedDiff: string;
+}
+
+function normalizeLineEndings(text: string): string {
+  return text.replace(/\r\n/g, '\n').replace(/\r/g, '\n');
+}
+
+function createUnifiedDiff(originalContent: string, newContent: string, filepath: string = 'file'): string {
+  const normalizedOriginal = normalizeLineEndings(originalContent);
+  const normalizedNew = normalizeLineEndings(newContent);
+  return createTwoFilesPatch(
+    filepath,
+    filepath,
+    normalizedOriginal,
+    normalizedNew,
+    'original',
+    'modified'
+  );
+}
+
+function preprocessText(text: string, config: FuzzyMatchConfig): string {
+  let processed = text;
+  if (!config.caseSensitive) {
+    processed = processed.toLowerCase();
+  }
+  if (config.ignoreWhitespace) {
+    processed = processed.replace(/[ \t]+/g, ' ').replace(/\n+/g, '\n').trim();
+  }
+  return processed;
+}
+
+function levenshteinDistanceOptimized(str1: string, str2: string): number {
+  if (str1 === str2) return 0;
+  if (str1.length === 0) return str2.length;
+  if (str2.length === 0) return str1.length;
+  
+  const shorter = str1.length <= str2.length ? str1 : str2;
+  const longer = str1.length <= str2.length ? str2 : str1;
+  
+  let previousRow = Array(shorter.length + 1).fill(0).map((_, i) => i);
+  
+  for (let i = 0; i < longer.length; i++) {
+    const currentRow = [i + 1];
+    for (let j = 0; j < shorter.length; j++) {
+      const cost = longer[i] === shorter[j] ? 0 : 1;
+      currentRow.push(Math.min(
+        currentRow[j] + 1,
+        previousRow[j + 1] + 1,
+        previousRow[j] + cost
+      ));
+    }
+    previousRow = currentRow;
+  }
+  return previousRow[shorter.length];
+}
+
+function calculateSimilarity(distance: number, maxLength: number): number {
+  return Math.max(0, 1 - (distance / maxLength));
+}
+
+function validateEdits(edits: Array<{oldText: string, newText: string}>, debug: boolean, logger: Logger): void {
+  for (let i = 0; i < edits.length; i++) {
+    for (let j = i + 1; j < edits.length; j++) {
+      const edit1 = edits[i];
+      const edit2 = edits[j];
+      if (edit1.oldText.includes(edit2.oldText) || edit2.oldText.includes(edit1.oldText)) {
+        const warning = `Warning: Potentially overlapping oldText in edits ${i+1} and ${j+1}`;
+        logger.warn({ edit1Index: i, edit2Index: j }, warning);
+      }
+      if (edit1.newText.includes(edit2.oldText) || edit2.newText.includes(edit1.oldText)) {
+        const warning = `Warning: newText in edit ${i+1} contains oldText from edit ${j+1} - potential mutual overlap`;
+        logger.warn({ edit1Index: i, edit2Index: j }, warning);
+      }
+    }
+  }
+}
+
+function applyRelativeIndentation(
+  newLines: string[], 
+  oldLines: string[], 
+  originalIndent: string,
+  preserveMode: 'auto' | 'strict' | 'normalize'
+): string[] {
+  switch (preserveMode) {
+    case 'strict':
+      return newLines.map(line => originalIndent + line.trimStart());
+    case 'normalize':
+      return newLines.map(line => originalIndent + line.trimStart());
+    case 'auto':
+    default:
+      return newLines.map((line, idx) => {
+        if (idx === 0) {
+          return originalIndent + line.trimStart();
+        }
+        const oldLineIndex = Math.min(idx, oldLines.length - 1);
+        const newLineIndent = line.match(/^\s*/)?.[0] || '';
+        const baseOldIndent = oldLines[0]?.match(/^\s*/)?.[0]?.length || 0;
+        const relativeIndentChange = newLineIndent.length - baseOldIndent;
+        const finalIndent = originalIndent + ' '.repeat(Math.max(0, relativeIndentChange));
+        return finalIndent + line.trimStart();
+      });
+  }
+}
+
+export async function applyFileEdits(
+  filePath: string,
+  edits: Array<{oldText: string, newText: string}>,
+  config: FuzzyMatchConfig,
+  logger: Logger,
+  globalConfig: Config
+): Promise<ApplyFileEditsResult> {
+  const timer = new PerformanceTimer('applyFileEdits', logger, globalConfig);
+  let levenshteinIterations = 0;
+  
+  try {
+    const buffer = await fs.readFile(filePath);
+    if (isBinaryFile(buffer, filePath)) {
+      throw createError(
+        'BINARY_FILE_ERROR',
+        'Cannot edit binary files',
+        { filePath, detectedAs: 'binary' }
+      );
+    }
+
+    const originalContent = normalizeLineEndings(buffer.toString('utf-8'));
+    let modifiedContent = originalContent;
+
+    validateEdits(edits, config.debug, logger);
+
+    for (const [editIndex, edit] of edits.entries()) {
+      const normalizedOld = normalizeLineEndings(edit.oldText);
+      const normalizedNew = normalizeLineEndings(edit.newText);
+      let matchFound = false;
+
+      const exactMatchIndex = modifiedContent.indexOf(normalizedOld);
+      if (exactMatchIndex !== -1) {
+        modifiedContent = modifiedContent.substring(0, exactMatchIndex) +
+                          normalizedNew +
+                          modifiedContent.substring(exactMatchIndex + normalizedOld.length);
+        matchFound = true;
+      } else {
+        const contentLines = modifiedContent.split('\n');
+        const oldLines = normalizedOld.split('\n');
+        const processedOld = preprocessText(normalizedOld, config);
+
+        let bestMatch = {
+          distance: Infinity,
+          index: -1,
+          text: '',
+          similarity: 0,
+          windowSize: 0
+        };
+
+        const windowSizes = [
+          oldLines.length,
+          Math.max(1, oldLines.length - 1),
+          oldLines.length + 1,
+          Math.max(1, oldLines.length - 2),
+          oldLines.length + 2
+        ].filter((size, index, arr) => arr.indexOf(size) === index && size > 0);
+
+        for (const windowSize of windowSizes) {
+          if (windowSize > contentLines.length) continue;
+
+          for (let i = 0; i <= contentLines.length - windowSize; i++) {
+            const windowLines = contentLines.slice(i, i + windowSize);
+            const windowText = windowLines.join('\n');
+            const processedWindow = preprocessText(windowText, config);
+            
+            levenshteinIterations++;
+            const distance = levenshteinDistanceOptimized(processedOld, processedWindow);
+            const similarity = calculateSimilarity(distance, Math.max(processedOld.length, processedWindow.length));
+
+            if (distance < bestMatch.distance) {
+              bestMatch = { distance, index: i, text: windowText, similarity, windowSize };
+            }
+            if (distance === 0) break;
+          }
+          if (bestMatch.distance === 0) break;
+        }
+
+        const distanceThreshold = Math.floor(processedOld.length * config.maxDistanceRatio);
+
+        if (bestMatch.index !== -1 && 
+            bestMatch.distance <= distanceThreshold && 
+            bestMatch.similarity >= config.minSimilarity) {
+          
+          const newLines = normalizedNew.split('\n');
+          const originalIndent = contentLines[bestMatch.index].match(/^\s*/)?.[0] || '';
+          const indentedNewLines = applyRelativeIndentation(
+            newLines, 
+            oldLines, 
+            originalIndent, 
+            config.preserveLeadingWhitespace
+          );
+
+          contentLines.splice(bestMatch.index, bestMatch.windowSize, ...indentedNewLines);
+          modifiedContent = contentLines.join('\n');
+          matchFound = true;
+        } else if (bestMatch.similarity >= 0.5) {
+            throw createError(
+                'PARTIAL_MATCH',
+                `Found a partial match for edit ${editIndex + 1} with similarity ${bestMatch.similarity.toFixed(3)}. Please adjust 'oldText' or matching parameters.`,
+                { 
+                    editIndex, 
+                    similarity: bestMatch.similarity, 
+                    bestMatchPreview: bestMatch.text.substring(0, 100) 
+                }
+            );
+        }
+      }
+
+      if (!matchFound) {
+        let errorMessage = `Could not find a close match for edit ${editIndex + 1}:\n---\n${edit.oldText}\n---`;
+        throw createError(
+          'FUZZY_MATCH_FAILED',
+          errorMessage,
+          { editIndex, levenshteinIterations }
+        );
+      }
+    }
+
+    const diff = createUnifiedDiff(originalContent, modifiedContent, filePath);
+    const formattedDiff = "```diff\n" + diff + "\n```\n\n";
+
+    timer.end({ 
+      editsCount: edits.length, 
+      levenshteinIterations,
+      charactersProcessed: originalContent.length
+    });
+
+    return { modifiedContent, formattedDiff };
+  } catch (error) {
+    timer.end({ result: 'error' });
+    throw error;
+  }
+}
+```
+#### Plik: `src/core/schemas.ts`
+```ts
+import { z } from 'zod';
+import type { Config } from '../server/config.js';
+
+export const HandshakeRequestSchema = z.object({
+  method: z.literal('handshake'),
+  params: z.object({}).optional()
+});
+
+export const ListToolsRequestSchema = z.object({
+  method: z.literal('list_tools'),
+  params: z.object({}).optional()
+});
+
+export const ReadFileArgsSchema = z.object({
+  path: z.string(),
+  encoding: z.enum(['utf-8', 'base64', 'auto']).default('auto').describe('Encoding for file content')
+});
+
+export const ReadMultipleFilesArgsSchema = z.object({
+  paths: z.array(z.string()),
+  encoding: z.enum(['utf-8', 'base64', 'auto']).default('auto').describe('Encoding for file content')
+});
+
+export const WriteFileArgsSchema = z.object({
+  path: z.string(),
+  content: z.string(),
+  encoding: z.enum(['utf-8', 'base64']).default('utf-8').describe('Encoding of provided content')
+});
+
+export const EditOperation = z.object({
+  oldText: z.string().describe('Text to search for - can be slightly inaccurate'),
+  newText: z.string().describe('Text to replace with')
+});
+export type EditOperation = z.infer<typeof EditOperation>;
+
+export const getEditFileArgsSchema = (config: Config) => z.object({
+  path: z.string(),
+  edits: z.array(EditOperation),
+  dryRun: z.boolean().default(false).describe('Preview changes using git-style diff format'),
+  debug: z.boolean().default(false).describe('Show detailed matching information'),
+  caseSensitive: z.boolean().default(config.fuzzyMatching.caseSensitive).describe('Whether to match case sensitively'),
+  ignoreWhitespace: z.boolean().default(config.fuzzyMatching.ignoreWhitespace).describe('Whether to normalize whitespace differences'),
+  maxDistanceRatio: z.number().min(0).max(1).default(config.fuzzyMatching.maxDistanceRatio).describe('Maximum allowed distance as ratio of text length'),
+  minSimilarity: z.number().min(0).max(1).default(config.fuzzyMatching.minSimilarity).describe('Minimum similarity threshold (0-1)'),
+  preserveLeadingWhitespace: z.enum(['auto', 'strict', 'normalize']).default(config.fuzzyMatching.preserveLeadingWhitespace).describe('How to handle leading whitespace preservation')
+});
+
+export const CreateDirectoryArgsSchema = z.object({
+  path: z.string(),
+});
+
+export const ListDirectoryEntrySchema = z.object({
+  name: z.string().describe('Name of the file or directory'),
+  path: z.string().describe('Relative path from the base allowed directory'),
+  type: z.enum(['file', 'directory', 'symlink', 'other']).describe('Type of the entry'),
+  size: z.number().optional().describe('Size of the file in bytes, undefined for directories or if error reading stats')
+});
+export type ListDirectoryEntry = z.infer<typeof ListDirectoryEntrySchema>;
+
+export const ListDirectoryArgsSchema = z.object({
+  path: z.string(),
+});
+
+export const DirectoryTreeArgsSchema = z.object({
+  path: z.string(),
+});
+
+// Define the recursive DirectoryTreeEntrySchema
+// We need to use z.lazy to handle recursive types with Zod
+export const DirectoryTreeEntrySchema: z.ZodType<DirectoryTreeEntry> = z.lazy(() =>
+  z.object({
+    name: z.string().describe('Name of the file or directory'),
+    path: z.string().describe('Full absolute path of the file or directory'),
+    type: z.enum(['file', 'directory']).describe('Type of the entry'),
+    children: z.array(DirectoryTreeEntrySchema).optional().describe('Children of the directory entry, undefined for files'),
+    // We might want to add size for files or other metadata later
+    // size: z.number().optional().describe('Size of the file in bytes, undefined for directories'), 
+  })
+);
+
+// Define the TypeScript interface for DirectoryTreeEntry for clarity
+export interface DirectoryTreeEntry {
+  name: string;
+  path: string;
+  type: 'file' | 'directory';
+  children?: DirectoryTreeEntry[];
+  // size?: number;
+}
+
+// The result schema is essentially the root entry of the directory tree
+export const DirectoryTreeResultSchema = DirectoryTreeEntrySchema;
+
+export const MoveFileArgsSchema = z.object({
+  source: z.string(),
+  destination: z.string(),
+});
+
+export const ListAllowedDirectoriesArgsSchema = z.object({}); // No parameters for listing allowed directories
+
+export const ServerStatsArgsSchema = z.object({}); // Schema for server_stats tool arguments
+
+export const SearchFilesArgsSchema = z.object({
+  path: z.string(),
+  pattern: z.string(),
+  excludePatterns: z.array(z.string()).optional().default([]),
+  useExactPatterns: z.boolean().default(false).describe('Use patterns exactly as provided instead of wrapping with **/'),
+  maxDepth: z.number().int().positive().optional().describe('Maximum depth to search'),
+  maxResults: z.number().int().positive().optional().describe('Maximum number of results to return')
+});
+
+export const GetFileInfoArgsSchema = z.object({
+  path: z.string(),
+});
+
+export const CallToolRequestSchema = z.object({
+  method: z.literal('call_tool'),
+  params: z.object({
+    name: z.string(),
+    args: z.any()
+  })
+});
+
+export const DeleteFileArgsSchema = z.object({
+  path: z.string(),
+});
+
+export const DeleteDirectoryArgsSchema = z.object({
+  path: z.string(),
+  recursive: z.boolean().optional().default(false).describe('Recursively delete directory contents')
+});
+```
+#### Plik: `src/core/security.ts`
+```ts
+import fs from 'node:fs/promises';
+import path from 'node:path';
+import { PerformanceTimer } from '../utils/performance.js';
+import { expandHome, normalizePath } from '../utils/pathUtils.js';
+import { createError } from '../types/errors.js';
+import type { Logger } from 'pino';
+import type { Config } from '../server/config.js';
+
+export async function validatePath(requestedPath: string, allowedDirectories: string[], logger: Logger, config: Config): Promise<string> {
+  const timer = new PerformanceTimer('validatePath', logger, config);
+  
+  try {
+    const expandedPath = expandHome(requestedPath);
+    // If the path is relative, resolve it against the FIRST allowed directory instead of the server CWD.
+    // This makes JSON-RPC requests intuitive: a client can pass "./" or "sub/dir" and it will be treated as relative
+    // to the allowed directory supplied at server start (e.g. "mcp-test").
+    const absolute = path.isAbsolute(expandedPath)
+      ? path.resolve(expandedPath)
+      : path.resolve(allowedDirectories[0] ?? process.cwd(), expandedPath);
+
+    const normalizedRequested = normalizePath(absolute);
+
+    const isAllowed = allowedDirectories.some(dir => {
+      const relativePath = path.relative(dir, normalizedRequested);
+      return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
+    });
+    
+    if (!isAllowed) {
+      throw createError(
+        'ACCESS_DENIED',
+        `Path outside allowed directories: ${absolute}`,
+        { 
+          requestedPath: absolute, 
+          allowedDirectories: allowedDirectories 
+        }
+      );
+    }
+
+    try {
+      const realPath = await fs.realpath(absolute);
+      const normalizedReal = normalizePath(realPath);
+      const isRealPathAllowed = allowedDirectories.some(dir => {
+        const relativePath = path.relative(dir, normalizedReal);
+        return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
+      });
+      
+      if (!isRealPathAllowed) {
+        throw createError(
+          'ACCESS_DENIED',
+          'Symlink target outside allowed directories',
+          { symlinkTarget: realPath }
+        );
+      }
+      
+      timer.end({ result: 'success', realPath });
+      return realPath;
+    } catch (error) {
+      // realpath may fail on Windows for non-existent or locked files/directories.
+      // If the absolute path itself exists (lstat succeeds) and is inside allowedDirectories,
+      // we can safely allow it.
+      try {
+        await fs.lstat(absolute);
+        timer.end({ result: 'success', realPath: absolute });
+        return absolute;
+      } catch {
+        const parentDir = path.dirname(absolute);
+        try {
+          const normalizedParent = normalizePath(parentDir); // parentDir is already absolute here
+        const isParentAllowed = allowedDirectories.some(allowedDir => {
+          const relativePath = path.relative(allowedDir, normalizedParent);
+          // Check if normalizedParent is the same as allowedDir or a subdirectory
+          return !relativePath.startsWith('..' + path.sep) && relativePath !== '..';
+        });
+        
+        if (!isParentAllowed) {
+          throw createError(
+            'ACCESS_DENIED',
+            'Parent directory outside allowed directories',
+            { parentDirectory: normalizedParent } // Use normalizedParent for error reporting
+          );
+        }
+        
+        timer.end({ result: 'success', newFile: true });
+        return absolute;
+      } catch (parentError) {
+        if ((parentError as any).code === 'ACCESS_DENIED') throw parentError; // Re-throw our custom error
+        throw createError(
+          'ACCESS_DENIED',
+          `Parent directory does not exist or is not accessible: ${parentDir}`,
+          { parentDirectory: parentDir }
+        );
+      }
+      }
+    }
+  } catch (error) {
+    timer.end({ result: 'error' });
+    if ((error as any).code) {
+      throw error;
+    }
+    throw createError('VALIDATION_ERROR', (error as Error).message || String(error));
+  }
+}
+```
+#### Plik: `src/core/toolHandlers.ts`
+```ts
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { zodToJsonSchema } from 'zod-to-json-schema';
+import { Mutex } from 'async-mutex';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+import { createError, StructuredError } from '../types/errors.js';
+import { PerformanceTimer } from '../utils/performance.js';
+import { isBinaryFile } from '../utils/binaryDetect.js';
+import { validatePath } from './security.js';
+import { applyFileEdits, FuzzyMatchConfig } from './fuzzyEdit.js';
+import { getFileStats, searchFiles, readMultipleFilesContent, FileReadResult, getDirectoryTree } from './fileInfo.js'; 
+import * as schemas from './schemas.js';
+// Import specific types that were causing issues if not directly imported
+import type { ListDirectoryEntry, DirectoryTreeEntry, EditOperation } from './schemas.js'; 
+
+import type { Logger } from 'pino';
+import type { Config } from '../server/config.js';
+
+let requestCount = 0;
+let editOperationCount = 0;
+
+const fileLocks = new Map<string, Mutex>();
+
+function getFileLock(filePath: string, config: Config): Mutex {
+  if (!fileLocks.has(filePath)) {
+    if (fileLocks.size >= config.concurrency.maxConcurrentEdits) {
+      const oldestKey = fileLocks.keys().next().value;
+      if (oldestKey) fileLocks.delete(oldestKey);
+    }
+    fileLocks.set(filePath, new Mutex());
+  }
+  return fileLocks.get(filePath)!;
+}
+
+export function setupToolHandlers(server: Server, allowedDirectories: string[], logger: Logger, config: Config) {
+  server.setRequestHandler(schemas.HandshakeRequestSchema, async () => ({
+    serverName: 'mcp-filesystem-server',
+    serverVersion: '0.7.0'
+  }));
+  const EditFileArgsSchema = schemas.getEditFileArgsSchema(config);
+  
+  server.setRequestHandler(schemas.ListToolsRequestSchema, async () => {
+    return {
+      tools: [
+        { name: 'read_file', description: 'Read file contents.', inputSchema: zodToJsonSchema(schemas.ReadFileArgsSchema) as any },
+        { name: 'read_multiple_files', description: 'Read multiple files.', inputSchema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) as any },
+        { name: 'list_allowed_directories', description: 'List allowed base directories.', inputSchema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) as any },
+        { name: 'write_file', description: 'Write file contents.', inputSchema: zodToJsonSchema(schemas.WriteFileArgsSchema) as any },
+        { name: 'edit_file', description: 'Edit file contents using fuzzy matching.', inputSchema: zodToJsonSchema(EditFileArgsSchema) as any },
+        { name: 'create_directory', description: 'Create a directory.', inputSchema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) as any },
+        { name: 'list_directory', description: 'List directory contents.', inputSchema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) as any },
+        { name: 'directory_tree', description: 'Get directory tree.', inputSchema: zodToJsonSchema(schemas.DirectoryTreeArgsSchema) as any },
+        { name: 'move_file', description: 'Move/rename a file or directory.', inputSchema: zodToJsonSchema(schemas.MoveFileArgsSchema) as any },
+        { name: 'delete_file', description: 'Delete a file.', inputSchema: zodToJsonSchema(schemas.DeleteFileArgsSchema) as any },
+        { name: 'delete_directory', description: 'Delete a directory.', inputSchema: zodToJsonSchema(schemas.DeleteDirectoryArgsSchema) as any },
+        { name: 'search_files', description: 'Search for files by pattern.', inputSchema: zodToJsonSchema(schemas.SearchFilesArgsSchema) as any },
+        { name: 'get_file_info', description: 'Get file/directory metadata.', inputSchema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) as any },
+        { name: 'server_stats', description: 'Get server statistics.', inputSchema: zodToJsonSchema(schemas.ServerStatsArgsSchema) as any }
+      ]
+    };
+  });
+
+  server.setRequestHandler(schemas.CallToolRequestSchema, async (request) => {
+    requestCount++;
+    logger.info({ tool: request.params.name, args: request.params.args }, `Tool request: ${request.params.name}`);
+    try {
+      switch (request.params.name) {
+        case 'list_allowed_directories': {
+          const parsed = schemas.ListAllowedDirectoriesArgsSchema.safeParse(request.params.args ?? {});
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListAllowedDirectoriesArgsSchema) });
+          return { result: allowedDirectories };
+        }
+
+        case 'read_file': {
+          const parsed = schemas.ReadFileArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadFileArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const rawBuffer = await fs.readFile(validPath);
+          let content: string;
+          let encodingUsed: 'utf-8' | 'base64' = 'utf-8';
+          const isBinary = isBinaryFile(rawBuffer, validPath);
+
+          if (parsed.data.encoding === 'base64' || (parsed.data.encoding === 'auto' && isBinary)) {
+            content = rawBuffer.toString('base64');
+            encodingUsed = 'base64';
+          } else {
+            content = rawBuffer.toString('utf-8'); // Default to utf-8
+          }
+          return { result: { content, encoding: encodingUsed } };
+        }
+
+        case 'read_multiple_files': {
+            const parsed = schemas.ReadMultipleFilesArgsSchema.safeParse(request.params.args);
+            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ReadMultipleFilesArgsSchema) });
+
+            // const timer = new PerformanceTimer('read_multiple_files_handler', logger, config); // Timer is now within readMultipleFilesContent
+            const fileReadResults = await readMultipleFilesContent(
+              parsed.data.paths,
+              parsed.data.encoding,
+              allowedDirectories,
+              logger,
+              config
+            );
+            // timer.end(...); // Logging for timer is handled within readMultipleFilesContent
+            return { result: fileReadResults };
+        }
+
+        case 'write_file': {
+          const parsed = schemas.WriteFileArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.WriteFileArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+
+          const lock = getFileLock(validPath, config);
+          await lock.runExclusive(async () => {
+            const contentBuffer = Buffer.from(parsed.data.content, parsed.data.encoding);
+            await fs.writeFile(validPath, contentBuffer);
+          });
+          return { content: [{ type: 'text', text: `File written: ${parsed.data.path}` }] };
+        }
+
+        case 'edit_file': {
+          editOperationCount++;
+          const parsed = EditFileArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments for edit_file', { error: parsed.error, schema: zodToJsonSchema(EditFileArgsSchema) });
+          
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+          const fileBuffer = await fs.readFile(validPath);
+          if (isBinaryFile(fileBuffer, validPath)) { // Check if file is binary by extension or content
+            throw createError('BINARY_FILE_EDIT', `Cannot edit binary file: ${validPath}`);
+          }
+
+          const fuzzyConfig: FuzzyMatchConfig = {
+            maxDistanceRatio: parsed.data.maxDistanceRatio,
+            minSimilarity: parsed.data.minSimilarity,
+            caseSensitive: parsed.data.caseSensitive,
+            ignoreWhitespace: parsed.data.ignoreWhitespace,
+            preserveLeadingWhitespace: parsed.data.preserveLeadingWhitespace,
+            debug: parsed.data.debug
+          };
+          
+          let modifiedContent: string = '';
+          let formattedDiff: string = '';
+
+          const lock = getFileLock(validPath, config);
+          await lock.runExclusive(async () => {
+            const currentContent = await fs.readFile(validPath, 'utf-8');
+            const editResult = await applyFileEdits(currentContent, parsed.data.edits as EditOperation[], fuzzyConfig, logger, config);
+            modifiedContent = editResult.modifiedContent;
+            formattedDiff = editResult.formattedDiff;
+            if (!parsed.data.dryRun) {
+              await fs.writeFile(validPath, modifiedContent, 'utf-8');
+            }
+          });
+
+          const responseText = parsed.data.dryRun 
+            ? `Dry run: File '${parsed.data.path}' would be modified. Diff:\n${formattedDiff}`
+            : `File '${parsed.data.path}' edited successfully. Diff:\n${formattedDiff}`;
+          
+          return { content: [{ type: 'text', text: responseText }] };
+        }
+        
+        case 'create_directory': {
+          const parsed = schemas.CreateDirectoryArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.CreateDirectoryArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+          await fs.mkdir(validPath, { recursive: true });
+          return { content: [{ type: 'text', text: `Directory created: ${parsed.data.path}` }] };
+        }
+
+        case 'list_directory': {
+          const parsed = schemas.ListDirectoryArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ListDirectoryArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const entries = await fs.readdir(validPath, { withFileTypes: true });
+          const results: ListDirectoryEntry[] = [];
+          for (const dirent of entries) {
+            let type: ListDirectoryEntry['type'] = 'other';
+            if (dirent.isFile()) type = 'file';
+            else if (dirent.isDirectory()) type = 'directory';
+            else if (dirent.isSymbolicLink()) type = 'symlink';
+            
+            const entryPath = path.join(validPath, dirent.name);
+            let size: number | undefined = undefined;
+            if (type === 'file') {
+                try {
+                    const stats = await fs.stat(entryPath);
+                    size = stats.size;
+                } catch (statError) {
+                    logger.warn({ path: entryPath, error: statError }, 'Failed to get stats for file in list_directory');
+                }
+            }
+            results.push({ name: dirent.name, path: path.relative(config.allowedDirectories[0], entryPath).replace(/\\/g, '/'), type, size });
+          }
+          return { result: results };
+        }
+
+        case 'move_file': {
+          const parsed = schemas.MoveFileArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.MoveFileArgsSchema) });
+          const validSource = await validatePath(parsed.data.source, allowedDirectories, logger, config); // isWriteOperation = true (on source)
+          const validDestination = await validatePath(parsed.data.destination, allowedDirectories, logger, config); // isWriteOperation = true (on destination)
+          
+          const sourceLock = getFileLock(validSource, config);
+          const destLock = getFileLock(validDestination, config); // Potentially lock destination too if it might exist or be created
+          
+          await sourceLock.runExclusive(async () => {
+            // If destination is different, also acquire its lock if not already held
+            if (validSource !== validDestination && !destLock.isLocked()) {
+              await destLock.runExclusive(async () => {
+                await fs.rename(validSource, validDestination);
+              });
+            } else {
+              // If source and destination are same or destLock already acquired (e.g. by sourceLock if paths are same)
+              await fs.rename(validSource, validDestination);
+            }
+          });
+          return { content: [{ type: 'text', text: `Moved from ${parsed.data.source} to ${parsed.data.destination}` }] };
+        }
+
+        case 'delete_file': {
+          const parsed = schemas.DeleteFileArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DeleteFileArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+          
+          const lock = getFileLock(validPath, config);
+          await lock.runExclusive(async () => {
+            await fs.unlink(validPath);
+          });
+          return { content: [{ type: 'text', text: `File deleted: ${parsed.data.path}` }] };
+        }
+
+        case 'delete_directory': {
+          const parsed = schemas.DeleteDirectoryArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DeleteDirectoryArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config); // isWriteOperation = true
+          
+          const lock = getFileLock(validPath, config); // Lock the directory itself
+          await lock.runExclusive(async () => {
+            await fs.rm(validPath, { recursive: parsed.data.recursive || false, force: false }); // force: false for safety
+          });
+          return { content: [{ type: 'text', text: `Directory deleted: ${parsed.data.path}` }] };
+        }
+
+        case 'search_files': {
+          const parsed = schemas.SearchFilesArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.SearchFilesArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const results = await searchFiles(validPath, parsed.data.pattern, logger, config, parsed.data.excludePatterns || [], false);
+          return { result: results };
+        }
+
+        case 'get_file_info': {
+          const parsed = schemas.GetFileInfoArgsSchema.safeParse(request.params.args);
+          if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.GetFileInfoArgsSchema) });
+          const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+          const stats = await getFileStats(validPath, logger, config);
+          return { result: stats };
+        }
+
+        case 'directory_tree': {
+            const parsed = schemas.DirectoryTreeArgsSchema.safeParse(request.params.args);
+            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.DirectoryTreeArgsSchema) });
+            const validPath = await validatePath(parsed.data.path, allowedDirectories, logger, config);
+            const tree = await getDirectoryTree(validPath, allowedDirectories, logger, config);
+            logger.debug({ tree }, 'Generated directory tree (getDirectoryTree)');
+            return { content: [{ type: 'text', text: JSON.stringify(tree, null, 2) }] };
+        }
+
+        case 'server_stats': {
+            const parsed = schemas.ServerStatsArgsSchema.safeParse(request.params.args);
+            if (!parsed.success) throw createError('VALIDATION_ERROR', 'Invalid arguments', { error: parsed.error, schema: zodToJsonSchema(schemas.ServerStatsArgsSchema) });
+            const stats = { requestCount, editOperationCount, config };
+            return { content: [{ type: 'text', text: JSON.stringify(stats, null, 2) }] };
+        }
+
+        default:
+          throw createError('UNKNOWN_TOOL', `Unknown tool: ${request.params.name}`);
+      }
+    } catch (error) {
+      let structuredError: StructuredError;
+      if ((error as any).code && (error as any).message) { 
+        structuredError = error as StructuredError;
+      } else {
+        structuredError = createError('UNKNOWN_ERROR', error instanceof Error ? error.message : String(error));
+      }
+      logger.error({ error: structuredError, tool: request.params.name }, `Tool request failed: ${request.params.name}`);
+      return {
+        content: [{ type: 'text', text: `Error (${structuredError.code}): ${structuredError.message}` }],
+        isError: true,
+        meta: { hint: structuredError.hint, confidence: structuredError.confidence, details: structuredError.details }
+      };
+    }
+  });
+}
+```
+#### Plik: `src/server/config.ts`
+```ts
+import { z } from "zod";
+import fs from "node:fs/promises";
+import path from "node:path";
+
+export const ConfigSchema = z.object({
+  allowedDirectories: z.array(z.string()),
+  fuzzyMatching: z.object({
+    maxDistanceRatio: z.number().min(0).max(1).default(0.25),
+    minSimilarity: z.number().min(0).max(1).default(0.7),
+    caseSensitive: z.boolean().default(false),
+    ignoreWhitespace: z.boolean().default(true),
+    preserveLeadingWhitespace: z.enum(['auto', 'strict', 'normalize']).default('auto')
+  }).default({}),
+  logging: z.object({
+    level: z.enum(['trace', 'debug', 'info', 'warn', 'error']).default('info'),
+    performance: z.boolean().default(false)
+  }).default({}),
+  concurrency: z.object({
+    maxConcurrentEdits: z.number().positive().default(10)
+  }).default({})
+});
+
+export type Config = z.infer<typeof ConfigSchema>;
+
+export async function loadConfig(): Promise<Config> {
+    const args = process.argv.slice(2);
+    if (args.length > 0 && (args[0] === '--config' || args[0] === '-c')) {
+        if (args.length < 2) {
+            console.error("Usage: mcp-server-filesystem --config <config-file>");
+            console.error("   or: mcp-server-filesystem <allowed-directory> [additional-directories...]");
+            process.exit(1);
+        }
+        
+        try {
+            const configPath = path.resolve(args[1]);
+            const configContent = await fs.readFile(configPath, 'utf-8');
+            const rawConfig = JSON.parse(configContent);
+            return ConfigSchema.parse(rawConfig);
+        } catch (error) {
+            console.error("Error loading config file:", error);
+            process.exit(1);
+        }
+    } else {
+        if (args.length === 0) {
+            console.error("Usage: mcp-server-filesystem --config <config-file>");
+            console.error("   or: mcp-server-filesystem <allowed-directory> [additional-directories...]");
+            process.exit(1);
+        }
+        
+        const DEFAULT_MAX_DISTANCE_RATIO = parseFloat(process.env.MCP_EDIT_MAX_DISTANCE_RATIO || '0.25');
+        const DEFAULT_MIN_SIMILARITY = parseFloat(process.env.MCP_EDIT_MIN_SIMILARITY || '0.7');
+        const DEFAULT_CASE_SENSITIVE = process.env.MCP_EDIT_CASE_SENSITIVE === 'true';
+        const DEFAULT_IGNORE_WHITESPACE = process.env.MCP_EDIT_IGNORE_WHITESPACE !== 'false';
+
+        return {
+            allowedDirectories: args,
+            fuzzyMatching: {
+                maxDistanceRatio: DEFAULT_MAX_DISTANCE_RATIO,
+                minSimilarity: DEFAULT_MIN_SIMILARITY,
+                caseSensitive: DEFAULT_CASE_SENSITIVE,
+                ignoreWhitespace: DEFAULT_IGNORE_WHITESPACE,
+                preserveLeadingWhitespace: 'auto'
+            },
+            logging: {
+                level: (process.env.LOG_LEVEL as any) || 'info',
+                performance: process.env.LOG_PERFORMANCE === 'true'
+            },
+            concurrency: {
+                maxConcurrentEdits: parseInt(process.env.MAX_CONCURRENT_EDITS || '10')
+            }
+        };
+    }
+}
+```
+#### Plik: `src/server/index.ts`
+```ts
+#!/usr/bin/env node
+
+import { Server } from '@modelcontextprotocol/sdk/server/index.js';
+import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
+import * as pino from 'pino';
+import fs from 'node:fs/promises';
+import path from 'node:path';
+
+import { loadConfig } from './config.js';
+import { setupToolHandlers } from '../core/toolHandlers.js';
+import * as schemas from '../core/schemas.js';
+import { expandHome, normalizePath } from '../utils/pathUtils.js';
+
+async function main() {
+  const config = await loadConfig();
+
+  const logger = pino.pino({
+    level: config.logging.level,
+    formatters: { level: (label: string) => ({ level: label }) },
+    timestamp: () => `,"timestamp":"${new Date().toISOString()}"`,
+    base: { service: 'mcp-filesystem-server', version: '0.7.0' }
+  });
+
+  const allowedDirectories = config.allowedDirectories.map(dir => normalizePath(path.resolve(expandHome(dir))));
+
+  await Promise.all(allowedDirectories.map(async (dir) => {
+    try {
+      const stats = await fs.stat(dir);
+      if (!stats.isDirectory()) {
+        logger.error(`Error: ${dir} is not a directory`);
+        process.exit(1);
+      }
+    } catch (error) {
+      logger.error({ error, directory: dir }, `Error accessing directory ${dir}`);
+      process.exit(1);
+    }
+  }));
+
+  const server = new Server(
+    { name: 'secure-filesystem-server', version: '0.7.0' },
+    { capabilities: { tools: {} } }
+  );
+
+  setupToolHandlers(server, allowedDirectories, logger, config);
+// list_tools jest już zarejestrowane w toolHandlers.ts, więc usuwamy duplikat
+
+  const transport = new StdioServerTransport();
+  await server.connect(transport);
+
+  logger.info({ version: '0.7.0', allowedDirectories, config }, 'Enhanced MCP Filesystem Server started');
+}
+
+main().catch((error) => {
+  console.error('Fatal error running server:', error);
+  process.exit(1);
+});
+```
+#### Plik: `src/types/errors.ts`
+```ts
+import { HintInfo, HINTS } from "../utils/hintMap.js";
+
+export interface StructuredError {
+  code: keyof typeof HINTS | string;
+  message: string;
+  hint?: HintInfo["hint"];
+  confidence?: HintInfo["confidence"];
+  details?: unknown;
+}
+
+export function createError(
+  code: StructuredError["code"],
+  message: string,
+  details?: unknown
+): StructuredError {
+  const hint = HINTS[code as keyof typeof HINTS];
+  return {
+    code,
+    message,
+    hint: hint?.hint,
+    confidence: hint?.confidence,
+    details
+  };
+}
+```
+#### Plik: `src/utils/binaryDetect.ts`
+```ts
+import path from 'node:path';
+import { isUtf8 as bufferIsUtf8 } from 'buffer';
+
+const BINARY_EXTENSIONS = new Set([
+  '.exe', '.dll', '.so', '.dylib', '.bin', '.dat',
+  '.jpg', '.jpeg', '.png', '.gif', '.bmp', '.webp', '.ico',
+  '.mp3', '.mp4', '.avi', '.mov', '.wmv', '.flv',
+  '.pdf', '.zip', '.rar', '.tar', '.gz', '.7z',
+  '.doc', '.docx', '.xls', '.xlsx', '.ppt', '.pptx'
+]);
+
+export function isBinaryFile(buffer: Buffer, filename?: string): boolean {
+  const isUtf8 = (Buffer as any).isUtf8 ?? bufferIsUtf8;
+  if (isUtf8 && !isUtf8(buffer)) {
+    return true;
+  }
+
+  if (buffer.includes(0)) {
+    return true;
+  }
+
+  if (filename) {
+    const ext = path.extname(filename).toLowerCase();
+    if (BINARY_EXTENSIONS.has(ext)) {
+      return true;
+    }
+  }
+
+  let nonPrintable = 0;
+  const sampleSize = Math.min(1024, buffer.length);
+  
+  for (let i = 0; i < sampleSize; i++) {
+    const byte = buffer[i];
+    if (byte < 32 && byte !== 9 && byte !== 10 && byte !== 13) {
+      nonPrintable++;
+    }
+  }
+
+  return (nonPrintable / sampleSize) > 0.1;
+}
+```
+#### Plik: `src/utils/hintMap.ts`
+```ts
+export interface HintInfo {
+  confidence: number;
+  hint: string;
+  example?: unknown;
+}
+
+export const HINTS: Record<string, HintInfo> = {
+  ACCESS_DENIED: {
+    confidence: 0.9,
+    hint: "Path is outside of allowedDirectories. Check the 'path' argument.",
+    example: { path: "/workspace/project/file.txt" }
+  },
+  VALIDATION_ERROR: { confidence: 0.8, hint: "Check the required fields and their types in the arguments." },
+  FUZZY_MATCH_FAILED: {
+    confidence: 0.7,
+    hint: "Try adjusting minSimilarity/maxDistanceRatio or check for whitespace/indentation issues.",
+    example: { minSimilarity: 0.6, maxDistanceRatio: 0.3 }
+  },
+  BINARY_FILE_ERROR: {
+    confidence: 0.95,
+    hint: "'edit_file' works only on text files. Use 'write_file' with base64 encoding for binary files."
+  },
+  PARTIAL_MATCH: {
+    confidence: 0.6,
+    hint: "Found a partial match. Review the diff and correct 'oldText' or parameters."
+  },
+  FILE_NOT_FOUND_MULTI: {
+    confidence: 0.8,
+    hint: "One or more requested files could not be read. See per-file result details."
+  },
+  UNKNOWN_TOOL: {
+    confidence: 0.9,
+    hint: "The requested tool does not exist. Use 'list_tools' to see available tools."
+  },
+  DEST_EXISTS: {
+    confidence: 0.85,
+    hint: "Destination path already exists. Provide a different destination or remove the existing file first.",
+    example: { source: "/workspace/src.txt", destination: "/workspace/dest.txt" }
+  },
+  SRC_MISSING: {
+    confidence: 0.85,
+    hint: "Source file does not exist. Check the 'source' argument.",
+    example: { source: "/workspace/missing.txt" }
+  },
+  UNKNOWN_ERROR: {
+    confidence: 0.1,
+    hint: "An unexpected error occurred. Check server logs for details."
+  }
+};
+```
+#### Plik: `src/utils/pathUtils.ts`
+```ts
+import path from 'node:path';
+import os from 'node:os';
+
+export function normalizePath(p: string): string {
+  return path.normalize(p);
+}
+
+export function expandHome(filepath: string): string {
+  if (filepath.startsWith('~/') || filepath === '~') {
+    return path.join(os.homedir(), filepath.slice(1));
+  }
+  return filepath;
+}
+```
+#### Plik: `src/utils/performance.ts`
+```ts
+import { performance } from 'node:perf_hooks';
+import type { Logger } from 'pino';
+import type { Config } from '../server/config.js';
+
+export class PerformanceTimer {
+  private startTime: number;
+  private operation: string;
+  private logger: Logger;
+  private enabled: boolean;
+
+  constructor(operation: string, logger: Logger, config: Config) {
+    this.operation = operation;
+    this.logger = logger;
+    this.enabled = config.logging.performance;
+    this.startTime = this.enabled ? performance.now() : 0;
+  }
+
+  end(additionalData?: any): number {
+    if (!this.enabled) {
+      return 0;
+    }
+    const duration = performance.now() - this.startTime;
+    this.logger.debug({
+      operation: this.operation,
+      duration_ms: Math.round(duration * 100) / 100,
+      ...additionalData
+    }, `Performance: ${this.operation}`);
+    return duration;
+  }
+}
+```
+#### Plik: `tsconfig.json`
+```json
+{
+  "compilerOptions": {
+    "target": "es2022",
+    "module": "nodenext",
+    "moduleResolution": "nodenext", // or "node" if preferred
+    "esModuleInterop": true,
+    "strict": true,
+    "skipLibCheck": true,
+    "outDir": "./dist",
+    "rootDir": "./src",
+    "declaration": true,
+    "sourceMap": true,
+    "resolveJsonModule": true, // Good for importing config.example.json if needed
+    "baseUrl": ".",
+    "forceConsistentCasingInFileNames": true
+  },
+  "include": [
+    "src/**/*.ts"
+  ],
+  "exclude": [
+    "node_modules",
+    "dist",
+    "**/*.test.ts",
+    "**/*.spec.ts"
+  ]
+}
+```
+---
+</file>
+
+<file path="advanced_context_collector.py">
+import os
+import yaml
+from pathlib import Path
+import fnmatch
+import re
+import logging
+import tempfile
+import base64
+import xml.etree.ElementTree as ET
+from xml.dom import minidom
+import time
+from repomix import RepoProcessor, RepomixConfig
+
+# =================================================================================
+# SCRIPT FOR FILE AGGREGATION WITH GROUPS AND EXCLUDE PATTERNS (REPOMIX INTEGRATION)
+#
+# Wersja: 9.0 (z obsługą formatu XML i Markdown)
+# Opis: Skrypt wykorzystuje Repomix do przetwarzania plików, a następnie
+#       generuje plik wyjściowy w formacie XML lub Markdown na podstawie
+#       konfiguracji YAML.
+# =================================================================================
+
+DEFAULT_CONFIG_FILE = ".doc-gen/config-lists/.comb-scripts-config01.yaml"
+
+def get_default_repomix_options():
+    """Zwraca domyślne opcje konfiguracyjne dla Repomix."""
+    return {
+        "style": "xml",
+        "remove_comments": False,
+        "remove_empty_lines": False,
+        "show_line_numbers": False,
+        "calculate_tokens": True,
+        "show_file_stats": True,
+        "show_directory_structure": True,
+        "top_files_length": 2,
+        "copy_to_clipboard": False,
+        "include_empty_directories": False,
+        "compression": {
+            "enabled": False,
+            "keep_signatures": True,
+            "keep_docstrings": True,
+            "keep_interfaces": True,
+        },
+        "security_check": True,
+    }
+
+def get_workspace_root():
+    """Zwraca ścieżkę do workspace root."""
+    return Path(__file__).parent.parent
+
+def load_config(config_file_path):
+    """Wczytuje konfigurację z pliku YAML."""
+    try:
+        with open(config_file_path, "r", encoding="utf-8") as f:
+            return yaml.safe_load(f)
+    except Exception as e:
+        logging.error(f"BŁĄD Wczytywania konfiguracji: {e}")
+        return None
+
+def process_group_with_repomix(group, workspace_root, processed_files_set, config):
+    """
+    Przetwarza grupę plików używając Python Repomix, z uwzględnieniem deduplikacji.
+    Zwraca listę ścieżek do unikalnych plików oraz ich zawartość.
+    """
+    group_name = group.get("name", "Unnamed Group")
+    patterns = group.get("patterns", [])
+    exclude_patterns = group.get("exclude_patterns", [])
+    paths = group.get("paths", [])
+    logging.info(f"\nPrzetwarzanie grupy: {group_name}")
+    group_files_content = []
+    unique_files_in_group = []
+    repomix_opts = get_default_repomix_options()
+    if "repomix_global_options" in config:
+        repomix_opts.update(config["repomix_global_options"])
+    if "repomix_options" in group:
+        group_opts = group["repomix_options"]
+        if "compression" in group_opts:
+            repomix_opts["compression"].update(group_opts["compression"])
+            group_opts = group_opts.copy()
+            del group_opts["compression"]
+        repomix_opts.update(group_opts)
+    for path_str in paths:
+        target_path = (
+            workspace_root / path_str
+            if path_str not in ["all", ".", "**/*", "**"]
+            else workspace_root
+        )
+        if not target_path.exists():
+            logging.warning(f"  UWAGA: Ścieżka '{path_str}' nie istnieje i została pominięta.")
+            continue
+        try:
+            repomix_config = RepomixConfig()
+            with tempfile.NamedTemporaryFile(
+                mode="w+", delete=False, suffix=".xml", encoding="utf-8"
+            ) as temp_output_file:
+                temp_output_path = workspace_root / temp_output_file.name
+            repomix_config.output.file_path = temp_output_path
+            repomix_config.output.style = "xml"  # Wymagane do wewnętrznego parsowania danych. Styl końcowy jest określany w sekcji 'output' pliku konfiguracyjnego.
+            if patterns:
+                repomix_config.include = patterns
+            if exclude_patterns:
+                repomix_config.ignore.custom_patterns = exclude_patterns
+            if config.get("gitignore_file"):
+                repomix_config.ignore.use_gitignore = True
+            repomix_config.output.show_line_numbers = repomix_opts.get("show_line_numbers", False)
+            repomix_config.output.calculate_tokens = repomix_opts.get("calculate_tokens", True)
+            repomix_config.output.show_file_stats = repomix_opts.get("show_file_stats", True)
+            repomix_config.output.show_directory_structure = repomix_opts.get("show_directory_structure", True)
+            repomix_config.output.top_files_length = repomix_opts.get("top_files_length", 2)
+            repomix_config.output.copy_to_clipboard = repomix_opts.get("copy_to_clipboard", False)
+            repomix_config.output.include_empty_directories = repomix_opts.get("include_empty_directories", False)
+            repomix_config.output.remove_comments = repomix_opts.get("remove_comments", False)
+            repomix_config.output.remove_empty_lines = repomix_opts.get("remove_empty_lines", False)
+            compression_opts = repomix_opts.get("compression", {})
+            repomix_config.compression.enabled = compression_opts.get("enabled", False)
+            repomix_config.compression.keep_signatures = compression_opts.get("keep_signatures", True)
+            repomix_config.compression.keep_docstrings = compression_opts.get("keep_docstrings", True)
+            repomix_config.compression.keep_interfaces = compression_opts.get("keep_interfaces", True)
+            repomix_config.security.enable_security_check = repomix_opts.get("security_check", True)
+            processor = RepoProcessor(str(target_path), config=repomix_config)
+            result = processor.process()
+            if result:
+                stats_info = f"\n=== Statystyki dla grupy '{group_name}' - ścieżka '{path_str}' ===\n"
+                if hasattr(result, 'total_files'):
+                    stats_info += f"Łączna liczba plików: {result.total_files}\n"
+                if hasattr(result, 'total_chars'):
+                    stats_info += f"Łączna liczba znaków: {result.total_chars}\n"
+                if hasattr(result, 'total_tokens'):
+                    stats_info += f"Łączna liczba tokenów: {result.total_tokens}\n"
+                if hasattr(result, 'file_char_counts') and result.file_char_counts:
+                    stats_info += f"\nTop {repomix_opts.get('top_files_length', 2)} plików wg liczby znaków:\n"
+                    sorted_files = sorted(result.file_char_counts.items(), key=lambda x: x[1], reverse=True)
+                    for i, (file_path, char_count) in enumerate(sorted_files[:repomix_opts.get('top_files_length', 2)]):
+                        stats_info += f"  {i+1}. {file_path}: {char_count} znaków\n"
+                if hasattr(result, 'file_token_counts') and result.file_token_counts:
+                    stats_info += f"\nTop {repomix_opts.get('top_files_length', 2)} plików wg liczby tokenów:\n"
+                    sorted_files = sorted(result.file_token_counts.items(), key=lambda x: x[1], reverse=True)
+                    for i, (file_path, token_count) in enumerate(sorted_files[:repomix_opts.get('top_files_length', 2)]):
+                        stats_info += f"  {i+1}. {file_path}: {token_count} tokenów\n"
+                if hasattr(result, 'file_tree') and result.file_tree:
+                    stats_info += f"\nStruktura katalogów:\n{result.file_tree}\n"
+                if hasattr(result, 'suspicious_files_results') and result.suspicious_files_results:
+                    stats_info += f"\nPodejrzane pliki: {len(result.suspicious_files_results)}\n"
+                export_dir = workspace_root / ".doc-gen" / "export"
+                export_dir.mkdir(exist_ok=True)
+                stats_file = export_dir / "repomix-stats.log"
+                with open(stats_file, "a", encoding="utf-8") as f:
+                    f.write(stats_info)
+                logging.info(f"  Statystyki zapisane do: {stats_file}")
+            if os.path.exists(temp_output_path):
+                with open(temp_output_path, "r", encoding="utf-8") as f:
+                    output_content = f.read()
+                os.remove(temp_output_path)
+                if repomix_opts.get("style", "xml") == "xml":
+                    try:
+                        root = ET.fromstring(output_content)
+                        for file_elem in root.findall(".//file"):
+                            file_path_elem = file_elem.find("path")
+                            content_elem = file_elem.find("content")
+                            if file_path_elem is not None and content_elem is not None:
+                                file_path_in_repomix = file_path_elem.text
+                                content = content_elem.text or ""
+                                if content:
+                                    try:
+                                        decoded_content = base64.b64decode(content).decode("utf-8")
+                                        content = decoded_content
+                                    except:
+                                        pass
+                                full_file_path = workspace_root / file_path_in_repomix
+                                if full_file_path not in processed_files_set:
+                                    processed_files_set.add(full_file_path)
+                                    unique_files_in_group.append(full_file_path)
+                                    group_files_content.append(
+                                        {"path": file_path_in_repomix, "content": content}
+                                    )
+                                else:
+                                    logging.info(f"  Plik '{file_path_in_repomix}' już przetworzony, pomijam.")
+                    except ET.ParseError as e:
+                        logging.error(f"  BŁĄD parsowania XML dla grupy '{group_name}': {e}")
+                else:
+                    logging.warning(f"  Format '{repomix_opts.get('style')}' nie jest w pełni obsługiwany w tej wersji")
+            else:
+                logging.warning(f"  Repomix nie utworzył pliku wyjściowego dla grupy '{group_name}'.")
+        except Exception as e:
+            logging.error(f"BŁĄD przetwarzania grupy '{group_name}' z Python Repomix: {e}")
+            continue
+    logging.info(f"  Znaleziono {len(unique_files_in_group)} unikalnych plików w grupie '{group_name}'.")
+    return unique_files_in_group, group_files_content
+
+def create_final_xml(all_groups_data, workspace_root, output_file, project_name, processed_files_set):
+    """Tworzy finalny plik w formacie XML."""
+    logging.info("Rozpoczynam tworzenie pliku w formacie XML...")
+    root_elem = ET.Element("AggregatedCodebase")
+    project_elem = ET.SubElement(root_elem, "Project", name=project_name)
+    ET.SubElement(project_elem, "WorkspaceRoot").text = str(workspace_root)
+    ET.SubElement(project_elem, "TotalUniqueFiles").text = str(len(processed_files_set))
+    for i, (group, files_list, group_content_data) in enumerate(all_groups_data, 1):
+        group_elem = ET.SubElement(project_elem, "Group", name=group.get("name", f"Group {i}"))
+        if desc := group.get("description"):
+            ET.SubElement(group_elem, "Description").text = desc
+        ET.SubElement(group_elem, "FileCount").text = str(len(files_list))
+        files_list_elem = ET.SubElement(group_elem, "FilesList")
+        for file_path_obj in files_list:
+            file_elem = ET.SubElement(files_list_elem, "File")
+            ET.SubElement(file_elem, "Path").text = file_path_obj.relative_to(workspace_root).as_posix()
+            ET.SubElement(file_elem, "Name").text = file_path_obj.name
+        content_elem = ET.SubElement(group_elem, "Content")
+        for file_data in group_content_data:
+            file_content_elem = ET.SubElement(content_elem, "FileContent")
+            ET.SubElement(file_content_elem, "Path").text = file_data["path"]
+            ET.SubElement(file_content_elem, "Content").text = file_data["content"]
+    rough_string = ET.tostring(root_elem, "utf-8")
+    reparsed = minidom.parseString(rough_string)
+    final_xml_string = reparsed.toprettyxml(indent="  ", encoding="utf-8").decode("utf-8")
+    output_path = workspace_root / output_file
+    try:
+        with open(output_path, "w", encoding="utf-8-sig") as f:
+            f.write(final_xml_string)
+        logging.info(f"\nGotowe! Plik '{output_path.name}' został utworzony w: {output_path}")
+    except Exception as e:
+        logging.error(f"BŁĄD ZAPISU PLIKU: {e}")
+
+def create_final_markdown(all_groups_data, workspace_root, output_file, project_name, processed_files_set):
+    """Tworzy finalny plik w formacie Markdown."""
+    logging.info("Rozpoczynam tworzenie pliku w formacie Markdown...")
+    markdown_lines = [
+        f"# Projekt: {project_name}",
+        f'## Katalog główny: `{workspace_root}`',
+        f"## Łączna liczba unikalnych plików: {len(processed_files_set)}",
+        "---",
+    ]
+    for i, (group, files_list, group_content_data) in enumerate(all_groups_data, 1):
+        group_name = group.get("name", f"Grupa {i}")
+        markdown_lines.append(f"## Grupa: {group_name}")
+        if desc := group.get("description"):
+            markdown_lines.append(f"**Opis:** {desc}")
+        markdown_lines.append(f"**Liczba plików w grupie:** {len(files_list)}")
+        markdown_lines.append("\n### Lista plików:")
+        for file_path_obj in files_list:
+            relative_path = file_path_obj.relative_to(workspace_root).as_posix()
+            markdown_lines.append(f"- `{relative_path}`")
+        markdown_lines.append("\n### Zawartość plików:")
+        for file_data in group_content_data:
+            markdown_lines.append(f'#### Plik: `{file_data["path"]}`')
+            lang = Path(file_data["path"]).suffix.lstrip(".") or "text"
+            markdown_lines.append(f"```{lang}")
+            markdown_lines.append(file_data["content"])
+            markdown_lines.append("```")
+        markdown_lines.append("---")
+    final_markdown_string = "\n".join(markdown_lines)
+    output_path = workspace_root / output_file
+    try:
+        with open(output_path, "w", encoding="utf-8-sig") as f:
+            f.write(final_markdown_string)
+        logging.info(f"\nGotowe! Plik '{output_path.name}' został utworzony w: {output_path}")
+    except Exception as e:
+        logging.error(f"BŁĄD ZAPISU PLIKU: {e}")
+
+def main():
+    """Główna funkcja skryptu."""
+    import sys
+    logging.basicConfig(level=logging.INFO, format="%(levelname)s: %(message)s")
+    workspace_root = get_workspace_root()
+    if len(sys.argv) > 1:
+        config_file_path = Path(sys.argv[1])
+        if not config_file_path.is_absolute():
+            config_file_path = workspace_root / config_file_path
+    else:
+        config_file_path = workspace_root / DEFAULT_CONFIG_FILE
+    logging.info(f"Używam pliku konfiguracyjnego: {config_file_path}")
+    config = load_config(config_file_path)
+    if not config:
+        return
+    project_name = config.get("project_name", "Unknown Project")
+    output_config = config.get("output", {})
+    output_style = output_config.get("style", "xml").lower()
+    output_filename_base = output_config.get("filename", "output")
+    if output_style in ["md", "markdown"]:
+        output_style = "markdown"
+        output_file = f"{output_filename_base}.md"
+    elif output_style == "xml":
+        output_file = f"{output_filename_base}.xml"
+    else:
+        logging.error(f"Nieobsługiwany format wyjściowy: '{output_style}'. Dozwolone: xml, markdown, md.")
+        return
+    logging.info(f"\nRozpoczynam agregację dla projektu: {project_name}")
+    logging.info(f"Plik wyjściowy: {output_file}")
+    export_dir = workspace_root / ".doc-gen" / "export"
+    export_dir.mkdir(exist_ok=True)
+    stats_file = export_dir / "repomix-stats.log"
+    with open(stats_file, "w", encoding="utf-8") as f:
+        f.write(f"=== Statystyki Repomix dla projektu: {project_name} ===\n")
+        f.write(f"Data: {time.strftime('%Y-%m-%d %H:%M:%S')}\n")
+        f.write("=" * 60 + "\n")
+    logging.info(f"Plik statystyk: {stats_file}")
+    all_groups_data = []
+    processed_files_set = set()
+    for i, group in enumerate(config.get("groups", [])):
+        files_in_group, group_content_data = process_group_with_repomix(
+            group, workspace_root, processed_files_set, config
+        )
+        all_groups_data.append((group, files_in_group, group_content_data))
+    if output_style == "xml":
+        create_final_xml(all_groups_data, workspace_root, output_file, project_name, processed_files_set)
+    elif output_style == "markdown":
+        create_final_markdown(all_groups_data, workspace_root, output_file, project_name, processed_files_set)
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="config-selector.py">
+#!/usr/bin/env python3
+# -*- coding: utf-8 -*-
+"""
+INTERAKTYWNY SELEKTOR PLIKÓW KONFIGURACYJNYCH
+Skrypt do wyboru i uruchamiania różnych konfiguracji .comb-scripts
+"""
+
+import os
+import sys
+import subprocess
+from pathlib import Path
+import yaml
+
+def load_config_info(config_path):
+    """Wczytuje podstawowe informacje z pliku konfiguracyjnego."""
+    try:
+        with open(config_path, 'r', encoding='utf-8') as f:
+            config = yaml.safe_load(f)
+        
+        project_name = config.get('project_name', 'Nieznany projekt')
+        output_file = config.get('output_file', 'Nieznany plik wyjściowy')
+        groups_count = len(config.get('groups', []))
+        
+        return {
+            'project_name': project_name,
+            'output_file': output_file,
+            'groups_count': groups_count,
+            'valid': True
+        }
+    except Exception as e:
+        return {
+            'project_name': 'BŁĄD ODCZYTU',
+            'output_file': f'Błąd: {str(e)}',
+            'groups_count': 0,
+            'valid': False
+        }
+
+def get_config_files():
+    """Znajduje wszystkie pliki konfiguracyjne YAML w katalogu config-lists."""
+    script_dir = Path(__file__).parent
+    config_lists_dir = script_dir / 'config-lists'
+    config_files = []
+    
+    # Sprawdź czy katalog config-lists istnieje
+    if not config_lists_dir.exists():
+        print(f"⚠️  Katalog config-lists nie istnieje: {config_lists_dir}")
+        return config_files
+    
+    # Szukaj plików .yaml i .yml w katalogu config-lists
+    for pattern in ['*.yaml', '*.yml']:
+        for config_file in config_lists_dir.glob(pattern):
+            if 'config' in config_file.name.lower():
+                config_files.append(config_file)
+    
+    return sorted(config_files)
+
+def display_config_list(config_files):
+    """Wyświetla listę dostępnych plików konfiguracyjnych."""
+    print("\n" + "="*80)
+    print("📋 DOSTĘPNE PLIKI KONFIGURACYJNE")
+    print("="*80)
+    
+    for i, config_file in enumerate(config_files, 1):
+        info = load_config_info(config_file)
+        
+        print(f"\n[{i}] {config_file.name}")
+        print(f"    📁 Ścieżka: {config_file}")
+        print(f"    📝 Projekt: {info['project_name']}")
+        print(f"    📄 Wyjście: {info['output_file']}")
+        print(f"    📊 Grup: {info['groups_count']}")
+        
+        if not info['valid']:
+            print(f"    ⚠️  Status: BŁĄD KONFIGURACJI")
+        else:
+            print(f"    ✅ Status: OK")
+    
+    print("\n" + "="*80)
+
+def run_script_with_config(config_file):
+    """Uruchamia skrypt advanced_context_collector.py z wybraną konfiguracją."""
+    script_dir = Path(__file__).parent
+    main_script = script_dir / 'advanced_context_collector.py'
+    export_dir = script_dir / 'export'
+    
+    if not main_script.exists():
+        print(f"❌ BŁĄD: Nie znaleziono skryptu {main_script}")
+        return False
+    
+    # Upewnij się, że katalog export istnieje
+    export_dir.mkdir(exist_ok=True)
+    
+    try:
+        print(f"\n🚀 Uruchamiam skrypt z konfiguracją: {config_file.name}")
+        print(f"📝 Komenda: python {main_script.name} {str(config_file)} {str(export_dir)}")
+        print("-" * 60)
+        
+        # Uruchom skrypt z pełną ścieżką do pliku konfiguracyjnego i katalogu export
+        result = subprocess.run(
+            [sys.executable, str(main_script), str(config_file), str(export_dir)],
+            cwd=script_dir,
+            capture_output=False,
+            text=True
+        )
+        
+        print("-" * 60)
+        if result.returncode == 0:
+            print("✅ Skrypt zakończony pomyślnie!")
+            return True
+        else:
+            print(f"❌ Skrypt zakończony z błędem (kod: {result.returncode})")
+            return False
+            
+    except Exception as e:
+        print(f"❌ BŁĄD URUCHAMIANIA: {e}")
+        return False
+
+def main():
+    """Główna funkcja programu."""
+    print("🔧 INTERAKTYWNY SELEKTOR KONFIGURACJI COMB-SCRIPTS")
+    
+    # Znajdź pliki konfiguracyjne
+    config_files = get_config_files()
+    
+    if not config_files:
+        print("❌ Nie znaleziono żadnych plików konfiguracyjnych!")
+        return
+    
+    while True:
+        # Wyświetl listę
+        display_config_list(config_files)
+        
+        # Opcje wyboru
+        print("\n🎯 OPCJE:")
+        for i in range(1, len(config_files) + 1):
+            config_info = load_config_info(config_files[i-1])
+            print(f"  {i} - {config_info['project_name']}")
+        print(f"  0 - Wyjście")
+        print(f"  r - Odśwież listę")
+        
+        # Pobierz wybór użytkownika
+        try:
+            choice = input("\n👉 Wybierz opcję: ").strip().lower()
+            
+            if choice == '0' or choice == 'q' or choice == 'quit':
+                print("👋 Do widzenia!")
+                break
+            elif choice == 'r' or choice == 'refresh':
+                config_files = get_config_files()
+                continue
+            else:
+                choice_num = int(choice)
+                if 1 <= choice_num <= len(config_files):
+                    selected_config = config_files[choice_num - 1]
+                    run_script_with_config(selected_config)
+                    
+                    # Zapytaj czy kontynuować
+                    cont = input("\n❓ Chcesz wybrać inną konfigurację? (t/n): ").strip().lower()
+                    if cont not in ['t', 'tak', 'y', 'yes']:
+                        break
+                else:
+                    print(f"❌ Nieprawidłowy wybór: {choice}")
+                    
+        except ValueError:
+            print(f"❌ Nieprawidłowy wybór: {choice}")
+        except KeyboardInterrupt:
+            print("\n\n👋 Przerwano przez użytkownika")
+            break
+        except Exception as e:
+            print(f"❌ Nieoczekiwany błąd: {e}")
+
+if __name__ == "__main__":
+    main()
+</file>
+
+<file path="quick_context_collector.py">
+import tkinter as tk
+from tkinter import filedialog, ttk
+import yaml
+from pathlib import Path
+import os
+import json # Added for history
+import fnmatch
+
+CONFIG_FILE_NAME = "config/context_filters.yaml"
+HISTORY_FILE_NAME = "config/context_history.json"
+MAX_HISTORY_ITEMS = 5
+
+class QuickContextCollectorApp:
+    def __init__(self, root):
+        self.root = root
+        self.root.title("Quick Context Collector")
+        # Adjust initial size to accommodate new elements
+        self.root.geometry("500x350")
+
+        self.selected_directory = tk.StringVar()
+        self.selected_filter_name = tk.StringVar()
+        self.selected_history_entry = tk.StringVar() # For the new history combobox
+        self.selected_exclude_pattern = tk.StringVar(value="None") # For the new exclude combobox
+        self.save_to_central_dir = tk.BooleanVar(value=True) # For the new Checkbutton
+        self.last_output_path = None # To store the path of the last generated file
+        self.filters = {}
+        self.history = []
+        self.script_dir = Path(__file__).parent
+        self.workspace_root = self.script_dir.parent # Define workspace_root for central export path
+        self.history_file_path = self.script_dir / HISTORY_FILE_NAME
+
+        # --- UI Elements ---
+        # Directory Selection
+        tk.Label(root, text="Directory:").grid(row=0, column=0, padx=5, pady=5, sticky="w")
+        self.dir_entry = tk.Entry(root, textvariable=self.selected_directory, width=50)
+        self.dir_entry.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+        self.browse_button = tk.Button(root, text="Browse...", command=self.browse_directory)
+        self.browse_button.grid(row=0, column=2, padx=5, pady=5)
+
+        # History Selection
+        tk.Label(root, text="History:").grid(row=1, column=0, padx=5, pady=5, sticky="w")
+        self.history_combobox = ttk.Combobox(root, textvariable=self.selected_history_entry, state="readonly", width=47)
+        self.history_combobox.grid(row=1, column=1, padx=5, pady=5, sticky="ew")
+        self.history_combobox.bind("<<ComboboxSelected>>", self.on_history_selected)
+
+        # Filter Selection
+        tk.Label(root, text="Filter:").grid(row=2, column=0, padx=5, pady=5, sticky="w")
+        self.filter_combobox = ttk.Combobox(root, textvariable=self.selected_filter_name, state="readonly", width=47)
+        self.filter_combobox.grid(row=2, column=1, padx=5, pady=5, sticky="ew")
+
+        # Exclude Pattern Selection
+        tk.Label(root, text="Exclude:").grid(row=3, column=0, padx=5, pady=5, sticky="w")
+        self.exclude_combobox = ttk.Combobox(root, textvariable=self.selected_exclude_pattern, state="readonly", width=47)
+        self.exclude_combobox['values'] = ["None", "test", "legacy", "test & legacy"]
+        self.exclude_combobox.grid(row=3, column=1, padx=5, pady=5, sticky="ew")
+
+        # Save Location Checkbutton
+        self.save_to_central_dir_checkbutton = tk.Checkbutton(root, text="Save to central export directory (.doc-gen/export)", variable=self.save_to_central_dir)
+        self.save_to_central_dir_checkbutton.grid(row=4, column=1, padx=5, pady=5, sticky="w")
+
+        # Action Buttons Frame
+        action_buttons_frame = tk.Frame(root)
+        action_buttons_frame.grid(row=5, column=1, padx=5, pady=10, sticky="ew")
+        action_buttons_frame.grid_columnconfigure(0, weight=1)
+        action_buttons_frame.grid_columnconfigure(1, weight=1)
+
+        self.collect_button = tk.Button(action_buttons_frame, text="Collect Context", command=self.collect_context, height=2, width=15)
+        self.collect_button.grid(row=0, column=0, padx=5, pady=5, sticky="ew")
+
+        self.copy_button = tk.Button(action_buttons_frame, text="Copy Output", command=self.copy_output_to_clipboard, height=2, width=15)
+        self.copy_button.grid(row=0, column=1, padx=5, pady=5, sticky="ew")
+
+        # Status Bar (optional)
+        self.status_label = tk.Label(root, text="Ready", bd=1, relief=tk.SUNKEN, anchor=tk.W)
+        self.status_label.grid(row=6, column=0, columnspan=3, sticky="ew", padx=5, pady=5)
+
+        # Configure grid column weights for resizing
+        root.grid_columnconfigure(1, weight=1)
+
+        # Initial Load
+        self.load_filters()
+        self.load_history()
+
+    def load_filters(self):
+        try:
+            config_path = self.script_dir / CONFIG_FILE_NAME
+            with open(config_path, "r", encoding="utf-8") as f:
+                self.filters = yaml.safe_load(f).get("filters", {})
+                self.filter_combobox['values'] = list(self.filters.keys())
+                self.update_status(f"Loaded {len(self.filters)} filters from {CONFIG_FILE_NAME}")
+        except Exception as e:
+            messagebox.showerror("Error", f"Could not load or parse {CONFIG_FILE_NAME}:\n{e}")
+            self.root.quit()
+
+    def browse_directory(self):
+        # Start browsing from the workspace root directory
+        initial_dir = self.workspace_root
+        directory = filedialog.askdirectory(initialdir=initial_dir, title="Select a Directory")
+        if directory:
+            self.selected_directory.set(directory)
+
+    def collect_context(self):
+        directory_str = self.selected_directory.get()
+        filter_name = self.selected_filter_name.get()
+
+        if not directory_str or not filter_name:
+            self.update_status("Please select a directory and a filter first.")
+            return
+
+        target_dir = Path(directory_str)
+        if not target_dir.is_dir():
+            self.update_status(f"Error: Directory not found at {target_dir}")
+            return
+
+        selected_filter_patterns = self.filters[filter_name].get("patterns", ["*.*"])
+        base_output_filename = f"{target_dir.name}_context__{filter_name.replace(' (*.*)','').replace('*','all').replace('.','')}.txt"
+
+        if self.save_to_central_dir.get():
+            central_export_dir = self.workspace_root / ".doc-gen" / "export"
+            central_export_dir.mkdir(parents=True, exist_ok=True)
+            output_path = central_export_dir / base_output_filename
+        else:
+            output_path = target_dir / base_output_filename
+
+        self.save_history(directory_str, filter_name)
+
+        try:
+            self.update_status(f"Collecting context... Filter: {filter_name}")
+
+            exclude_option = self.selected_exclude_pattern.get()
+            exclude_dirs = {'__pycache__', '.git', '.svn', 'node_modules', '.venv', 'venv'}
+            if exclude_option == "test":
+                exclude_dirs.update(['test', 'tests'])
+            elif exclude_option == "legacy":
+                exclude_dirs.add('legacy')
+            elif exclude_option == "test & legacy":
+                exclude_dirs.update(['test', 'tests', 'legacy'])
+
+            found_files = []
+            for root, dirs, files in os.walk(target_dir):
+                dirs[:] = [d for d in dirs if d.lower() not in exclude_dirs]
+                
+                for filename in files:
+                    for pattern in selected_filter_patterns:
+                        if fnmatch.fnmatch(filename, pattern):
+                            found_files.append(Path(root) / filename)
+                            break
+            
+            found_files = sorted(list(set(found_files)))
+
+            if not found_files:
+                self.update_status(f"No files found matching the filter in {target_dir.name}")
+                return
+
+            all_content = ""
+            for file_path in found_files:
+                try:
+                    relative_path = file_path.relative_to(self.workspace_root)
+                    all_content += f"--- START {relative_path} ---\n"
+                    all_content += file_path.read_text(encoding='utf-8', errors='ignore')
+                    all_content += f"\n--- END {relative_path} ---\n\n"
+                except Exception as e:
+                    all_content += f"--- ERROR reading {file_path}: {e} ---\n\n"
+            
+            with open(output_path, "w", encoding="utf-8") as f:
+                f.write(all_content)
+            self.last_output_path = output_path
+            self.update_status(f"Successfully collected {len(found_files)} files to {output_path.name}")
+            print(f"Successfully collected {len(found_files)} files to {output_path}")
+        except Exception as e:
+            self.last_output_path = None
+            self.update_status(f"Error during collection: {e}")
+            print(f"Error during collection: {e}")
+
+    def format_history_entry_display(self, entry):
+        dir_path = Path(entry.get("directory", "N/A"))
+        filter_name = entry.get("filter_name", "N/A")
+        return f"{dir_path.name}  |  {filter_name}"
+
+    def update_history_combobox(self):
+        display_entries = [self.format_history_entry_display(entry) for entry in self.history]
+        self.history_combobox['values'] = display_entries
+
+    def on_history_selected(self, event):
+        selected_display_text = self.selected_history_entry.get()
+        for entry in self.history:
+            if self.format_history_entry_display(entry) == selected_display_text:
+                if Path(entry.get("directory", "")).is_dir() and \
+                   entry.get("filter_name", "") in self.filters:
+                    self.selected_directory.set(entry["directory"])
+                    self.selected_filter_name.set(entry["filter_name"])
+                    self.update_status(f"Selected from history: {Path(entry['directory']).name} | {entry['filter_name']}")
+                else:
+                    self.update_status(f"Invalid history entry selected: {selected_display_text}")
+                return
+
+    def load_history(self):
+        try:
+            if self.history_file_path.exists():
+                with open(self.history_file_path, "r", encoding="utf-8") as f:
+                    self.history = json.load(f)
+                    if not isinstance(self.history, list):
+                        self.history = []
+            else:
+                 self.history = []
+        except Exception as e:
+            self.history = []
+            self.update_status(f"Error loading history file: {e}. Starting with empty history.")
+            print(f"Error loading history file: {e}")
+
+        self.update_history_combobox()
+
+        if self.history:
+            most_recent = self.history[0]
+            if Path(most_recent.get("directory", "")).is_dir() and \
+               most_recent.get("filter_name", "") in self.filters:
+                self.selected_directory.set(most_recent["directory"])
+                self.selected_filter_name.set(most_recent["filter_name"])
+                self.update_status(f"Loaded last used: {Path(most_recent['directory']).name} | {most_recent['filter_name']}")
+                return
+        
+        self.update_status("No valid recent settings or history file not found. Using defaults.")
+
+    def save_history(self, directory_str, filter_name_str):
+        if not directory_str or not filter_name_str:
+            return
+
+        new_entry = {"directory": directory_str, "filter_name": filter_name_str}
+        
+        self.history = [entry for entry in self.history if not (entry.get("directory") == directory_str and entry.get("filter_name") == filter_name_str)]
+        
+        self.history.insert(0, new_entry)
+        self.history = self.history[:MAX_HISTORY_ITEMS]
+
+        try:
+            with open(self.history_file_path, "w", encoding="utf-8") as f:
+                json.dump(self.history, f, indent=2)
+            self.update_history_combobox()
+        except Exception as e:
+            self.update_status(f"Error saving history: {e}")
+            print(f"Error saving history: {e}")
+
+    def copy_output_to_clipboard(self):
+        if self.last_output_path and self.last_output_path.exists():
+            try:
+                with open(self.last_output_path, "r", encoding="utf-8") as f:
+                    content_to_copy = f.read()
+                
+                self.root.clipboard_clear()
+                self.root.clipboard_append(content_to_copy)
+                self.update_status(f"Copied content of {self.last_output_path.name} to clipboard.")
+                print(f"Copied content of {self.last_output_path.name} to clipboard.")
+            except Exception as e:
+                self.update_status(f"Error copying to clipboard: {e}")
+                print(f"Error copying to clipboard: {e}")
+        else:
+            self.update_status("No output file generated yet or file not found.")
+            print("No output file generated yet or file not found for copying.")
+
+    def update_status(self, message):
+        self.status_label.config(text=message)
+        print(message)
+
+if __name__ == "__main__":
+    root = tk.Tk()
+    app = QuickContextCollectorApp(root)
+    root.mainloop()
+</file>
+
+<file path="README.md">
+# Skrypty Agregacji Plików - Dokumentacja
+
+## Przegląd
+
+Katalog `.doc-gen` zawiera skrypty do automatycznej agregacji plików projektowych w grupy tematyczne. Skrypty generują zbiorczy plik Markdown z zawartością wszystkich plików podzielonych na logiczne grupy.
+
+## Pliki w katalogu
+
+### Skrypty
+
+- **`.comb-scripts-v2.py`** - Wersja 4.0 (stara, uniwersalna)
+- **`.comb-scripts-v3.py`** - Wersja 5.0 (nowa, z grupami i YAML)
+
+### Konfiguracja
+
+- **`.comb-scripts-config01.yaml`** - Konfiguracja grup plików dla v3
+
+### Dokumentacja
+
+- **`README.md`** - Ten plik
+
+## Jak używać nowej wersji (v3)
+
+### 1. Wymagania
+
+```bash
+pip install PyYAML
+```
+
+### 2. Uruchomienie
+
+```bash
+# Z katalogu głównego projektu
+python .doc-gen\.comb-scripts-v3.py
+```
+
+### 3. Wynik
+
+Skrypt utworzy plik `.comb-scripts.md` w katalogu głównym projektu (workspace root).
+
+## Konfiguracja grup (YAML)
+
+Plik `.comb-scripts-config01.yaml` definiuje grupy plików:
+
+```yaml
+groups:
+  - name: "Nazwa Grupy"
+    description: "Opis grupy"
+    patterns:
+      - "*.py"      # wzorce plików
+      - "*.jsx"
+    paths:
+      - "app/scripts"  # ścieżki do przeszukania
+      - "all"          # specjalna wartość = cały workspace
+    recursive: true     # czy szukać w podkatalogach
+```
+
+### Dostępne grupy (domyślnie)
+
+1. **Dokumentacja Algorytmów** - pliki `*.md` z katalogów dokumentacji algorytmów
+2. **Kod Python** - wszystkie pliki `*.py` w całym workspace
+3. **Skrypty JSX** - pliki `*.jsx` ze skryptów Photoshop
+4. **Konfiguracja i Dokumentacja** - pliki konfiguracyjne z katalogu głównego
+
+## Kluczowe różnice v3 vs v2
+
+### Workspace Root
+
+- **v2**: Używa katalogu, w którym jest uruchamiany skrypt
+- **v3**: Automatycznie ustawia workspace root na katalog wyżej niż lokalizacja skryptu
+
+### Organizacja plików
+
+- **v2**: Wszystkie pliki w jednej liście
+- **v3**: Pliki podzielone na grupy tematyczne
+
+### Konfiguracja
+
+- **v2**: Konfiguracja w kodzie Python
+- **v3**: Konfiguracja w zewnętrznym pliku YAML
+
+### Struktura wyjścia
+
+- **v2**: Prosta lista plików + zawartość
+- **v3**: Spis grup + zawartość podzielona na grupy
+
+## Przykład użycia
+
+```bash
+# Przejdź do katalogu projektu
+cd d:\Unity\Projects\GattoNeroPhotoshop
+
+# Uruchom nowy skrypt
+python .doc-gen\.comb-scripts-v3.py
+
+# Sprawdź wynik
+type .comb-scripts.md
+```
+
+## Dostosowywanie
+
+### Dodanie nowej grupy
+
+Edytuj plik `.comb-scripts-config01.yaml`:
+
+```yaml
+groups:
+  # ... istniejące grupy ...
+  - name: "Moja Nowa Grupa"
+    description: "Opis mojej grupy"
+    patterns:
+      - "*.txt"
+      - "*.log"
+    paths:
+      - "logs"
+      - "temp"
+    recursive: true
+```
+
+### Zmiana nazwy pliku wyjściowego
+
+W pliku YAML:
+
+```yaml
+output_file: ".moj-plik-wyjsciowy.md"
+```
+
+### Wykluczenie plików
+
+Skrypt automatycznie respektuje reguły z `.gitignore`.
+
+## Rozwiązywanie problemów
+
+### Błąd: "No module named 'yaml'"
+
+```bash
+pip install PyYAML
+```
+
+### Błąd: "Nie znaleziono pliku konfiguracyjnego"
+
+Upewnij się, że plik `.comb-scripts-config01.yaml` istnieje w katalogu `.doc-gen`.
+
+### Puste grupy
+
+Sprawdź czy ścieżki w konfiguracji YAML są poprawne względem workspace root.
+
+## Migracja z v2 do v3
+
+1. Zainstaluj PyYAML: `pip install PyYAML`
+2. Dostosuj konfigurację YAML do swoich potrzeb
+3. Uruchom v3: `python .doc-gen\.comb-scripts-v3.py`
+4. Porównaj wyniki z v2
+5. Po weryfikacji możesz usunąć v2
+
+## Wsparcie
+
+W przypadku problemów sprawdź:
+
+1. Czy PyYAML jest zainstalowany
+2. Czy plik konfiguracyjny YAML ma poprawną składnię
+3. Czy ścieżki w konfiguracji istnieją
+4. Czy masz uprawnienia do zapisu w katalogu docelowym
+</file>
+
+<file path="run-config-selector.cmd">
+@echo off
+chcp 65001 >nul
+cd /d "%~dp0"
+echo.
+echo URUCHAMIANIE SELEKTORA KONFIGURACJI...
+echo.
+python config-selector.py
+echo.
+echo Nacisnij dowolny klawisz aby zamknac...
+pause >nul
+</file>
+
+</files>

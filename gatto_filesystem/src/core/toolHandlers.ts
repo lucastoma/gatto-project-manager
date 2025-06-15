@@ -1,6 +1,7 @@
 import { Server } from '@modelcontextprotocol/sdk/server/index.js';
 import { zodToJsonSchema } from 'zod-to-json-schema';
 import { Mutex } from 'async-mutex';
+import { initGlobalSemaphore, getGlobalSemaphore } from './concurrency';
 import fs from 'node:fs/promises';
 import path from 'node:path';
 import { minimatch } from 'minimatch';
@@ -23,15 +24,35 @@ let editOperationCount = 0;
 
 const fileLocks = new Map<string, Mutex>();
 
-function getFileLock(filePath: string, config: Config): Mutex {
-  if (!fileLocks.has(filePath)) {
+function getFileLock(filePath: string, config: Config, logger: Logger): Mutex {
+  if (fileLocks.has(filePath)) {
+    // Move to end of map to mark as recently used
+    const existingMutex = fileLocks.get(filePath)!;
+    fileLocks.delete(filePath);
+    fileLocks.set(filePath, existingMutex);
+    return existingMutex;
+  } else {
     if (fileLocks.size >= config.concurrency.maxConcurrentEdits) {
-      const oldestKey = fileLocks.keys().next().value;
-      if (oldestKey) fileLocks.delete(oldestKey);
+      let evicted = false;
+      // Iterate from oldest (insertion order)
+      for (const [key, mutex] of fileLocks.entries()) {
+        if (!mutex.isLocked()) {
+          fileLocks.delete(key);
+          logger.debug({ evictedKey: key, newKey: filePath, mapSize: fileLocks.size }, 'Evicted inactive lock to make space.');
+          evicted = true;
+          break;
+        }
+      }
+      if (!evicted) {
+        // All locks are active, and map is full
+        logger.error({ filePath, mapSize: fileLocks.size, maxConcurrentEdits: config.concurrency.maxConcurrentEdits }, 'Cannot acquire new file lock: max concurrent locks reached, and all are active.');
+        throw createError('MAX_CONCURRENCY_REACHED', `Cannot acquire new file lock for ${filePath}: Maximum concurrent file locks (${config.concurrency.maxConcurrentEdits}) reached, and all are currently active.`);
+      }
     }
-    fileLocks.set(filePath, new Mutex());
+    const newMutex = new Mutex();
+    fileLocks.set(filePath, newMutex);
+    return newMutex;
   }
-  return fileLocks.get(filePath)!;
 }
 
 function shouldSkipPath(filePath: string, config: Config): boolean {
@@ -171,11 +192,16 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
               }
             }
             
-            const lock = getFileLock(validPath, config);
+            const lock = getFileLock(validPath, config, requestLogger);
+            await getGlobalSemaphore().runExclusive(async () => {
+              await getGlobalSemaphore().runExclusive(async () => {
             await lock.runExclusive(async () => {
               const contentBuffer = Buffer.from(parsed.data.content, parsed.data.encoding);
               await fs.writeFile(validPath, contentBuffer);
+              });
+          });
             });
+          });
             timer.end();
             return { content: [{ type: 'text', text: `File written: ${parsed.data.path}` }] };
           } catch (error) {
@@ -202,7 +228,8 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
           };
 
           const lock = getFileLock(validPath, config);
-          const { modifiedContent, formattedDiff } = await lock.runExclusive(async () => {
+          const { modifiedContent, formattedDiff } = await getGlobalSemaphore().runExclusive(async () => {
+            await lock.runExclusive(async () => {
             const editResult = await applyFileEdits(
               validPath, // Use validated path
               parsed.data.edits,
@@ -272,12 +299,15 @@ export function setupToolHandlers(server: Server, allowedDirectories: string[], 
           const sourceLock = getFileLock(validSource, config);
           const destLock = getFileLock(validDestination, config); // Potentially lock destination too if it might exist or be created
           
-          await sourceLock.runExclusive(async () => {
+          await getGlobalSemaphore().runExclusive(async () => {
+            await sourceLock.runExclusive(async () => {
             // If destination is different, also acquire its lock if not already held
             if (validSource !== validDestination && !destLock.isLocked()) {
               await destLock.runExclusive(async () => {
                 await fs.rename(validSource, validDestination);
               });
+            });
+          });
             } else {
               // If source and destination are same or destLock already acquired (e.g. by sourceLock if paths are same)
               await fs.rename(validSource, validDestination);
