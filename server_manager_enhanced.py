@@ -34,7 +34,64 @@ from pathlib import Path
 from typing import Dict, Optional, Any, List
 
 # Próba importu psutil, jeśli jest dostępny
-try:
+    def _find_process_on_port(self, port):
+        """Finds process PIDs on a given port using lsof, with ss as a fallback."""
+        pids_found = []
+        # Try lsof first
+        try:
+            cmd_lsof = f"lsof -ti:{port} -sTCP:LISTEN"
+            self.log_event(f"Executing (lsof): {cmd_lsof}", "DEBUG")
+            result_lsof = subprocess.run(cmd_lsof, shell=True, capture_output=True, text=True, check=False)
+            if result_lsof.returncode == 0 and result_lsof.stdout.strip():
+                pids_lsof = [pid.strip() for pid in result_lsof.stdout.strip().split('\n') if pid.strip().isdigit()]
+                if pids_lsof:
+                    self.log_event(f"Processes found on port {port} via lsof: {pids_lsof}", "DEBUG")
+                    pids_found.extend(pids_lsof)
+            # else:
+                # self.log_event(f"No process found by lsof on port {port}. Output: {result_lsof.stdout.strip()}", "DEBUG")
+        except Exception as e:
+            self.log_event(f"Error finding process on port {port} with lsof: {e}", "ERROR")
+
+        # Try ss if lsof found nothing or failed, or to augment findings
+        # This part will always run to try and catch anything lsof might miss or if lsof fails
+        self.log_event(f"Attempting to find PIDs on port {port} with ss.", "DEBUG")
+        try:
+            # Using -H to suppress header, makes parsing a bit cleaner if there's only one line.
+            cmd_ss = f"ss -Hlntp sport = :{port}"
+            self.log_event(f"Executing (ss): {cmd_ss}", "DEBUG")
+            result_ss = subprocess.run(cmd_ss, shell=True, capture_output=True, text=True, check=False)
+            
+            # Check both stdout and stderr for ss, as some systems might output errors to stdout or vice-versa
+            output_to_parse = result_ss.stdout
+            if result_ss.stderr:
+                self.log_event(f"'ss' command stderr for port {port}: {result_ss.stderr.strip()}", "DEBUG")
+                # Sometimes ss might output process info to stdout even with stderr messages, so append if necessary
+                # For now, we primarily parse stdout. If ss -H -lntp sport = :port fails, it often means no process.
+
+            if result_ss.returncode == 0 and output_to_parse:
+                self.log_event(f"Raw output from ss for port {port}:\n{output_to_parse.strip()}", "DEBUG")
+                # Example ss output (no header with -H): LISTEN 0 4096 *:5000 *:* users:(("python",pid=12345,fd=3))
+                # Simpler regex for PIDs, as the structure is fairly consistent
+                matches = re.findall(r'pid=(\d+)', output_to_parse)
+                if matches:
+                    pids_ss = list(set(matches)) # Unique PIDs
+                    self.log_event(f"Processes found on port {port} via ss: {pids_ss}", "DEBUG")
+                    pids_found.extend(pids_ss)
+                # else:
+                    # self.log_event(f"No PID info parsed from ss output for port {port}.", "DEBUG")
+            # else:
+                # self.log_event(f"Command 'ss' for port {port} returned no stdout or failed. RC: {result_ss.returncode}", "DEBUG")
+        except FileNotFoundError:
+            self.log_event("Command 'ss' not found. Ensure 'iproute2' package is installed.", "ERROR")
+        except Exception as e:
+            self.log_event(f"Error finding process on port {port} with ss: {e}", "ERROR")
+        
+        unique_pids = list(set(pid for pid in pids_found if pid.isdigit()))
+        if unique_pids:
+            self.log_event(f"Final list of unique PIDs found on port {port}: {unique_pids}", "INFO")
+        else:
+            self.log_event(f"No processes found on port {port} by any method.", "INFO")
+        return unique_pids
     import psutil
 
     PSUTIL_AVAILABLE = True

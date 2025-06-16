@@ -338,7 +338,7 @@ def handle_palette_transfer():
 
 # --- Algorithm 05: LAB Color Transfer Routes ---
 
-@webview_bp.route('/algorithm_05_lab_transfer_page')
+@webview_bp.route('/algorithm_05/transfer')
 def algorithm_05_lab_transfer_page():
     """Serves the page for LAB Color Transfer (Algorithm 05)."""
     return render_template('algorithm_05_lab_transfer.html', now=datetime.now())
