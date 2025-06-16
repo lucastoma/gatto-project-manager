@@ -14,7 +14,131 @@ logger = get_logger("run_server_script")
 
 def get_local_non_loopback_ip():
     """Tries to get a non-loopback local IP address for display purposes."""
+        def _kill_processes_on_port_windows(port):
+    """Finds and kills processes on a given port for Windows."""
+    logger.info(f"Attempting to free port {port} on Windows...")
+    pids_found = []
+    try:
+        # Find PID using netstat: netstat -aon | findstr ":<port>"
+        cmd_find = f'netstat -aon | findstr ":{port}"'
+        logger.debug(f"Executing: {cmd_find}")
+        result_find = subprocess.run(cmd_find, shell=True, capture_output=True, text=True, check=False)
+
+        if result_find.returncode == 0 and result_find.stdout:
+            logger.debug(f"Output from netstat for port {port}:\n{result_find.stdout.strip()}")
+            # Example netstat output: TCP 0.0.0.0:5000 0.0.0.0:0 LISTENING 12345
+            for line in result_find.stdout.strip().split('\n'):
+                parts = line.strip().split()
+                if len(parts) >= 5 and parts[3].upper() == 'LISTENING':
+                    pid = parts[4]
+                    if pid.isdigit():
+                        pids_found.append(pid)
+            pids_found = list(set(pids_found))
+            if pids_found:
+                logger.info(f"Found processes on port {port} with PIDs: {pids_found}")
+            else:
+                logger.info(f"Port {port} seems busy, but no listening PIDs found in netstat output.")
+        else:
+            logger.info(f"No processes found listening on port {port} by netstat.")
+            return True # Assume port is free if netstat finds nothing
+
+    except FileNotFoundError:
+        logger.error("Could not execute 'netstat'. Ensure it's in your system's PATH.")
+        return False
+    except Exception as e:
+        logger.error(f"Error while finding processes on Windows: {e}", exc_info=True)
+        return False
+
+    if not pids_found:
+        logger.info(f"No processes to kill on port {port}.")
+        return True
+
+    killed_any_process = False
+    for pid in pids_found:
         try:
+            # Kill PID using taskkill: taskkill /PID <pid> /F
+            cmd_kill = f"taskkill /PID {pid} /F"
+            logger.info(f"Executing: {cmd_kill}")
+            result_kill = subprocess.run(cmd_kill, shell=True, capture_output=True, text=True, check=False)
+            if result_kill.returncode == 0:
+                logger.info(f"Successfully terminated process PID {pid}.")
+                killed_any_process = True
+            else:
+                # It might have already been killed by another process, check error message
+                # A common success-like error is "The process...not found."
+                if "not found" in result_kill.stderr.lower():
+                    logger.info(f"Process PID {pid} was already gone.")
+                    killed_any_process = True
+                else:
+                    logger.error(f"Failed to kill PID {pid}. RC:{result_kill.returncode} Stderr: {result_kill.stderr.strip()}")
+        except Exception as e:
+            logger.error(f"Exception while killing PID {pid} on Windows: {e}", exc_info=True)
+    return killed_any_process
+
+def _kill_processes_on_port_linux(port):
+    """Finds and kills processes on a given port for Linux/WSL using 'ss'."""
+    logger.info(f"Attempting to free port {port} on Linux/WSL...")
+    pids_found = []
+    try:
+        cmd = f"ss -Hlntp sport = :{port}"
+        logger.debug(f"Executing: {cmd}")
+        result = subprocess.run(cmd, shell=True, capture_output=True, text=True, check=False)
+
+        output_to_parse = result.stdout
+        if result.stderr:
+            logger.debug(f"Stderr from ss command for port {port}:\n{result.stderr.strip()}")
+
+        if output_to_parse:
+            logger.debug(f"Stdout from ss for port {port}:\n{output_to_parse.strip()}")
+            matches = re.findall(r'pid=(\d+)', output_to_parse)
+            if matches:
+                pids_found = list(set(matches))
+                logger.info(f"Found processes on port {port} with PIDs (via ss): {pids_found}")
+        else:
+            logger.info(f"No stdout from ss command for port {port}. Port may be free.")
+
+    except FileNotFoundError:
+        logger.error("Command 'ss' not found. Please ensure 'iproute2' is installed.")
+        return False
+    except Exception as e:
+        logger.error(f"Error finding processes with ss: {e}", exc_info=True)
+        return False
+
+    if not pids_found:
+        logger.info(f"No processes found to kill on port {port}.")
+        return True
+
+    killed_any_process = False
+    for pid_str in pids_found:
+        pid = int(pid_str)
+        try:
+            logger.info(f"Sending SIGTERM to process PID {pid}...")
+            os.kill(pid, signal.SIGTERM)
+            time.sleep(2)
+            os.kill(pid, 0) # Check if process exists
+            logger.warning(f"Process PID {pid} still active after SIGTERM. Sending SIGKILL...")
+            os.kill(pid, signal.SIGKILL)
+            logger.info(f"SIGKILL sent to PID {pid}.")
+            killed_any_process = True
+            time.sleep(0.5)
+        except ProcessLookupError:
+            logger.info(f"Process PID {pid} terminated successfully after SIGTERM (or was already gone).")
+            killed_any_process = True
+        except PermissionError:
+            logger.error(f"Permission denied to signal PID {pid}. Try running with sudo.")
+        except Exception as e:
+            logger.error(f"Unexpected error while trying to kill PID {pid}: {e}", exc_info=True)
+    return killed_any_process
+
+def kill_processes_on_port(port):
+    """Dispatches process killing to the correct OS-specific function."""
+    if sys.platform == "win32":
+        return _kill_processes_on_port_windows(port)
+    elif sys.platform.startswith("linux") or sys.platform == "darwin": # darwin for macOS
+        return _kill_processes_on_port_linux(port)
+    else:
+        logger.error(f"Unsupported operating system: {sys.platform}. Cannot kill process on port.")
+        return False
         # -H for no header, makes parsing cleaner
         cmd = f"ss -Hlntp sport = :{port}"
         logger.debug(f"Wykonywanie komendy: {cmd}")
