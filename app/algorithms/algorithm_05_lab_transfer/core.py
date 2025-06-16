@@ -2,7 +2,7 @@ import os
 import numpy as np
 from typing import List, Tuple, Union, Optional, Dict
 from .logger import get_logger
-from .config import LABColorTransferConfig # Added import for LABColorTransferConfig
+# Removed incorrect import
 from PIL import Image
 import skimage.color
 from functools import lru_cache
@@ -14,17 +14,6 @@ from .logger import get_logger
 from .gpu_core import LABColorTransferGPU
 
 class LABColorTransfer:
-    def __init__(self, config: LABColorTransferConfig):
-        self.config = config
-        self.logger = get_logger(self.__class__.__name__)
-        
-        # Method dispatch for CPU operations
-        self._CPU_METHOD_DISPATCH = {
-            "basic": "basic_transfer",
-            "linear_blend": "linear_blend_transfer",
-            "selective": "selective_lab_transfer",
-            "adaptive": "adaptive_lab_transfer",
-        }
     """
     Base class implementing core LAB color transfer methods.
     It now uses scikit-image for robust color conversions and includes
@@ -79,9 +68,21 @@ class LABColorTransfer:
         std = np.std(lab_image_f64, axis=(0, 1))
         return mean, std
 
-    def basic_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray) -> np.ndarray:
+    def basic_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
         if source_lab.shape != target_lab.shape:
             raise ValueError("Source and target must have the same shape")
+        if not (isinstance(source_lab, np.ndarray) and isinstance(target_lab, np.ndarray)):
+            raise ValueError("Inputs must be numpy arrays")
+            
+        # Convert uint8 inputs to float64
+        if source_lab.dtype == np.uint8:
+            source_lab = source_lab.astype(np.float64) / 255
+        if target_lab.dtype == np.uint8:
+            target_lab = target_lab.astype(np.float64) / 255
+            
+        if source_lab.dtype not in (np.float32, np.float64) or target_lab.dtype not in (np.float32, np.float64):
+            raise ValueError("Input arrays must be float32 or float64")
+            
         original_dtype = source_lab.dtype
         s_mean, s_std = self._calculate_stats(source_lab)
         t_mean, t_std = self._calculate_stats(target_lab)
@@ -97,6 +98,10 @@ class LABColorTransfer:
 
     def linear_blend_lab(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
         weights = kwargs.get('weights', {})
+        if not isinstance(weights, dict):
+            raise ValueError("Weights must be a dictionary")
+        if not all(isinstance(k, str) and isinstance(v, (int, float)) for k, v in weights.items()):
+            raise ValueError("Weights dictionary keys must be strings and values must be numbers")
         if source_lab.shape != target_lab.shape:
             raise ValueError("Source and target must have the same shape")
         original_dtype = source_lab.dtype
@@ -117,6 +122,11 @@ class LABColorTransfer:
 
     def selective_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
         mask = kwargs.get('mask')
+        if mask is None:
+            raise ValueError("Mask parameter is required")
+        if not hasattr(mask, 'shape'):
+            raise ValueError("Mask must be a numpy array")
+            
         selective_channels = kwargs.get('selective_channels')
         blend_factor = kwargs.get('blend_factor', 1.0)
         if not (source_lab.shape[:2] == target_lab.shape[:2] == mask.shape[:2]):
@@ -262,7 +272,7 @@ class LABColorTransfer:
             return self.lab_to_rgb_optimized(result_lab)
         return result_lab
 
-    def process_large_image(self, source_img: np.ndarray, target_img: np.ndarray, method: str, **kwargs) -> np.ndarray:
+    def process_large_image(self, source_img: np.ndarray, target_img: np.ndarray, method: str = 'basic', **kwargs) -> np.ndarray:
         """
         Process large images by tiling, applying the selected transfer method to each tile.
         """
@@ -271,7 +281,7 @@ class LABColorTransfer:
         h, w, _ = source_img.shape
         
         result_img = np.zeros((h, w, 3), dtype=np.float64)
-        weight_map = np.zeros((h, w, 1), dtype=np.float32)
+        weight_map = np.zeros((h, w, 3), dtype=np.float32)
 
         for y in range(0, h, tile_size - overlap):
             for x in range(0, w, tile_size - overlap):
@@ -316,26 +326,26 @@ class LABColorTransfer:
 
     def blend_tile_overlap(self, tile: np.ndarray, overlap_size: int) -> np.ndarray:
         """Apply linear alpha blending to tile edges based on overlap size"""
-        if overlap_size == 0:
+        if overlap_size <= 0:
             return np.ones_like(tile, dtype=np.float32)
             
         blended = np.ones_like(tile, dtype=np.float32)
         h, w, _ = blended.shape
+        overlap_size = min(overlap_size, h//2, w//2)  # Ensure overlap is not larger than half the tile
         
         # Create a linear gradient for one edge
-        if overlap_size > 0:
-            alpha_h = np.linspace(0, 1, overlap_size)
-            alpha_v = np.linspace(0, 1, overlap_size)
-            
-            # Apply to horizontal edges
-            if w > overlap_size * 2:
-                blended[:, :overlap_size] *= alpha_h[np.newaxis, :, np.newaxis]
-                blended[:, -overlap_size:] *= alpha_h[::-1][np.newaxis, :, np.newaxis]
-            
-            # Apply to vertical edges
-            if h > overlap_size * 2:
-                blended[:overlap_size, :] *= alpha_v[:, np.newaxis, np.newaxis]
-                blended[-overlap_size:, :] *= alpha_v[::-1][:, np.newaxis, np.newaxis]
+        alpha_h = np.linspace(0, 1, overlap_size)
+        alpha_v = np.linspace(0, 1, overlap_size)
+        
+        # Apply to horizontal edges
+        if w > overlap_size * 2:
+            blended[:, :overlap_size] *= alpha_h[np.newaxis, :, np.newaxis]
+            blended[:, -overlap_size:] *= alpha_h[::-1][np.newaxis, :, np.newaxis]
+        
+        # Apply to vertical edges
+        if h > overlap_size * 2:
+            blended[:overlap_size, :] *= alpha_v[:, np.newaxis, np.newaxis]
+            blended[-overlap_size:, :] *= alpha_v[::-1][:, np.newaxis, np.newaxis]
                 
         return blended
         

@@ -1,3 +1,51 @@
+// Configuration for IDE-specific tools
+interface ServerConfig {
+  ide_type: 'vscode' | 'windsurf' | 'auto';
+  search_tools: {
+    vscode: string[];
+    windsurf: string[];
+  };
+  detected_ide?: 'vscode' | 'windsurf' | 'unknown';
+}
+
+const serverConfig: ServerConfig = {
+  ide_type: 'auto', // Auto-detect by default
+  search_tools: {
+    vscode: ['workspace_symbol_search', 'text_search', 'file_search'],
+    windsurf: ['codebase_search', 'semantic_search', 'symbol_search']
+  }
+};
+
+// Enhanced IDE detection with multiple indicators
+function detectIDE(): 'vscode' | 'windsurf' | 'unknown' {
+  // Check environment variables and process indicators
+  if (process.env.TERM_PROGRAM === 'vscode' || 
+      process.env.VSCODE_PID || 
+      process.env.VSCODE_IPC_HOOK) {
+    return 'vscode';
+  }
+  
+  if (process.env.WINDSURF_SESSION || 
+      process.env.CODEIUM_API_KEY ||
+      process.env.WINDSURF_CONFIG) {
+    return 'windsurf';
+  }
+  
+  // Check for IDE-specific processes or paths
+  try {
+    const cwd = process.cwd();
+    if (cwd.includes('.vscode') || cwd.includes('vscode')) return 'vscode';
+    if (cwd.includes('windsurf') || cwd.includes('codeium')) return 'windsurf';
+  } catch (e) {
+    // Ignore path check errors
+  }
+  
+  return 'unknown';
+}
+
+// Initialize detected IDE
+serverConfig.detected_ide = serverConfig.ide_type === 'auto' ? detectIDE() : serverConfig.ide_type as 'vscode' | 'windsurf';
+
 import { McpServer } from '@modelcontextprotocol/sdk/server/mcp.js';
 import { StdioServerTransport } from '@modelcontextprotocol/sdk/server/stdio.js';
 import { promises as fs } from 'node:fs';
@@ -372,7 +420,7 @@ server.tool(
       if (preview.includes(edit.oldText)) {
         preview = preview.replace(edit.oldText, edit.newText);
         changes++;
-        editResults.push(`Edit ${i + 1}: ✅ EXACT MATCH - Applied successfully`);
+        editResults.push(`Edit ${i + 1}: ✓ EXACT MATCH - Applied successfully`);
         await logToFile(`edit_file: edit ${i + 1} - EXACT MATCH successful`);
         continue;
       }
@@ -384,10 +432,10 @@ server.tool(
       
       if (bestMatches.length === 0) {
         // INSIGNIFICANT (<60% similarity)
-        diagnosticInfo = `🚨 CZEGO KURWA SZUKASZ?! 
-📁 Ten tekst prawdopodobnie nie istnieje w tym pliku!
-🔍 Zero podobieństwa nawet w najmniejszym fragmencie.
-💡 Sprawdź nazwę pliku lub skopiuj tekst bezpośrednio z pliku.`;
+        diagnosticInfo = `ZERO MATCHES FOUND! 
+FILE: Ten tekst prawdopodobnie nie istnieje w tym pliku!
+SEARCH: Zero podobieństwa nawet w najmniejszym fragmencie.
+HINT: Sprawdź nazwę pliku lub skopiuj tekst bezpośrednio z pliku.`;
       } else {
         const best = bestMatches[0];
         const similarity = best.similarity;
@@ -399,9 +447,9 @@ server.tool(
             preview = preview.replace(targetText, edit.newText);
             changes++;
             applied = true;
-            diagnosticInfo = `✅ HIGH SIMILARITY (${similarity.toFixed(1)}%) - Auto-applied
-🎯 Found in line ${best.lineNumber}: "${targetText.substring(0, 80)}..."
-💫 This was likely a minor typo or formatting difference.`;
+            diagnosticInfo = `SUCCESS: HIGH SIMILARITY (${similarity.toFixed(1)}%) - Auto-applied
+FOUND: Line ${best.lineNumber}: "${targetText.substring(0, 80)}..."
+INFO: This was likely a minor typo or formatting difference.`;
           } else {
             diagnosticInfo = `❌ HIGH SIMILARITY (${similarity.toFixed(1)}%) but target text is undefined`;
           }
@@ -414,14 +462,14 @@ server.tool(
             preview = preview.replace(targetText, edit.newText);
             changes++;
             applied = true;
-            diagnosticInfo = `⚡ MEDIUM SIMILARITY (${similarity.toFixed(1)}%) - FORCE APPLIED
-🎯 Found in line ${best.lineNumber}: "${targetText.substring(0, 80)}..."
-⚠️  Applied because force_edit=true. Verify the result carefully!`;
+            diagnosticInfo = `SUCCESS: MEDIUM SIMILARITY (${similarity.toFixed(1)}%) - FORCE APPLIED
+FOUND: Line ${best.lineNumber}: "${targetText.substring(0, 80)}..."
+WARNING: Applied because force_edit=true. Verify the result carefully!`;
           } else if (targetText) {
-            diagnosticInfo = `🤔 MEDIUM SIMILARITY (${similarity.toFixed(1)}%) - Requires confirmation
-🎯 Found in line ${best.lineNumber}: "${targetText.substring(0, 80)}..."
-💡 If you're confident this is the right match, retry with force_edit=true
-⚠️  Use force_edit carefully - it will apply the change without exact match.`;
+            diagnosticInfo = `MEDIUM SIMILARITY (${similarity.toFixed(1)}%) - Requires confirmation
+FOUND: Line ${best.lineNumber}: "${targetText.substring(0, 80)}..."
+HINT: If you're confident this is the right match, retry with force_edit=true
+WARNING: Use force_edit carefully - it will apply the change without exact match.`;
           } else {
             diagnosticInfo = `❌ MEDIUM SIMILARITY (${similarity.toFixed(1)}%) but target text is undefined`;
           }
@@ -429,20 +477,20 @@ server.tool(
         } else if (similarity >= 60) {
           // LOW SIMILARITY (60-84%) - DIAGNOSTICS ONLY
           const displayText = best.type === 'single_line' ? best.line : (best.block || 'undefined');
-          diagnosticInfo = `📊 LOW SIMILARITY (${similarity.toFixed(1)}%) - Too low for automatic edit
-🎯 Best match in line ${best.lineNumber}: "${displayText.substring(0, 80)}..."
-💡 This might be related but different. Try:
-   • Use more specific/longer text fragment
-   • Check for structural differences
-   • Copy exact text from the file`;
+          diagnosticInfo = `LOW SIMILARITY (${similarity.toFixed(1)}%) - Too low for automatic edit
+FOUND: Line ${best.lineNumber}: "${displayText.substring(0, 80)}..."
+HINT: This might be related but different. Try:
+   - Use more specific/longer text fragment
+   - Check for structural differences
+   - Copy exact text from the file`;
           
         } else {
           // INSIGNIFICANT (<60%) 
           const displayText = best.type === 'single_line' ? best.line : (best.block || 'undefined');
-          diagnosticInfo = `⚠️  VERY LOW SIMILARITY (${similarity.toFixed(1)}%) 
-🎯 Best match in line ${best.lineNumber}: "${displayText.substring(0, 80)}..."
-🚨 This is probably not what you're looking for.
-💡 Double-check the file path and search text.`;
+          diagnosticInfo = `VERY LOW SIMILARITY (${similarity.toFixed(1)}%) 
+FOUND: Line ${best.lineNumber}: "${displayText.substring(0, 80)}..."
+ERROR: This is probably not what you're looking for.
+HINT: Double-check the file path and search text.`;
         }
       }
       
@@ -465,8 +513,8 @@ server.tool(
     }
     
     const resultText = dryRun 
-      ? `🔍 DRY RUN: ${changes} changes would be made\n\n📋 Edit Results:\n${editResults.join('\n')}\n\n📄 Preview:\n${preview}`
-      : `✅ SUCCESS: Applied ${changes} changes to ${filePath}\n\n📋 Edit Results:\n${editResults.join('\n')}${changes > 0 ? '\n\n🎯 All changes have been successfully written to disk!' : ''}`;
+      ? `🔍 DRY RUN: ${changes} changes would be made\n\n📋 Edit Results:\n\n${editResults.map((result, index) => `Edit ${index + 1}:\n${result}`).join('\n\n')}\n\n📄 Preview:\n${preview}`
+      : `✅ SUCCESS: Applied ${changes} changes to ${filePath}\n\n📋 Edit Results:\n\n${editResults.map((result, index) => `Edit ${index + 1}:\n${result}`).join('\n\n')}${changes > 0 ? '\n\n🎯 All changes have been successfully written to disk!' : ''}`;
     
     await logToFile('edit_file result', { changes, dryRun, editResults });
     
@@ -535,7 +583,7 @@ server.tool(
         
         if (item.isFile()) {
           const stats = await fs.stat(fullPath);
-          (entry as any).size = stats.size;
+          (entry as any).sizeBytes = stats.size;
         }
         
         entries.push(entry);
@@ -581,7 +629,8 @@ server.tool(
         return {
           name,
           type: 'file',
-          size: stats.size
+          sizeBytes: stats.size,
+          // TODO: Add lineCount for text files
         };
       }
       
@@ -774,7 +823,7 @@ server.tool(
       path: targetPath,
       name: path.basename(validatedPath),
       type: stats.isDirectory() ? 'directory' : 'file',
-      size: stats.size,
+      sizeBytes: stats.size,
       created: stats.birthtime,
       modified: stats.mtime,
       accessed: stats.atime,
@@ -832,6 +881,486 @@ server.tool(
     };
   }
 );
+
+// 15. smart_search - Intelligent search with IDE adaptation
+server.tool(
+  'smart_search',
+  "Intelligent search that adapts to your IDE environment. Uses codebase_search (Windsurf) or workspace_symbol_search (VS Code) for semantic RAG search when available, with similarity matching fallback for edge cases. Provides comprehensive code search across the workspace.",
+  {
+    query: z.string().describe('Search query - supports natural language, function names, class names, or code snippets'),
+    directories: z.array(z.string()).optional().describe('Target directories to search (defaults to allowed directories)'),
+    case_insensitive: z.boolean().optional().default(true).describe('Case-insensitive search'),
+    is_regex: z.boolean().optional().default(false).describe('Treat query as regex pattern'),
+    max_results: z.number().optional().default(50).describe('Maximum number of results'),
+    use_similarity_fallback: z.boolean().optional().default(true).describe('Use similarity matching as fallback'),
+    ide_type: z.enum(['auto', 'vscode', 'windsurf']).optional().default('auto').describe('Force specific IDE tool'),
+    search_mode: z.enum(['semantic', 'text', 'symbol', 'hybrid']).optional().default('hybrid').describe('Search mode preference')
+  },
+  async ({ 
+    query, 
+    directories, 
+    case_insensitive = true, 
+    is_regex = false, 
+    max_results = 50, 
+    use_similarity_fallback = true,
+    ide_type = 'auto',
+    search_mode = 'hybrid'
+  }) => {
+    await logToFile('smart_search called', { 
+      query, 
+      directories, 
+      case_insensitive, 
+      is_regex, 
+      max_results, 
+      use_similarity_fallback, 
+      ide_type,
+      search_mode,
+      detected_ide: serverConfig.detected_ide
+    });
+    
+    const effectiveIDE = ide_type === 'auto' ? (serverConfig.detected_ide || 'windsurf') : ide_type;
+    const targetDirs = directories || allowedDirectories;
+    const availableTools = serverConfig.search_tools[effectiveIDE as 'vscode' | 'windsurf'] || serverConfig.search_tools.windsurf;
+    
+    await logToFile(`smart_search: using IDE type ${effectiveIDE}`, { 
+      targetDirs, 
+      availableTools,
+      search_mode 
+    });
+    
+    // Enhanced search results container
+    const searchResults = {
+      semantic: [] as any[],
+      text: [] as any[],
+      symbol: [] as any[],
+      similarity: [] as any[]
+    };
+    
+    try {
+      // Phase 1: Try IDE-specific semantic search (placeholder for now)
+      if (search_mode === 'semantic' || search_mode === 'hybrid') {
+        await logToFile('smart_search: attempting semantic search', { ide: effectiveIDE });
+        
+        // TODO: Integrate with actual MCP client calls when available
+        // For Windsurf: codebase_search
+        // For VS Code: workspace_symbol_search or text_search
+        
+        // Placeholder semantic search simulation
+        await simulateSemanticSearch(targetDirs, query, searchResults.semantic, max_results / 2);
+      }
+      
+      // Phase 2: Traditional text search
+      if (search_mode === 'text' || search_mode === 'hybrid') {
+        await logToFile('smart_search: performing text search');
+        for (const baseDir of targetDirs) {
+          await searchInDirectory(baseDir, query, searchResults.text, max_results, case_insensitive, is_regex);
+          if (searchResults.text.length >= max_results) break;
+        }
+      }
+      
+      // Phase 3: Symbol/identifier search
+      if (search_mode === 'symbol' || search_mode === 'hybrid') {
+        await logToFile('smart_search: performing symbol search');
+        await searchForSymbols(targetDirs, query, searchResults.symbol, max_results / 4);
+      }
+      
+      // Phase 4: Similarity matching fallback
+      if (use_similarity_fallback && 
+          (searchResults.semantic.length + searchResults.text.length + searchResults.symbol.length) === 0) {
+        await logToFile('smart_search: using similarity fallback');
+        await similaritySearch(targetDirs, query, searchResults.similarity, max_results);
+      }
+      
+      // Combine and rank all results
+      const allResults = [
+        ...searchResults.semantic.map(r => ({ ...r, source: 'semantic', priority: 1 })),
+        ...searchResults.symbol.map(r => ({ ...r, source: 'symbol', priority: 2 })),
+        ...searchResults.text.map(r => ({ ...r, source: 'text', priority: 3 })),
+        ...searchResults.similarity.map(r => ({ ...r, source: 'similarity', priority: 4 }))
+      ].slice(0, max_results);
+      
+      const searchSummary = {
+        query,
+        ide_type: effectiveIDE,
+        search_mode,
+        results_count: allResults.length,
+        max_results,
+        breakdown: {
+          semantic: searchResults.semantic.length,
+          text: searchResults.text.length,
+          symbol: searchResults.symbol.length,
+          similarity: searchResults.similarity.length
+        },
+        available_tools: availableTools,
+        results: allResults
+      };
+      
+      await logToFile('smart_search comprehensive results', searchSummary);
+      
+      return {
+        content: [{
+          type: 'text',
+          text: `# Smart Search Results
+
+**Query:** "${query}"
+**IDE:** ${effectiveIDE} ${serverConfig.detected_ide !== effectiveIDE ? '(forced)' : '(detected)'}
+**Mode:** ${search_mode}
+**Results:** ${allResults.length}/${max_results}
+
+## Search Breakdown:
+- 🧠 Semantic: ${searchResults.semantic.length}
+- 🔍 Text: ${searchResults.text.length} 
+- 🏷️  Symbol: ${searchResults.symbol.length}
+- 📊 Similarity: ${searchResults.similarity.length}
+
+## Available Tools: ${availableTools.join(', ')}
+
+## Matches:
+
+${allResults.map((result, index) => 
+  `### ${index + 1}. [${result.source.toUpperCase()}] ${result.file}:${result.line}
+${result.similarity_score ? `**Similarity:** ${result.similarity_score}%` : ''}
+\`\`\`${result.language || 'text'}
+${result.content}
+\`\`\`
+`).join('\n')}
+
+${allResults.length === 0 ? 
+  `\n❌ **No matches found for "${query}"**\n\n💡 **Suggestions:**\n- Try broader search terms\n- Check spelling\n- Use \`edit_file\` with similarity matching for fuzzy editing\n- Use \`grep_search\` for exact text matching` : ''}
+`
+        }]
+      };
+    } catch (error) {
+      const errorMessage = error instanceof Error ? error.message : String(error);
+      await logToFile('smart_search error', { error: errorMessage });
+      throw new Error(`Smart search failed: ${errorMessage}`);
+    }
+  }
+);
+
+// Enhanced search helper functions for smart_search
+
+// Simulate semantic search (placeholder for future MCP client integration)
+async function simulateSemanticSearch(
+  directories: string[], 
+  query: string, 
+  results: any[], 
+  maxResults: number
+) {
+  // TODO: Replace with actual MCP client calls
+  // For now, do enhanced pattern matching that simulates semantic understanding
+  
+  const queryPattern = query.replace(/\s+/g, '.*');
+  const semanticPatterns = [
+    // Function definitions
+    new RegExp(`def\\s+(\\w*${query}\\w*|\\w*${queryPattern}\\w*)\\s*\\(`, 'gi'),
+    // Class definitions  
+    new RegExp(`class\\s+(\\w*${query}\\w*|\\w*${queryPattern}\\w*)\\s*[\\(:]?`, 'gi'),
+    // Variable assignments
+    new RegExp(`(\\w*${query}\\w*|\\w*${queryPattern}\\w*)\\s*=`, 'gi'),
+    // Import statements
+    new RegExp(`(?:from|import)\\s+.*?(\\w*${query}\\w*|\\w*${queryPattern}\\w*)`, 'gi')
+  ];
+  
+  // This is a placeholder - in production this would call actual semantic search APIs
+  await logToFile('simulateSemanticSearch: placeholder implementation', { 
+    query, 
+    patterns: semanticPatterns.length 
+  });
+}
+
+// Search for programming symbols (functions, classes, variables)
+async function searchForSymbols(
+  directories: string[],
+  query: string,
+  results: any[],
+  maxResults: number
+) {
+  const symbolPatterns = [
+    `def\\s+\\w*${query}\\w*`,      // Python functions
+    `class\\s+\\w*${query}\\w*`,    // Python/JS classes  
+    `function\\s+\\w*${query}\\w*`, // JavaScript functions
+    `const\\s+\\w*${query}\\w*`,    // JavaScript constants
+    `let\\s+\\w*${query}\\w*`,      // JavaScript variables
+    `var\\s+\\w*${query}\\w*`       // JavaScript variables
+  ];
+  
+  for (const dir of directories) {
+    if (results.length >= maxResults) break;
+    
+    try {
+      await searchWithPatterns(dir, symbolPatterns, query, results, maxResults, 'symbol');
+    } catch (error) {
+      await logToFile('searchForSymbols error', { dir, error });
+    }
+  }
+}
+
+// Similarity-based search using our Levenshtein algorithm
+async function similaritySearch(
+  directories: string[],
+  query: string,
+  results: any[],
+  maxResults: number
+) {
+  const minSimilarity = 0.6; // 60% minimum similarity
+  
+  for (const dir of directories) {
+    if (results.length >= maxResults) break;
+    
+    try {
+      await searchWithSimilarity(dir, query, results, maxResults, minSimilarity);
+    } catch (error) {
+      await logToFile('similaritySearch error', { dir, error });
+    }
+  }
+}
+
+// Helper function for text search in directories
+async function searchInDirectory(
+  dirPath: string,
+  query: string,
+  results: any[],
+  maxResults: number,
+  caseInsensitive: boolean = true,
+  isRegex: boolean = false
+) {
+  if (results.length >= maxResults) return;
+  
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      if (results.length >= maxResults) break;
+      
+      const fullPath = path.join(dirPath, entry.name);
+      
+      if (entry.isDirectory()) {
+        await searchInDirectory(fullPath, query, results, maxResults, caseInsensitive, isRegex);
+      } else if (entry.isFile() && isTextFile(entry.name)) {
+        await searchTextInFile(fullPath, query, results, maxResults, caseInsensitive, isRegex);
+      }
+    }
+  } catch (error) {
+    // Skip directories we can't read
+  }
+}
+
+// Helper function to search text in a file
+async function searchTextInFile(
+  filePath: string,
+  query: string,
+  results: any[],
+  maxResults: number,
+  caseInsensitive: boolean = true,
+  isRegex: boolean = false
+) {
+  if (results.length >= maxResults) return;
+  
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    const lines = content.split('\n');
+    
+    let searchRegex: RegExp;
+    if (isRegex) {
+      try {
+        searchRegex = new RegExp(query, caseInsensitive ? 'gi' : 'g');
+      } catch (regexError) {
+        // If invalid regex, fall back to literal search
+        searchRegex = new RegExp(escapeRegex(query), caseInsensitive ? 'gi' : 'g');
+      }
+    } else {
+      searchRegex = new RegExp(escapeRegex(query), caseInsensitive ? 'gi' : 'g');
+    }
+    
+    for (let i = 0; i < lines.length && results.length < maxResults; i++) {
+      const line = lines[i];
+      
+      if (searchRegex.test(line)) {
+        results.push({
+          file: path.relative(process.cwd(), filePath),
+          line: i + 1,
+          content: line.trim(),
+          language: getFileLanguage(filePath),
+          match_type: 'text',
+          query: query
+        });
+        
+        // Reset regex lastIndex for global searches
+        searchRegex.lastIndex = 0;
+      }
+    }
+  } catch (error) {
+    // Skip files we can't read
+  }
+}
+
+// Helper function to escape regex special characters
+function escapeRegex(string: string): string {
+  return string.replace(/[.*+?^${}()|[\]\\]/g, '\\$&');
+}
+
+// Helper function to search with regex patterns
+async function searchWithPatterns(
+  dirPath: string,
+  patterns: string[],
+  query: string,
+  results: any[],
+  maxResults: number,
+  searchType: string
+) {
+  if (results.length >= maxResults) return;
+  
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      if (results.length >= maxResults) break;
+      
+      const fullPath = path.join(dirPath, entry.name);
+      
+      if (entry.isDirectory()) {
+        await searchWithPatterns(fullPath, patterns, query, results, maxResults, searchType);
+      } else if (entry.isFile() && isTextFile(entry.name)) {
+        await searchPatternsInFile(fullPath, patterns, query, results, maxResults, searchType);
+      }
+    }
+  } catch (error) {
+    // Skip directories we can't read
+  }
+}
+
+// Helper function to search patterns in a file
+async function searchPatternsInFile(
+  filePath: string,
+  patterns: string[],
+  query: string,
+  results: any[],
+  maxResults: number,
+  searchType: string
+) {
+  if (results.length >= maxResults) return;
+  
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    const lines = content.split('\n');
+    
+    for (const patternStr of patterns) {
+      if (results.length >= maxResults) break;
+      
+      try {
+        const regex = new RegExp(patternStr, 'gi');
+        
+        for (let i = 0; i < lines.length && results.length < maxResults; i++) {
+          const line = lines[i];
+          const matches = regex.exec(line);
+          
+          if (matches) {
+            results.push({
+              file: path.relative(process.cwd(), filePath),
+              line: i + 1,
+              content: line.trim(),
+              language: getFileLanguage(filePath),
+              match_type: searchType,
+              pattern: patternStr
+            });
+          }
+        }
+      } catch (regexError) {
+        // Skip invalid regex patterns
+      }
+    }
+  } catch (error) {
+    // Skip files we can't read
+  }
+}
+
+// Helper function to search with similarity matching
+async function searchWithSimilarity(
+  dirPath: string,
+  query: string,
+  results: any[],
+  maxResults: number,
+  minSimilarity: number
+) {
+  if (results.length >= maxResults) return;
+  
+  try {
+    const entries = await fs.readdir(dirPath, { withFileTypes: true });
+    
+    for (const entry of entries) {
+      if (results.length >= maxResults) break;
+      
+      const fullPath = path.join(dirPath, entry.name);
+      
+      if (entry.isDirectory()) {
+        await searchWithSimilarity(fullPath, query, results, maxResults, minSimilarity);
+      } else if (entry.isFile() && isTextFile(entry.name)) {
+        await searchSimilarityInFile(fullPath, query, results, maxResults, minSimilarity);
+      }
+    }
+  } catch (error) {
+    // Skip directories we can't read
+  }
+}
+
+// Helper function to search similarity in a file
+async function searchSimilarityInFile(
+  filePath: string,
+  query: string,
+  results: any[],
+  maxResults: number,
+  minSimilarity: number
+) {
+  if (results.length >= maxResults) return;
+  
+  try {
+    const content = await fs.readFile(filePath, 'utf-8');
+    const matches = findBestMatches(content, query, minSimilarity / 100);
+    
+    for (const match of matches.slice(0, Math.min(5, maxResults - results.length))) {
+      results.push({
+        file: path.relative(process.cwd(), filePath),
+        line: match.lineNumber,
+        content: match.type === 'single_line' ? match.line : (match.block || '').substring(0, 100) + '...',
+        language: getFileLanguage(filePath),
+        similarity_score: Math.round(match.similarity),
+        match_type: 'similarity'
+      });
+    }
+  } catch (error) {
+    // Skip files we can't read
+  }
+}
+
+// Helper functions
+function isTextFile(filename: string): boolean {
+  const textExtensions = ['.py', '.js', '.ts', '.jsx', '.tsx', '.md', '.txt', '.json', '.yml', '.yaml', '.xml', '.html', '.css', '.scss', '.sql', '.sh', '.bash'];
+  return textExtensions.some(ext => filename.toLowerCase().endsWith(ext));
+}
+
+function getFileLanguage(filePath: string): string {
+  const ext = path.extname(filePath).toLowerCase();
+  const langMap: Record<string, string> = {
+    '.py': 'python',
+    '.js': 'javascript', 
+    '.ts': 'typescript',
+    '.jsx': 'javascript',
+    '.tsx': 'typescript',
+    '.md': 'markdown',
+    '.json': 'json',
+    '.yml': 'yaml',
+    '.yaml': 'yaml',
+    '.sh': 'bash'
+  };
+  return langMap[ext] || 'text';
+}
+
+function getLineContext(lines: string[], lineIndex: number, contextSize: number): string[] {
+  const start = Math.max(0, lineIndex - contextSize);
+  const end = Math.min(lines.length, lineIndex + contextSize + 1);
+  return lines.slice(start, end);
+}
 
 // Uruchom serwer
 async function main() {

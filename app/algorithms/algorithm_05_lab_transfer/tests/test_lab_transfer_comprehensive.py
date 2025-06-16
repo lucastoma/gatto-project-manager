@@ -37,13 +37,45 @@ class TestCoreMethods:
             assert result.shape == source.shape
             assert not np.allclose(result, source)  # Should change the image
     
-    def test_weighted_transfer_validation(self, transfer):
+        def test_weighted_transfer_validation(self, transfer):
+            """Test validation of weights parameter."""
+            # Test with invalid weights type
+            with pytest.raises(ValueError):
+                transfer.linear_blend_lab(
+                    np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                weights="invalid"
+            )
+            
+        # Test with invalid weights values
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                weights={"L": "invalid"}
+            )
         """Test weighted transfer handles invalid weights."""
         source = np.random.rand(10, 10, 3)
         target = np.random.rand(10, 10, 3)
         
         # Test partial weights
+            def test_selective_transfer_edge_cases(self, transfer):
+        """Test edge cases for selective transfer."""
+        # Test with None mask
         with pytest.raises(ValueError):
+            transfer.selective_lab_transfer(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                mask=None
+            )
+            
+        # Test with invalid mask
+        with pytest.raises(ValueError):
+            transfer.selective_lab_transfer(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                mask="invalid"
+            )
             transfer.weighted_lab_transfer(source, target, {'L': 0.5})
             
         # Test invalid weight sums

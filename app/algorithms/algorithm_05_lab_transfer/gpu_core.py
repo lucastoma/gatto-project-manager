@@ -5,7 +5,7 @@ import os
 import warnings # if used
 from typing import List, Tuple, Union, Optional, Dict # Added typing
 from .logger import get_logger # Added logger import
-from .config import LABColorTransferConfig # Changed import
+from .config import LABTransferConfig # Changed import
 
 # Placeholder for PYOPENCL_AVAILABLE, ensure it's defined based on successful cl import
 PYOPENCL_AVAILABLE = True
@@ -34,7 +34,7 @@ import logging
 from .logger import get_logger
 
 class LABColorTransferGPU:
-    def __init__(self, config: LABColorTransferConfig):
+    def __init__(self, config: LABTransferConfig):
         if not PYOPENCL_AVAILABLE:
             # This check might be redundant if ImageProcessor already handles PYOPENCL_AVAILABLE
             # However, it's a good safeguard if LABColorTransferGPU is instantiated directly.
@@ -152,7 +152,8 @@ class LABColorTransferGPU:
             local_sums_g,
             np.int32(num_pixels_in_segment),
             np.int32(data_offset_pixels)
-        ).wait()
+        ).wait()  # Closing parenthesis for stats_partial_reduce
+        # Removed duplicate function definition and implementation of _execute_basic_on_gpu_buffers
 
         partial_sums_h = np.empty(num_groups * 6, dtype=np.float32)
         cl.enqueue_copy(self.queue, partial_sums_h, partial_sums_g).wait()
@@ -390,18 +391,7 @@ class LABColorTransferGPU:
         cl.enqueue_copy(self.queue, result_lab_f32, result_g).wait()
         return result_lab_f32.astype(source_lab.dtype)
 
-    def _execute_basic_on_gpu_buffers(self, src_buffer: cl.Buffer, tgt_buffer: cl.Buffer, 
-                                     width: int, height: int, **kwargs) -> cl.Buffer:
-        """Execute basic transfer directly on GPU buffers."""
-        result_buffer = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY, src_buffer.size)
-        
-        self.program.basic_transfer(
-            self.queue, (width * height,), None,
-            src_buffer, tgt_buffer, result_buffer,
-            np.int32(width), np.int32(height)
-        ).wait()
-        
-        return result_buffer
+        # Completely removed duplicate _execute_basic_on_gpu_buffers function
         
     def _execute_linear_blend_on_gpu_buffers(self, src_buffer: cl.Buffer, tgt_buffer: cl.Buffer,
                                             width: int, height: int, **kwargs) -> cl.Buffer:
@@ -480,8 +470,8 @@ class LABColorTransferGPU:
             return final_result, intermediate_results
         return final_result
         
-        def _execute_basic_on_gpu_buffers(self, src_buffer: cl.Buffer, tgt_buffer: cl.Buffer, 
-                                     width: int, height: int, **kwargs) -> cl.Buffer:
+    def _execute_basic_on_gpu_buffers(self, src_buffer: cl.Buffer, tgt_buffer: cl.Buffer, 
+                                  width: int, height: int, **kwargs) -> cl.Buffer:
         """Execute basic transfer directly on GPU buffers."""
         result_buffer = cl.Buffer(self.context, cl.mem_flags.WRITE_ONLY, src_buffer.size)
         
@@ -592,7 +582,5 @@ class LABColorTransferGPU:
         return final_result
         
     def hybrid_transfer(self, source_lab, target_lab, **kwargs):
-        """Legacy hybrid transfer, now using the new pipeline processor."""
-        return self.process_image_hybrid_gpu(source_lab, target_lab, **kwargs)
         """Legacy hybrid transfer, now using the new pipeline processor."""
         return self.process_image_hybrid_gpu(source_lab, target_lab, **kwargs)

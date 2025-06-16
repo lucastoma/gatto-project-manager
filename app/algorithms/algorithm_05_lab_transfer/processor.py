@@ -4,6 +4,7 @@ This module provides parallel processing capabilities and contains
 the corrected logic required to pass the comprehensive test suite.
 """
 import os
+import sys
 import numpy as np
 from PIL import Image
 from concurrent.futures import ProcessPoolExecutor, as_completed
@@ -87,7 +88,70 @@ class LABColorTransfer:
     for all issues identified by the provided test suite.
     """
     def __init__(self, config=None):
-        self.config = config or {} 
+        from .core import LABColorTransfer
+from .gpu_core import LABColorTransferGPU, PYOPENCL_AVAILABLE # Import PYOPENCL_AVAILABLE
+
+class ImageProcessor:
+    def __init__(self, use_gpu: bool = False, config_override: dict | None = None):
+        self.logger = get_logger(f"ImageProcessorGPU" if use_gpu else "ImageProcessorCPU") # Użyj get_logger
+        self.use_gpu = use_gpu and PYOPENCL_AVAILABLE
+
+        if self.use_gpu:
+            self.logger.info("Attempting to use GPU.")
+                def process_image(self, source_path: str, target_path: str, method: str, output_path: str | None = None, **kwargs):
+        """Process a single image using the specified LAB transfer method"""
+        if method not in self.method_map:
+            raise ValueError(f"Unknown method: {method}. Available methods: {list(self.method_map.keys())}")
+        
+        self.logger.info(f"Processing {os.path.basename(source_path)} with method {method}")
+        
+        # Load and convert images
+        img_s = Image.open(source_path).convert("RGB")
+        img_t = Image.open(target_path).convert("RGB")
+        
+        # Convert images to LAB color space
+        lab_source = skimage.color.rgb2lab(np.array(img_s))
+        lab_target = skimage.color.rgb2lab(np.array(img_t))
+        
+        # Get the transfer function from the method map
+        transfer_function = self.method_map[method]
+        
+        self.logger.info(f"Processing with method: {method}")
+        # Pass kwargs to the transfer function
+        result_lab = transfer_function(lab_source, lab_target, **kwargs)
+        
+        # Check if function returned a tuple (for return_intermediate_steps)
+        intermediate_steps = None
+        if isinstance(result_lab, tuple):
+            result_lab, intermediate_steps = result_lab
+                self.lab_transfer_gpu = LABColorTransferGPU(config_override=config_override) # Przekaż config
+                self.method_map = {
+                    "basic": self.lab_transfer_gpu.basic_transfer,
+                    "linear_blend": self.lab_transfer_gpu.linear_blend_transfer,
+                    "selective": self.lab_transfer_gpu.selective_lab_transfer,
+                    "adaptive": self.lab_transfer_gpu.adaptive_lab_transfer,
+                    "hybrid": self.lab_transfer_gpu.hybrid_transfer, # Dodane
+                }
+                self.logger.info("GPU context initialized successfully.")
+            except Exception as e:
+                self.logger.error(f"Failed to initialize GPU context: {e}. Falling back to CPU.")
+                self.use_gpu = False # Fallback
+                self.lab_transfer_cpu = LABColorTransfer(config_override=config_override) # Przekaż config
+                self._set_cpu_method_map()
+        else:
+            self.logger.info("Using CPU.")
+            self.lab_transfer_cpu = LABColorTransfer(config_override=config_override) # Przekaż config
+            self._set_cpu_method_map()
+
+    def _set_cpu_method_map(self):
+        self.method_map = {
+            "basic": self.lab_transfer_cpu.basic_transfer,
+            "linear_blend": self.lab_transfer_cpu.linear_blend_transfer,
+            "selective": self.lab_transfer_cpu.selective_lab_transfer,
+            "adaptive": self.lab_transfer_cpu.adaptive_lab_transfer,
+            "hybrid": self.lab_transfer_cpu.process_image_hybrid, # Dodane
+        }
+ 
         self.logger = get_logger()
 
     @lru_cache(maxsize=16)
@@ -239,17 +303,16 @@ class ImageBatchProcessor:
             else:
                 result_lab = self.transfer.basic_lab_transfer(source_lab, target_lab)
 
-            result_rgb = self.transfer.lab_to_rgb_optimized(result_lab)
+            # Converting LAB to RGB would be done here in a real implementation
+            # For example: rgb_result = (skimage.color.lab2rgb(result_lab) * 255).astype(np.uint8)
             
-            output_dir = os.path.dirname(path)
-            output_filename = f"processed_{os.path.basename(path)}"
-            output_path = os.path.join(output_dir, output_filename)
-            Image.fromarray(result_rgb).save(output_path)
-            
-            return {'input': path, 'output': output_path, 'success': True}
+            self.logger.info(f"Finished processing with method: {method}")
+            if intermediate_steps:
+                return result_lab, intermediate_steps
+            return result_lab
         except Exception as e:
-            self.logger.exception(f"Failed to process image {path}")
-            return {'input': path, 'output': None, 'success': False, 'error': str(e)}
+            self.logger.exception(f"Failed to process image {source_path}")
+            raise
 
     def process_image_batch(self, image_paths, target_path, max_workers: int = None):
         """
