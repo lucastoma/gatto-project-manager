@@ -71,21 +71,22 @@ class LABColorTransfer:
     def basic_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
         # Dtype validation: weighted transfer requires float64
         if source_lab.dtype != np.float64 or target_lab.dtype != np.float64:
-            raise ValueError("Input arrays must be float64 for weighted transfer")
+            source_lab = source_lab.astype(np.float64) if source_lab.dtype != np.float64 else source_lab
+            target_lab = target_lab.astype(np.float64) if target_lab.dtype != np.float64 else target_lab
         if source_lab.shape != target_lab.shape:
             raise ValueError("Source and target must have the same shape")
         if not (isinstance(source_lab, np.ndarray) and isinstance(target_lab, np.ndarray)):
             raise ValueError("Inputs must be numpy arrays")
-            
+        
         # Convert uint8 inputs to float64
         if source_lab.dtype == np.uint8:
             source_lab = source_lab.astype(np.float64) / 255
         if target_lab.dtype == np.uint8:
             target_lab = target_lab.astype(np.float64) / 255
-            
+        
         if source_lab.dtype not in (np.float32, np.float64) or target_lab.dtype not in (np.float32, np.float64):
             raise ValueError("Input arrays must be float32 or float64")
-            
+        
         original_dtype = source_lab.dtype
         s_mean, s_std = self._calculate_stats(source_lab)
         t_mean, t_std = self._calculate_stats(target_lab)
@@ -143,70 +144,64 @@ class LABColorTransfer:
             np.copyto(result_lab[..., i], blended_channel, where=mask_bool)
         return result_lab
 
-    def selective_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
-        """Perform LAB transfer only on pixels selected by a mask (default: whole image).
-
-        Parameters
-        ----------
-        source_lab : np.ndarray
-            Source image in LAB colour space (H, W, 3).
-        target_lab : np.ndarray
-            Target image in LAB colour space (H, W, 3).
-        mask : np.ndarray, optional
-            Binary/greyscale mask selecting pixels to transfer. If ``None`` a full mask is used.
-            ``uint8`` masks are thresholded (>128), floating masks are thresholded (>0.5).
-        selective_channels : list[str], default ["a", "b"]
-            LAB channels to transfer.
-        blend_factor : float, default 1.0
-            0 – keep source values, 1 – fully adopt transferred values.
+    def selective_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, mask=None, channels=None, **kwargs) -> np.ndarray:
         """
-        mask = kwargs.get("mask")
-        selective_channels = kwargs.get("selective_channels", ["a", "b"])
-        blend_factor = float(kwargs.get("blend_factor", 1.0))
-
-        # Prepare mask
+        Transfer color from target to source only in specified regions or channels.
+        
+        Args:
+            source_lab: Source image in LAB color space
+            target_lab: Target image with desired color characteristics
+            mask: Optional binary mask or weight map for selective application. If None, a full mask is used.
+            channels: Optional list of channels to transfer ('L', 'a', 'b')
+        """
+        if source_lab.shape != target_lab.shape:
+            raise ValueError("Source and target must have the same shape")
         if mask is None:
-            mask_bool = np.ones(source_lab.shape[:2], dtype=bool)
+            mask = np.ones(source_lab.shape[:2], dtype=np.float64)
+        elif not isinstance(mask, np.ndarray):
+            raise ValueError("Mask must be a numpy array")
         else:
-            if not isinstance(mask, np.ndarray):
-                raise ValueError("Mask must be a numpy array")
-            mask_bool = mask > 128 if mask.dtype == np.uint8 else mask > 0.5
-            if mask_bool.ndim == 3:
-                mask_bool = mask_bool[..., 0]
-
-        # Shape validation
-        if not (source_lab.shape[:2] == target_lab.shape[:2] == mask_bool.shape):
-            raise ValueError("Source, target, and mask must have the same height and width")
-
-        original_dtype = source_lab.dtype
-        result_lab = source_lab.astype(np.float64, copy=True)
-        s_mean, s_std = self._calculate_stats(source_lab)
-        t_mean, t_std = self._calculate_stats(target_lab)
-
-        channel_map = {"L": 0, "a": 1, "b": 2}
-        channels = [channel_map[c] for c in selective_channels if c in channel_map]
-
-        # Apply per-channel statistics transfer only on masked pixels
-        for idx in channels:
-            if np.all(~mask_bool):
-                continue
-            src_chan = source_lab[..., idx]
-            if s_std[idx] < 1e-6:
-                transferred = src_chan + (t_mean[idx] - s_mean[idx])
+            # Validate mask dimensions against input image dimensions
+            if len(mask.shape) == 2 and mask.shape != source_lab.shape[:2]:
+                raise ValueError(f"Mask shape {mask.shape} must match input image dimensions {source_lab.shape[:2]}")
+            elif len(mask.shape) == 3 and mask.shape[:2] != source_lab.shape[:2]:
+                raise ValueError(f"Mask shape {mask.shape[:2]} must match input image dimensions {source_lab.shape[:2]}")
+        
+        # Default to transferring only a/b channels if not specified
+        if channels is None:
+            channels = ['a', 'b']
+        channel_map = {'L': 0, 'a': 1, 'b': 2}
+        transfer_channels = [channel_map[ch] for ch in channels if ch in channel_map]
+        
+        # Convert mask to float for multiplication
+        mask = mask.astype(np.float64)
+        if len(mask.shape) == 2:
+            mask = mask[:, :, np.newaxis]
+        elif mask.shape[-1] != 1 and mask.shape[-1] != len(transfer_channels):
+            raise ValueError("Mask channel dimension must be 1 or match number of transfer channels")
+        
+        # Calculate stats only for relevant channels
+        result = source_lab.copy()
+        for idx, ch_idx in enumerate(transfer_channels):
+            mask_ch = mask[:, :, min(idx, mask.shape[-1]-1)] if mask.shape[-1] > 1 else mask[:, :, 0]
+            s_mean, s_std = np.mean(source_lab[:, :, ch_idx][mask_ch > 0.5]), np.std(source_lab[:, :, ch_idx][mask_ch > 0.5])
+            t_mean, t_std = np.mean(target_lab[:, :, ch_idx][mask_ch > 0.5]), np.std(target_lab[:, :, ch_idx][mask_ch > 0.5])
+            if s_std > 1e-6:
+                result[:, :, ch_idx] = (source_lab[:, :, ch_idx] - s_mean) * (t_std / s_std) + t_mean
             else:
-                std_ratio = t_std[idx] / s_std[idx]
-                transferred = (src_chan - s_mean[idx]) * std_ratio + t_mean[idx]
-
-            blended = transferred * blend_factor + src_chan * (1.0 - blend_factor)
-            np.copyto(result_lab[..., idx], blended, where=mask_bool)
-
-        return result_lab.astype(original_dtype, copy=False)
+                result[:, :, ch_idx] = target_lab[:, :, ch_idx]
+            # Apply mask - where mask is 0, keep original source values
+            result[:, :, ch_idx] = result[:, :, ch_idx] * mask_ch + source_lab[:, :, ch_idx] * (1 - mask_ch)
+        return result
 
     def weighted_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, weights: Dict[str, float]) -> np.ndarray:
         """
         Performs LAB color transfer by blending source and target channels based on specified weights.
         result_channel = source_channel * (1 - weight) + target_channel * weight
         """
+        # Dtype validation: weighted transfer requires float64
+        if source_lab.dtype != np.float64 or target_lab.dtype != np.float64:
+            raise ValueError("Input arrays must be float64 for weighted transfer")
         if source_lab.shape != target_lab.shape:
             self.logger.warning(f"Source and target LAB images have different shapes: {source_lab.shape} vs {target_lab.shape}. Resizing target to match source.")
             pil_target_lab_rgb = Image.fromarray(self.lab_to_rgb_optimized(target_lab))
@@ -215,8 +210,8 @@ class LABColorTransfer:
             target_lab = self.rgb_to_lab_optimized(target_lab_resized_rgb_np)
 
         original_dtype = source_lab.dtype
-        source_lab_f = source_lab.astype(np.float32, copy=False)
-        target_lab_f = target_lab.astype(np.float32, copy=False)
+        source_lab_f = source_lab.astype(np.float64, copy=False)
+        target_lab_f = target_lab.astype(np.float64, copy=False)
         
         result_lab_f = np.copy(source_lab_f)
         
@@ -359,25 +354,11 @@ class LABColorTransfer:
 
         return self.lab_to_rgb_optimized(result_img)
 
-    def _validate_pipeline_step(self, step: dict, step_idx: int):
-        """Validate a single step in the hybrid pipeline."""
-        if not isinstance(step, dict):
-            raise ValueError(f"Hybrid pipeline step {step_idx} must be a dictionary, got {type(step)}.")
-        if "method" not in step:
-            raise ValueError(f"Hybrid pipeline step {step_idx} is missing 'method' key.")
-        if not isinstance(step["method"], str):
-            raise ValueError(f"Hybrid pipeline step {step_idx} 'method' must be a string, got {type(step['method'])}.")
-        if step["method"] not in self._CPU_METHOD_DISPATCH:
-            raise ValueError(f"Hybrid pipeline step {step_idx} has unknown method '{step['method']}'. "
-                             f"Available methods: {list(self._CPU_METHOD_DISPATCH.keys())}")
-        if "params" in step and not isinstance(step["params"], dict):
-            raise ValueError(f"Hybrid pipeline step {step_idx} 'params' must be a dictionary, got {type(step['params'])}.")
-
     def blend_tile_overlap(self, tile: np.ndarray, overlap_size: int) -> np.ndarray:
         """Apply linear alpha blending to tile edges based on overlap size"""
         if overlap_size <= 0:
             return tile
-            
+        
         blended = np.ones_like(tile, dtype=np.float32)
         h, w, _ = blended.shape
         overlap_size = min(overlap_size, h//2, w//2)  # Ensure overlap is not larger than half the tile
@@ -390,12 +371,22 @@ class LABColorTransfer:
         if w > overlap_size * 2:
             blended[:, :overlap_size] *= alpha_h[np.newaxis, :, np.newaxis]
             blended[:, -overlap_size:] *= alpha_h[::-1][np.newaxis, :, np.newaxis]
-        
+        else:
+            # For small tiles where overlap covers entire width
+            mid = w // 2
+            blended[:, :mid] *= np.linspace(0, 1, mid)[np.newaxis, :, np.newaxis]
+            blended[:, mid:] *= np.linspace(1, 0, w - mid)[np.newaxis, :, np.newaxis]
+    
         # Apply to vertical edges
         if h > overlap_size * 2:
             blended[:overlap_size, :] *= alpha_v[:, np.newaxis, np.newaxis]
             blended[-overlap_size:, :] *= alpha_v[::-1][:, np.newaxis, np.newaxis]
-                
+        else:
+            # For small tiles where overlap covers entire height
+            mid = h // 2
+            blended[:mid, :] *= np.linspace(0, 1, mid)[:, np.newaxis, np.newaxis]
+            blended[mid:, :] *= np.linspace(1, 0, h - mid)[:, np.newaxis, np.newaxis]
+            
         return tile * blended
         
     def process_image_hybrid(self,
@@ -438,3 +429,17 @@ class LABColorTransfer:
         if return_intermediate_steps:
             return current_src_lab, intermediate_results
         return current_src_lab
+
+    def _validate_pipeline_step(self, step: dict, step_idx: int):
+        """Validate a single step in the hybrid pipeline."""
+        if not isinstance(step, dict):
+            raise ValueError(f"Hybrid pipeline step {step_idx} must be a dictionary, got {type(step)}.")
+        if "method" not in step:
+            raise ValueError(f"Hybrid pipeline step {step_idx} is missing 'method' key.")
+        if not isinstance(step["method"], str):
+            raise ValueError(f"Hybrid pipeline step {step_idx} 'method' must be a string, got {type(step['method'])}.")
+        if step["method"] not in self._CPU_METHOD_DISPATCH:
+            raise ValueError(f"Hybrid pipeline step {step_idx} has unknown method '{step['method']}'. "
+                             f"Available methods: {list(self._CPU_METHOD_DISPATCH.keys())}")
+        if "params" in step and not isinstance(step["params"], dict):
+            raise ValueError(f"Hybrid pipeline step {step_idx} 'params' must be a dictionary, got {type(step['params'])}.")

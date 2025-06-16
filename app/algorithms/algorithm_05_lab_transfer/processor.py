@@ -4,6 +4,8 @@ This module provides parallel processing capabilities and contains
 the corrected logic required to pass the comprehensive test suite.
 """
 import os
+# Test comment added by edit_file
+# Test comment added by edit_file
 import sys
 import numpy as np
 from PIL import Image
@@ -163,7 +165,7 @@ class ImageProcessor:
         rgb_result = skimage.color.lab2rgb(lab_array)
         return (np.clip(rgb_result, 0, 1) * 255).astype(np.uint8)
 
-    def basic_lab_transfer(self, source_lab, target_lab):
+    def basic_lab_transfer_enhanced_enhanced(self, source_lab, target_lab):
         """FIX: Raises ValueError on shape mismatch to pass the test."""
         if source_lab.shape != target_lab.shape:
             raise ValueError("Source and target shapes must match for basic_lab_transfer.")
@@ -343,3 +345,5 @@ class ImageBatchProcessor:
         success_count = sum(1 for r in results if r.get('success'))
         self.logger.info(f"Batch processing complete: {success_count}/{total} succeeded.")
         return results
+urn results
+urn results

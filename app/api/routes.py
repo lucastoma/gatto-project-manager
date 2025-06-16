@@ -27,13 +27,14 @@ def colormatch_endpoint():
     algorithm_map = {
         '1': 'algorithm_01_palette',
         '2': 'algorithm_02_statistical',
-        '3': 'algorithm_03_histogram'
+        '3': 'algorithm_03_histogram',
+        '5': 'algorithm_05_lab_transfer'
     }
     algorithm_id = algorithm_map.get(method)
     
     if not algorithm_id:
         logger.error(f"Nieznana metoda: {method}")
-        return f"error,Nieznana metoda: {method}. Dostępne: 1, 2, 3"
+        return f"error,Nieznana metoda: {method}. Dostępne: 1, 2, 3, 5"
 
     # Przygotowanie parametrów
     params: dict[str, Any] = {}
@@ -66,7 +67,16 @@ def colormatch_endpoint():
         except (json.JSONDecodeError, ValueError) as e:
             logger.error(f"Nieprawidłowy format JSON dla focus_ranges: {e}")
             return f"error,Nieprawidłowy format JSON w parametrze focus_ranges: {e}"
-
+    elif algorithm_id == 'algorithm_05_lab_transfer':
+        params['channels'] = request.form.get('channels', 'a,b').split(',')
+        params['use_mask'] = request.form.get('use_mask', 'false').lower() == 'true'
+        if params['use_mask'] and 'mask_image' in request.files:
+            mask_file = request.files['mask_image']
+            params['mask_path'] = save_temp_file(mask_file, 'mask_')
+        params['tile_size'] = int(request.form.get('tile_size', 256))
+        params['overlap'] = int(request.form.get('overlap', 32))
+        params['method'] = request.form.get('processing_method', 'hybrid')
+    
     logger.info(f"Przetwarzanie przez algorytm: {algorithm_id} z parametrami: {params}")
 
     master_path = None
@@ -113,13 +123,14 @@ def colormatch_preview_endpoint():
     algorithm_map = {
         '1': 'algorithm_01_palette',
         '2': 'algorithm_02_statistical',
-        '3': 'algorithm_03_histogram'
+        '3': 'algorithm_03_histogram',
+        '5': 'algorithm_05_lab_transfer'
     }
     algorithm_id = algorithm_map.get(method)
     
     if not algorithm_id:
         logger.error(f"Nieznana metoda: {method}")
-        return f"error,Nieznana metoda: {method}. Dostępne: 1, 2, 3"
+        return f"error,Nieznana metoda: {method}. Dostępne: 1, 2, 3, 5"
 
     params: dict[str, Any] = {'preview_mode': True}
     if algorithm_id == 'algorithm_01_palette':

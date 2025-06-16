@@ -1,9 +1,8 @@
-# GattoNeroPhotoshop/run_server.py
-
 import socket
 import subprocess
 import time
 import sys
+import os
 from app.server import app
 
 def check_port_free(port):
@@ -16,26 +15,23 @@ def check_port_free(port):
             return False
 
 def kill_process_on_port(port):
-    """Zabija proces na danym porcie (Windows)"""
+    """Zabija proces na danym porcie (Linux/WSL)"""
     try:
-        # Znajdź PID procesu na porcie
+        # Znajdź PID procesu na porcie - Linux version
         result = subprocess.run(
-            f'netstat -ano | findstr :{port}',
+            f'lsof -ti:{port}',
             shell=True,
             capture_output=True,
             text=True
         )
 
-        if result.stdout:
-            lines = result.stdout.strip().split('\n')
-            for line in lines:
-                if 'LISTENING' in line:
-                    parts = line.split()
-                    if len(parts) >= 5:
-                        pid = parts[-1]
-                        print(f"Zatrzymuje proces PID {pid} na porcie {port}...")
-                        subprocess.run(f'taskkill /F /PID {pid}', shell=True, capture_output=True)
-                        return True
+        if result.stdout.strip():
+            pids = result.stdout.strip().split('\n')
+            for pid in pids:
+                if pid:
+                    print(f"Zatrzymuje proces PID {pid} na porcie {port}...")
+                    subprocess.run(f'kill -9 {pid}', shell=True, capture_output=True)
+            return True
         return False
     except Exception as e:
         print(f"Blad podczas zabijania procesu: {e}")
@@ -58,20 +54,23 @@ def safe_start_server():
                 print("Port zwolniony!")
             else:
                 print("Nie udalo sie zwolnic portu. Sprawdz recznie procesy.")
+                print("Uzyj: lsof -i:5000")
                 sys.exit(1)
         else:
             print("Nie znaleziono procesu do zatrzymania, ale port jest zajety.")
-            print("Sprobuj recznie: netstat -ano | findstr :5000")
+            print("Sprobuj recznie: lsof -i:5000")
             sys.exit(1)
     else:
         print("Port 5000 jest wolny!")
 
     print("Uruchamiam serwer Flask...")
-    print("Serwer bedzie dostepny na: http://127.0.0.1:5000")
+    print("Serwer bedzie dostepny na:")
+    print("  - http://127.0.0.1:5000 (localhost)")
+    print("  - http://172.21.30.59:5000 (z Windows)")
     print("Aby zatrzymac serwer, nacisnij Ctrl+C")
     print("-" * 50)
 
-    # Uruchamiamy serwer Flask (debug=False zeby uniknac konfliktow z kontrola portu)
+    # Uruchamiamy serwer Flask
     app.run(host='0.0.0.0', port=port, debug=False)
 
 if __name__ == '__main__':

@@ -24,12 +24,16 @@ from .algorithm_03_histogram import (
     create_histogram_matching_algorithm,
     simple_histogram_matching
 )
+from .algorithm_05_lab_transfer import (
+    create_lab_transfer_algorithm
+)
 
 # Algorithm registry for dynamic access
 ALGORITHM_REGISTRY = {
     'algorithm_01_palette': create_palette_mapping_algorithm,
     'algorithm_02_statistical': create_statistical_transfer_algorithm,
     'algorithm_03_histogram': create_histogram_matching_algorithm,
+    'algorithm_05_lab_transfer': create_lab_transfer_algorithm,
 }
 
 # Legacy function mapping for backward compatibility
@@ -55,6 +59,7 @@ __all__ = [
     'create_palette_mapping_algorithm',
     'create_statistical_transfer_algorithm', 
     'create_histogram_matching_algorithm',
+    'create_lab_transfer_algorithm',
     
     # Legacy compatibility functions
     'basic_statistical_transfer',
