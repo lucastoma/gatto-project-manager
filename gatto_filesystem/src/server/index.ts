@@ -334,8 +334,10 @@ server.tool(
 server.tool(
   'list_allowed_directories',
   "Returns a list of all directories that this server is allowed to access. This is useful for understanding the scope of the server's permissions and identifying available root directories for other operations.",
-  {},
-  async () => {
+  {
+    // No parameters required - this tool lists allowed directories
+  },
+  async ({}) => {
     return {
       content: [{
         type: 'text',
@@ -844,10 +846,12 @@ server.tool(
 // 14. server_stats - Gets server statistics and configuration
 server.tool(
   'server_stats',
-  "Provides comprehensive information about the MCP filesystem server, including version, configuration, performance metrics, and available capabilities. Useful for debugging and system monitoring.",
-  {},
-  async () => {
-    const stats = {
+  "Provides comprehensive information about the MCP filesystem server, including version, configuration, performance metrics, and available capabilities. Use 'advanced: true' to see detailed tool schemas and examples.",
+  {
+    advanced: z.boolean().optional().default(false).describe('Show detailed tool schemas and usage examples')
+  },
+  async ({ advanced = false }) => {
+    const basicStats = {
       serverName: 'mcp-filesystem-server',
       version: '0.7.0',
       allowedDirectories,
@@ -869,16 +873,177 @@ server.tool(
         'delete_directory',
         'search_files',
         'get_file_info',
-        'server_stats'
+        'server_stats',
+        'smart_search'
       ]
+    };
+    
+    if (!advanced) {
+      return {
+        content: [{
+          type: 'text',
+          text: JSON.stringify(basicStats, null, 2)
+        }]
+      };
+    }
+    
+    // Advanced mode - include detailed tool schemas
+    const toolSchemas = {
+      read_file: {
+        description: "Reads a single file with automatic encoding detection",
+        parameters: {
+          path: "string - Path to the file to read",
+          encoding: "optional: 'utf-8' | 'base64' | 'auto' (default: 'auto')"
+        },
+        example: { path: "/path/to/file.txt", encoding: "auto" }
+      },
+      read_multiple_files: {
+        description: "Reads multiple files in a single operation",
+        parameters: {
+          paths: "array of strings - Array of file paths to read",
+          encoding: "optional: 'utf-8' | 'base64' | 'auto' (default: 'auto')"
+        },
+        example: { paths: ["/path/file1.txt", "/path/file2.py"], encoding: "auto" }
+      },
+      list_allowed_directories: {
+        description: "Lists all directories the server can access",
+        parameters: "none",
+        example: {}
+      },
+      write_file: {
+        description: "Writes content to a file",
+        parameters: {
+          path: "string - Path where to write the file",
+          content: "string - Content to write",
+          encoding: "optional: 'utf-8' | 'base64' (default: 'utf-8')"
+        },
+        example: { path: "/path/to/file.txt", content: "Hello World", encoding: "utf-8" }
+      },
+      edit_file: {
+        description: "Edits existing files with fuzzy matching and diagnostics",
+        parameters: {
+          path: "string - Path to the file to edit",
+          edits: "array - Array of {oldText, newText} objects",
+          dry_run: "optional boolean - Preview changes without applying (default: false)",
+          force_edit: "optional boolean - Force edits with similarity 85-97% (default: false)"
+        },
+        example: { 
+          path: "/path/file.py", 
+          edits: [{ oldText: "import os", newText: "import os\nimport sys" }],
+          dry_run: true
+        }
+      },
+      create_directory: {
+        description: "Creates a new directory",
+        parameters: {
+          path: "string - Path of the directory to create"
+        },
+        example: { path: "/path/to/new/directory" }
+      },
+      list_directory: {
+        description: "Lists contents of a directory",
+        parameters: {
+          path: "string - Path to the directory to list"
+        },
+        example: { path: "/path/to/directory" }
+      },
+      directory_tree: {
+        description: "Shows directory structure as a tree",
+        parameters: {
+          path: "string - Root path for the tree",
+          max_depth: "optional number - Maximum depth to traverse (default: 3)",
+          exclude_patterns: "optional array - Patterns to exclude (default: ['node_modules', '.git'])"
+        },
+        example: { path: "/path", max_depth: 2, exclude_patterns: [".git", "dist"] }
+      },
+      move_file: {
+        description: "Moves or renames a file or directory",
+        parameters: {
+          source: "string - Source path",
+          destination: "string - Destination path"
+        },
+        example: { source: "/old/path/file.txt", destination: "/new/path/file.txt" }
+      },
+      delete_file: {
+        description: "Deletes a file",
+        parameters: {
+          path: "string - Path to the file to delete"
+        },
+        example: { path: "/path/to/file.txt" }
+      },
+      delete_directory: {
+        description: "Deletes a directory and its contents",
+        parameters: {
+          path: "string - Path to the directory to delete"
+        },
+        example: { path: "/path/to/directory" }
+      },
+      search_files: {
+        description: "Searches for files by name pattern",
+        parameters: {
+          pattern: "string - Search pattern for file names",
+          base_path: "optional string - Base directory to search in",
+          max_results: "optional number - Maximum results (default: 100)",
+          max_depth: "optional number - Maximum depth (default: 10)",
+          exclude_patterns: "optional array - Patterns to exclude"
+        },
+        example: { pattern: "*.py", base_path: "/path", max_results: 20 }
+      },
+      get_file_info: {
+        description: "Gets detailed information about a file or directory",
+        parameters: {
+          path: "string - Path to the file or directory"
+        },
+        example: { path: "/path/to/file.txt" }
+      },
+      smart_search: {
+        description: "Intelligent search with IDE adaptation and multiple search modes",
+        parameters: {
+          query: "string - Search query (supports natural language, function names, etc.)",
+          directories: "optional array - Target directories (defaults to allowed directories)",
+          case_insensitive: "optional boolean - Case-insensitive search (default: true)",
+          is_regex: "optional boolean - Treat query as regex (default: false)",
+          max_results: "optional number - Maximum results (default: 50)",
+          use_similarity_fallback: "optional boolean - Use similarity matching (default: true)",
+          ide_type: "optional: 'auto' | 'vscode' | 'windsurf' - Force specific IDE (default: 'auto')",
+          search_mode: "optional: 'semantic' | 'text' | 'symbol' | 'hybrid' - Search mode (default: 'hybrid')"
+        },
+        example: { 
+          query: "def transfer", 
+          search_mode: "hybrid", 
+          max_results: 10,
+          directories: ["/path/to/code"]
+        }
+      },
+      server_stats: {
+        description: "Shows server information and statistics",
+        parameters: {
+          advanced: "optional boolean - Show detailed tool schemas (default: false)"
+        },
+        example: { advanced: true }
+      }
+    };
+    
+    const advancedStats = {
+      ...basicStats,
+      detailed_tool_schemas: toolSchemas,
+      usage_notes: {
+        encoding: "Most tools auto-detect encoding. Use 'base64' for binary files.",
+        paths: "All paths are validated against allowed directories for security.",
+        fuzzy_matching: "edit_file uses Levenshtein distance for fuzzy matching with similarity thresholds.",
+        search_modes: "smart_search adapts to your IDE (VS Code/Windsurf) and provides multiple search strategies.",
+        logging: "All operations are logged to /tmp/mcp-brutal-debug.log for debugging."
+      }
     };
     
     return {
       content: [{
         type: 'text',
-        text: JSON.stringify(stats, null, 2)
+        text: JSON.stringify(advancedStats, null, 2)
       }]
     };
+  }
+);
   }
 );
 

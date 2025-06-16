@@ -20,6 +20,103 @@ class TestCoreMethods:
         test_dir = os.path.dirname(os.path.abspath(__file__))
         sample1_path = os.path.join(test_dir, 'test_images', 'sample1.npy')
         sample2_path = os.path.join(test_dir, 'test_images', 'sample2.npy')
+        return {
+            'random': (np.random.rand(100, 100, 3) * 100, np.random.rand(100, 100, 3) * 100),
+            'extreme': (np.zeros((50, 50, 3)), np.ones((50, 50, 3)) * 100),
+            'small': (np.random.rand(2, 2, 3) * 100, np.random.rand(2, 2, 3) * 100),
+            'real_sample': (np.load(sample1_path), np.load(sample2_path))
+        }
+
+    def test_basic_transfer_variations(self, transfer, test_images):
+        """Test basic transfer handles all image types."""
+        for name, (source, target) in test_images.items():
+            if name == 'real_sample':
+                pytest.importorskip('numpy')
+            result = transfer.basic_lab_transfer(source, target)
+            assert result.shape == source.shape
+            assert not np.allclose(result, source)
+
+    def test_weighted_transfer_validation(self, transfer):
+        """Test validation of weights parameter."""
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10,10,3),
+                np.random.rand(10,10,3),
+                weights="invalid"
+            )
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10,10,3),
+                np.random.rand(10,10,3),
+                weights={"L": "invalid"}
+            )
+
+    def test_selective_transfer_edge_cases(self, transfer):
+        """Test edge cases for selective transfer."""
+        with pytest.raises(ValueError):
+            transfer.selective_lab_transfer(
+                np.random.rand(10,10,3),
+                np.random.rand(10,10,3),
+                mask=None
+            )
+        with pytest.raises(ValueError):
+            transfer.selective_lab_transfer(
+                np.random.rand(10,10,3),
+                np.random.rand(10,10,3),
+                mask="invalid"
+            )
+
+    def test_selective_transfer_single_pixel(self, transfer):
+        """Test selective transfer with single pixel and uniform luminance."""
+        source = np.array([[[50,0,0]]])
+        target = np.array([[[50,10,10]]])
+        result = transfer.selective_lab_transfer(source, target)
+        assert np.allclose(result[0,0,0],50)
+        assert not np.allclose(result[0,0,1:],0)
+        source = np.full((10,10,3),50)
+        target = np.full((10,10,3),70)
+        result = transfer.selective_lab_transfer(source, target)
+        assert np.allclose(result[:,:,0],50)
+
+    def test_batch_processing(self, transfer):
+        """Test processing multiple source-target pairs."""
+        sources = [(np.random.rand(50,50,3)*255).astype(np.uint8) for _ in range(3)]
+        targets = [(np.random.rand(50,50,3)*255).astype(np.uint8) for _ in range(3)]
+        results = [transfer.basic_lab_transfer(s,t) for s,t in zip(sources,targets)]
+        assert len(results)==3
+        for res in results:
+            assert res.shape==(50,50,3)
+
+    def test_error_handling(self, transfer):
+        """Test proper error handling for invalid inputs."""
+        with pytest.raises(ValueError):
+            transfer.basic_lab_transfer(
+                np.random.rand(10,10,3),
+                np.random.rand(20,20,3)
+            )
+        with pytest.raises(ValueError):
+            transfer.weighted_lab_transfer(
+                np.random.rand(10,10,3).astype(np.float32),
+                np.random.rand(10,10,3),
+                {'L':0.5,'a':0.5,'b':0.5}
+            )
+        with pytest.raises(ValueError):
+            transfer.process_large_image(
+                np.random.rand(100,100,3),
+                np.random.rand(100,100,3),
+                method='invalid'
+            )
+    """Expanded tests for core transfer methods."""
+    @pytest.fixture
+    def transfer(self):
+        return LABColorTransfer()
+    
+    @pytest.fixture
+    def test_images(self):
+        """Generate various test image combinations."""
+        test_dir = os.path.dirname(os.path.abspath(__file__))
+        sample1_path = os.path.join(test_dir, 'test_images', 'sample1.npy')
+        sample2_path = os.path.join(test_dir, 'test_images', 'sample2.npy')
 
         return {
             'random': (np.random.rand(100, 100, 3) * 100, np.random.rand(100, 100, 3) * 100),
@@ -29,6 +126,136 @@ class TestCoreMethods:
         }
     
     def test_basic_transfer_variations(self, transfer, test_images):
+
+
+        def test_weighted_transfer_validation(self, transfer):
+                """Test validation of weights parameter."""
+        # Invalid weights type
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                weights="invalid"
+            )
+        # Invalid weights values
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                weights={"L": "invalid"}
+            )
+
+    def test_selective_transfer_edge_cases(self, transfer):
+        """Test edge cases for selective transfer."""
+        # None mask
+        with pytest.raises(ValueError):
+            transfer.selective_lab_transfer(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                mask=None
+            )
+        # Invalid mask type
+        with pytest.raises(ValueError):
+            transfer.selective_lab_transfer(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                mask="invalid"
+            )
+
+    def test_selective_transfer_single_pixel(self, transfer):
+        """Test selective transfer with single pixel and uniform luminance."""
+        # Single pixel
+        source = np.array([[[50, 0, 0]]])
+        target = np.array([[[50, 10, 10]]])
+        result = transfer.selective_lab_transfer(source, target)
+        assert np.allclose(result[0,0,0], 50)
+        assert not np.allclose(result[0,0,1:], 0)
+        # Uniform luminance
+        source = np.full((10, 10, 3), 50)
+        target = np.full((10, 10, 3), 70)
+        result = transfer.selective_lab_transfer(source, target)
+        assert np.allclose(result[:,:,0], 50)
+        """Test basic transfer handles all image types."""
+        for name, (source, target) in test_images.items():
+            if name == 'real_sample':
+                pytest.importorskip('numpy')  # Skip if test images not available
+            result = transfer.basic_lab_transfer(source, target)
+            assert result.shape == source.shape
+            assert not np.allclose(result, source)  # Should change the image
+
+
+
+
+
+    def test_selective_transfer_single_pixel(self, transfer):
+        """Test selective transfer with single pixel and uniform luminance."""
+        source = np.array([[[50, 0, 0]]])
+        target = np.array([[[50, 10, 10]]])
+        result = transfer.selective_lab_transfer(source, target)
+        assert np.allclose(result[0,0,0], 50)
+        assert not np.allclose(result[0,0,1:], 0)
+        source = np.full((10, 10, 3), 50)
+        target = np.full((10, 10, 3), 70)
+        result = transfer.selective_lab_transfer(source, target)
+        assert np.allclose(result[:,:,0], 50)
+
+    def test_adaptive_transfer_regions(self, transfer):
+        """Test basic transfer handles all image types."""
+        for name, (source, target) in test_images.items():
+            if name == 'real_sample':
+                pytest.importorskip('numpy')  # Skip if test images not available
+            result = transfer.basic_lab_transfer(source, target)
+            assert result.shape == source.shape
+            assert not np.allclose(result, source)  # Should change the image
+
+    def test_weighted_transfer_validation(self, transfer):
+        """Test validation of weights parameter."""
+        # Test with invalid weights type
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                weights="invalid"
+            )
+        # Test with invalid weights values
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                weights={"L": "invalid"}
+            )
+
+    def test_selective_transfer_edge_cases(self, transfer):
+        """Test edge cases for selective transfer."""
+        # Test with None mask
+        with pytest.raises(ValueError):
+            transfer.selective_lab_transfer(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                mask=None
+            )
+        # Test with invalid mask
+        with pytest.raises(ValueError):
+            transfer.selective_lab_transfer(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                mask="invalid"
+            )
+
+    def test_selective_transfer_single_pixel(self, transfer):
+        """Test selective transfer with single pixel and uniform luminance."""
+        # Single pixel
+        source = np.array([[[50, 0, 0]]])
+        target = np.array([[[50, 10, 10]]])
+        result = transfer.selective_lab_transfer(source, target)
+        assert np.allclose(result[0,0,0], 50)
+        assert not np.allclose(result[0,0,1:], 0)
+        # All same luminance
+        source = np.full((10, 10, 3), 50)
+        target = np.full((10, 10, 3), 70)
+        result = transfer.selective_lab_transfer(source, target)
+        assert np.allclose(result[:,:,0], 50)
+
         """Test basic transfer handles all image types."""
         for name, (source, target) in test_images.items():
             if name == 'real_sample':
@@ -37,16 +264,46 @@ class TestCoreMethods:
             assert result.shape == source.shape
             assert not np.allclose(result, source)  # Should change the image
     
-        def test_weighted_transfer_validation(self, transfer):
-            """Test validation of weights parameter."""
-            # Test with invalid weights type
-            with pytest.raises(ValueError):
-                transfer.linear_blend_lab(
-                    np.random.rand(10, 10, 3),
+    def test_weighted_transfer_validation(self, transfer):
+        """Test validation of weights parameter."""
+        # Test with invalid weights type
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10, 10, 3),
                 np.random.rand(10, 10, 3),
                 weights="invalid"
             )
-            
+        # Test with invalid weights values
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                weights={"L": "invalid"}
+            )
+
+        """Test validation of weights parameter."""
+        # Test with invalid weights type
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                weights="invalid"
+            )
+        # Test with invalid weights values
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                weights={"L": "invalid"}
+            )
+        """Test validation of weights parameter."""
+        # Test with invalid weights type
+        with pytest.raises(ValueError):
+            transfer.linear_blend_lab(
+                np.random.rand(10, 10, 3),
+                np.random.rand(10, 10, 3),
+                weights="invalid"
+            )
         # Test with invalid weights values
         with pytest.raises(ValueError):
             transfer.linear_blend_lab(
@@ -58,29 +315,8 @@ class TestCoreMethods:
         source = np.random.rand(10, 10, 3)
         target = np.random.rand(10, 10, 3)
         
-        # Test partial weights
-            def test_selective_transfer_edge_cases(self, transfer):
-        """Test edge cases for selective transfer."""
-        # Test with None mask
-        with pytest.raises(ValueError):
-            transfer.selective_lab_transfer(
-                np.random.rand(10, 10, 3),
-                np.random.rand(10, 10, 3),
-                mask=None
-            )
-            
-        # Test with invalid mask
-        with pytest.raises(ValueError):
-            transfer.selective_lab_transfer(
-                np.random.rand(10, 10, 3),
-                np.random.rand(10, 10, 3),
-                mask="invalid"
-            )
-            transfer.weighted_lab_transfer(source, target, {'L': 0.5})
-            
-        # Test invalid weight sums
-        with pytest.raises(ValueError):
-            transfer.weighted_lab_transfer(source, target, {'L': 2.0, 'a': -1.0, 'b': 0.0})
+
+        
     
     def test_selective_transfer_edge_cases(self, transfer):
         """Test selective transfer with edge cases."""
