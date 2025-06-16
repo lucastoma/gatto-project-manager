@@ -1,0 +1,20 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Codebase Search Tool Schema",
+  "description": "Schema for the codebase_search tool",
+  "type": "object",
+  "properties": {
+    "Query": {
+      "type": "string",
+      "description": "Search query"
+    },
+    "TargetDirectories": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "List of absolute paths to directories to search over"
+    }
+  },
+  "required": ["Query", "TargetDirectories"]
+}

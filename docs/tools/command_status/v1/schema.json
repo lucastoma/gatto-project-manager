@@ -1,0 +1,21 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Command Status Tool Schema",
+  "description": "Schema for the command_status tool",
+  "type": "object",
+  "properties": {
+    "CommandId": {
+      "type": "string",
+      "description": "ID of the command to get status for"
+    },
+    "OutputCharacterCount": {
+      "type": "integer",
+      "description": "Number of characters to view"
+    },
+    "WaitDurationSeconds": {
+      "type": "integer",
+      "description": "Number of seconds to wait for command completion"
+    }
+  },
+  "required": ["CommandId", "OutputCharacterCount", "WaitDurationSeconds"]
+}

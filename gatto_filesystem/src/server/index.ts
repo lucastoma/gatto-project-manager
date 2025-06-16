@@ -1044,8 +1044,6 @@ server.tool(
     };
   }
 );
-  }
-);
 
 // 15. smart_search - Intelligent search with IDE adaptation
 server.tool(

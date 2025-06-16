@@ -123,89 +123,6 @@ class LABColorTransfer:
                 result[..., i] = (src[..., i] - s_mean[i]) * std_ratio + blended_mean[i]
         return result.astype(original_dtype, copy=False)
 
-        def selective_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
-        """Perform selective LAB transfer using a mask over specified channels."""
-        # Determine mask usage
-        mask_provided = 'mask' in kwargs
-        if mask_provided:
-            mask = kwargs['mask']
-            if mask is None:
-                raise ValueError("Mask parameter is required")
-            if not isinstance(mask, np.ndarray):
-                raise ValueError("Mask must be a numpy array")
-            # Convert mask to boolean 2D array
-            mask_bool = mask > 128 if mask.dtype == np.uint8 else mask > 0.5
-            if mask_bool.ndim == 3:
-                mask_bool = mask_bool[..., 0]
-        else:
-            # Default full mask
-            mask_bool = np.ones(source_lab.shape[:2], dtype=bool)
-        # Channel and blend settings
-        selective_channels = kwargs.get('selective_channels', ['a', 'b'])
-        blend_factor = kwargs.get('blend_factor', 1.0)
-        # Validate shapes
-        if not (source_lab.shape[:2] == target_lab.shape[:2] == mask_bool.shape):
-            raise ValueError("Source, target, and mask must have the same height and width")
-        # Prepare result array
-        result_lab = source_lab.astype(np.float64, copy=True)
-        s_mean, s_std = self._calculate_stats(source_lab)
-        t_mean, t_std = self._calculate_stats(target_lab)
-        channel_map = {'L': 0, 'a': 1, 'b': 2}
-        channels_to_process = [channel_map[c] for c in selective_channels if c in channel_map]
-        # Apply transfer per channel
-        for i in channels_to_process:
-            if np.all(~mask_bool):
-                continue
-            src_chan = source_lab[..., i]
-            if s_std[i] < 1e-6:
-                transferred = src_chan + (t_mean[i] - s_mean[i])
-            else:
-                std_ratio = t_std[i] / s_std[i]
-                transferred = (src_chan - s_mean[i]) * std_ratio + t_mean[i]
-            blended_chan = transferred * blend_factor + src_chan * (1 - blend_factor)
-            np.copyto(result_lab[..., i], blended_chan, where=mask_bool)
-        return result_lab.astype(source_lab.dtype, copy=False)
-
-        mask_provided = 'mask' in kwargs
-        mask = kwargs.get('mask', None)
-        if mask_provided and mask is None:
-            raise ValueError("Mask parameter is required")
-        # Default mask: full if not provided
-        if not mask_provided:
-            mask_bool = np.ones(source_lab.shape[:2], dtype=bool)
-        else:
-            if not hasattr(mask, 'shape'):
-                raise ValueError("Mask must be a numpy array")
-            mask_bool = mask > 128 if mask.dtype == np.uint8 else mask > 0.5
-            if mask_bool.ndim == 3:
-                mask_bool = mask_bool[..., 0]
-        # Default full mask
-        mask = kwargs.get('mask', None)
-        # Default mask: full
-        if mask is None:
-            mask_bool = np.ones(source_lab.shape[:2], dtype=bool)
-        else:
-            if not hasattr(mask, 'shape'):
-                raise ValueError("Mask must be a numpy array")
-            mask_bool = mask > 128 if mask.dtype == np.uint8 else mask > 0.5
-            if mask_bool.ndim == 3:
-                mask_bool = mask_bool[..., 0]
-            mask_bool = np.ones(source_lab.shape[:2], dtype=bool)
-        else:
-            if not hasattr(mask, 'shape'):
-                raise ValueError("Mask must be a numpy array")
-            
-        if mask is None:
-            raise ValueError("Mask parameter is required")
-        if not hasattr(mask, 'shape'):
-            raise ValueError("Mask must be a numpy array")
-            
-        selective_channels = kwargs.get('selective_channels')
-        blend_factor = kwargs.get('blend_factor', 1.0)
-        if not (source_lab.shape[:2] == target_lab.shape[:2] == mask.shape[:2]):
-            raise ValueError("Source, target, and mask must have the same height and width")
-        original_dtype = source_lab.dtype
-        result_lab = source_lab.astype(np.float64, copy=True)
         s_mean, s_std = self._calculate_stats(source_lab)
         t_mean, t_std = self._calculate_stats(target_lab)
         mask_bool = mask > 128 if mask.dtype == np.uint8 else mask > 0.5
@@ -225,6 +142,65 @@ class LABColorTransfer:
             blended_channel = (transferred_channel * blend_factor) + (source_channel * (1 - blend_factor))
             np.copyto(result_lab[..., i], blended_channel, where=mask_bool)
         return result_lab
+
+    def selective_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, **kwargs) -> np.ndarray:
+        """Perform LAB transfer only on pixels selected by a mask (default: whole image).
+
+        Parameters
+        ----------
+        source_lab : np.ndarray
+            Source image in LAB colour space (H, W, 3).
+        target_lab : np.ndarray
+            Target image in LAB colour space (H, W, 3).
+        mask : np.ndarray, optional
+            Binary/greyscale mask selecting pixels to transfer. If ``None`` a full mask is used.
+            ``uint8`` masks are thresholded (>128), floating masks are thresholded (>0.5).
+        selective_channels : list[str], default ["a", "b"]
+            LAB channels to transfer.
+        blend_factor : float, default 1.0
+            0 – keep source values, 1 – fully adopt transferred values.
+        """
+        mask = kwargs.get("mask")
+        selective_channels = kwargs.get("selective_channels", ["a", "b"])
+        blend_factor = float(kwargs.get("blend_factor", 1.0))
+
+        # Prepare mask
+        if mask is None:
+            mask_bool = np.ones(source_lab.shape[:2], dtype=bool)
+        else:
+            if not isinstance(mask, np.ndarray):
+                raise ValueError("Mask must be a numpy array")
+            mask_bool = mask > 128 if mask.dtype == np.uint8 else mask > 0.5
+            if mask_bool.ndim == 3:
+                mask_bool = mask_bool[..., 0]
+
+        # Shape validation
+        if not (source_lab.shape[:2] == target_lab.shape[:2] == mask_bool.shape):
+            raise ValueError("Source, target, and mask must have the same height and width")
+
+        original_dtype = source_lab.dtype
+        result_lab = source_lab.astype(np.float64, copy=True)
+        s_mean, s_std = self._calculate_stats(source_lab)
+        t_mean, t_std = self._calculate_stats(target_lab)
+
+        channel_map = {"L": 0, "a": 1, "b": 2}
+        channels = [channel_map[c] for c in selective_channels if c in channel_map]
+
+        # Apply per-channel statistics transfer only on masked pixels
+        for idx in channels:
+            if np.all(~mask_bool):
+                continue
+            src_chan = source_lab[..., idx]
+            if s_std[idx] < 1e-6:
+                transferred = src_chan + (t_mean[idx] - s_mean[idx])
+            else:
+                std_ratio = t_std[idx] / s_std[idx]
+                transferred = (src_chan - s_mean[idx]) * std_ratio + t_mean[idx]
+
+            blended = transferred * blend_factor + src_chan * (1.0 - blend_factor)
+            np.copyto(result_lab[..., idx], blended, where=mask_bool)
+
+        return result_lab.astype(original_dtype, copy=False)
 
     def weighted_lab_transfer(self, source_lab: np.ndarray, target_lab: np.ndarray, weights: Dict[str, float]) -> np.ndarray:
         """

@@ -1,0 +1,44 @@
+{
+  "$schema": "https://json-schema.org/draft/2020-12/schema",
+  "title": "Create Memory Tool Schema",
+  "description": "Schema for the create_memory tool",
+  "type": "object",
+  "properties": {
+    "Id": {
+      "type": "string",
+      "description": "Id of an existing MEMORY to update or delete"
+    },
+    "Title": {
+      "type": "string",
+      "description": "Descriptive title for a new or updated MEMORY"
+    },
+    "Content": {
+      "type": "string",
+      "description": "Content of a new or updated MEMORY"
+    },
+    "CorpusNames": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "CorpusNames of the workspaces associated with the MEMORY"
+    },
+    "Tags": {
+      "type": "array",
+      "items": {
+        "type": "string"
+      },
+      "description": "Tags to associate with the MEMORY"
+    },
+    "Action": {
+      "type": "string",
+      "enum": ["create", "update", "delete"],
+      "description": "The type of action to take on the MEMORY"
+    },
+    "UserTriggered": {
+      "type": "boolean",
+      "description": "Set to true if the user explicitly asked to create/modify this memory"
+    }
+  },
+  "required": ["Id", "Title", "Content", "CorpusNames", "Tags", "Action", "UserTriggered"]
+}
