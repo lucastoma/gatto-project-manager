@@ -1,0 +1,35 @@
+=== Statystyki Repomix dla projektu: GattoNeroPhotoshop Test Project ===
+Data: 2025-06-17 03:51:08
+============================================================
+
+=== Statystyki dla grupy 'Python Scripts' - ścieżka '.' ===
+Łączna liczba plików: 26
+Łączna liczba znaków: 79699
+Łączna liczba tokenów: 18052
+
+Top 2 plików wg liczby znaków:
+  1. apps/collector/advanced_context_collector.py: 16732 znaków
+  2. testing-testing/collector/advanced_context_collector.py: 16725 znaków
+
+Top 2 plików wg liczby tokenów:
+  1. apps/collector/advanced_context_collector.py: 3822 tokenów
+  2. testing-testing/collector/advanced_context_collector.py: 3821 tokenów
+
+Struktura katalogów:
+{'apps': {'collector': {'config-selector.py': '', 'views.py': '', '__init__.py': '', 'advanced_context_collector.py': '', 'tests.py': '', 'config': {'context_filters.yaml': '', 'context_history.json': ''}, 'admin.py': '', 'migrations': {'__init__.py': ''}, 'models.py': '', 'quick_context_collector.py': '', 'management': {'commands': {'run_collector.py': ''}}, 'apps.py': '', 'config-lists': {'test-config.yaml': ''}}}, 'config': {'__init__.py': '', 'urls.py': '', 'settings.py': '', 'wsgi.py': '', 'asgi.py': ''}, 'setup-project.sh': '', 'configs': {'context_filters.yaml': '', 'context_history.json': '', '.comb-scripts-config-full-repomix6.yaml': '', '.comb-scripts-config01.yaml': '', '.comb-scripts-config-full-repomix5.yaml': '', '.comb-scripts-config-full-repomix4.yaml': '', '.comb-scripts-config-full-repomix2.yaml': '', '.comb-scripts-config-full-repomix3.yaml': '', '.comb-scripts-config-full-repomix.yaml': ''}, '.gitignore': '', 'README.md': '', 'testing-testing': {'collector': {'config-selector.py': '', 'views.py': '', '__init__.py': '', 'advanced_context_collector.py': '', 'tests.py': '', 'admin.py': '', 'migrations': {'__init__.py': ''}, 'models.py': '', 'quick_context_collector.py': '', 'management': {'commands': {'run_collector.py': ''}}, 'apps.py': ''}}, 'requirements.txt': '', '.doc-gen': {'run-config-selector.sh': '', 'run-config-selector.cmd': '', 'README.md': ''}, 'manage.py': ''}
+
+Podejrzane pliki: 1
+
+=== Statystyki dla grupy 'Documentation Files' - ścieżka '.' ===
+Łączna liczba plików: 1
+Łączna liczba znaków: 3568
+Łączna liczba tokenów: 1189
+
+Top 2 plików wg liczby znaków:
+  1. .doc-gen/README.md: 3568 znaków
+
+Top 2 plików wg liczby tokenów:
+  1. .doc-gen/README.md: 1189 tokenów
+
+Struktura katalogów:
+{'apps': {'collector': {'config-selector.py': '', 'views.py': '', '__init__.py': '', 'advanced_context_collector.py': '', 'tests.py': '', 'config': {'context_filters.yaml': '', 'context_history.json': ''}, 'admin.py': '', 'migrations': {'__init__.py': ''}, 'models.py': '', 'quick_context_collector.py': '', 'management': {'commands': {'run_collector.py': ''}}, 'apps.py': '', 'config-lists': {'test-config.yaml': ''}}}, 'config': {'__init__.py': '', 'urls.py': '', 'settings.py': '', 'wsgi.py': '', 'asgi.py': ''}, 'setup-project.sh': '', 'configs': {'context_filters.yaml': '', 'context_history.json': '', '.comb-scripts-config-full-repomix6.yaml': '', '.comb-scripts-config01.yaml': '', '.comb-scripts-config-full-repomix5.yaml': '', '.comb-scripts-config-full-repomix4.yaml': '', '.comb-scripts-config-full-repomix2.yaml': '', '.comb-scripts-config-full-repomix3.yaml': '', '.comb-scripts-config-full-repomix.yaml': ''}, '.gitignore': '', 'README.md': '', 'testing-testing': {'collector': {'config-selector.py': '', 'views.py': '', '__init__.py': '', 'advanced_context_collector.py': '', 'tests.py': '', 'admin.py': '', 'migrations': {'__init__.py': ''}, 'models.py': '', 'quick_context_collector.py': '', 'management': {'commands': {'run_collector.py': ''}}, 'apps.py': ''}}, 'requirements.txt': '', '.doc-gen': {'run-config-selector.sh': '', 'run-config-selector.cmd': '', 'README.md': ''}, 'manage.py': ''}

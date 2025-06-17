@@ -1,0 +1,74 @@
+# Przykładowa konfiguracja z pełnymi opcjami Repomix
+# Wszystkie parametry mają swoje wartości domyślne, ale można je nadpisać
+
+project_name: "Gatto Nero Ai Manager (PY+noJSX+WebView no md)"
+output_file: ".doc-gen/export/comb-scripts.xml"
+gitignore_file: ".gitignore"
+
+# Globalne opcje Repomix - będą używane dla wszystkich grup, chyba że grupa je nadpisze
+repomix_global_options:
+  # Output options
+  style: "xml" # Format wyjściowy: xml, markdown, plain
+  remove_comments: true # Usuwanie komentarzy z kodu
+  remove_empty_lines: true # Usuwanie pustych linii
+  show_line_numbers: false # Pokazywanie numerów linii
+  calculate_tokens: true # Obliczanie liczby tokenów
+  show_file_stats: true # Pokazywanie statystyk plików
+  show_directory_structure: true # Pokazywanie struktury katalogów
+  top_files_length: 3 # Liczba top plików w statystykach
+  copy_to_clipboard: false # Kopiowanie do schowka
+  include_empty_directories: false # Dołączanie pustych katalogów
+
+  # Compression options
+  compression:
+    enabled: false # Włączenie kompresji
+    keep_signatures: true # Zachowanie sygnatur funkcji
+    keep_docstrings: true # Zachowanie docstringów
+    keep_interfaces: true # Zachowanie interfejsów
+
+  # Security options
+  security_check: true # Sprawdzanie bezpieczeństwa
+
+groups:
+  - name: "Kod główny"
+    description: "Pliki Markdown z dokumentacją algorytmów"
+    patterns:
+      - "*.py"
+      - "*.json"
+    exclude_patterns:
+      - "*test*"
+      - "*__pycache__*"
+      - "*.pyc"
+      - "*legacy*"
+      - "*temp*"
+    paths:
+      - "**/*"
+  - name: "Webview"
+    description: "Wszystkie pliki Python w workspace"
+    patterns:
+      - "*.py"
+      - "*.html"
+      - "*.css"
+      - "*.js"
+      - "*.json"
+    exclude_patterns:
+      - "*test*"
+      - "*__pycache__*"
+      - "*.pyc"
+      - "*temp*"
+      - "*backup*"
+      - "*old*"
+      - "*legacy*"
+    paths:
+      - "app/webview"
+  - name: "Skrypty JSX"
+    description: "Skrypty Adobe JSX dla Photoshop"
+    patterns:
+      - "--------"
+    exclude_patterns:
+      - "*backup*"
+      - "*old*"
+      - "*legacy*"
+      - "*temp*"
+    paths:
+      - "app/scripts"

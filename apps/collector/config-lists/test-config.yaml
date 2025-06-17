@@ -1,0 +1,22 @@
+project_name: "GattoNeroPhotoshop Test Project"
+output:
+  filename: "gatto-nero-test-output"
+  style: "md" # Dostępne opcje: 'xml', 'md', 'markdown'
+
+groups:
+  - name: "Python Scripts"
+    description: "Wszystkie skrypty Python w projekcie."
+    paths:
+      - "."
+    patterns:
+      - "**/*.py"
+    exclude_patterns:
+      - "**/node_modules/**"
+      - "**/.venv/**"
+  - name: "Documentation Files"
+    description: "Pliki z dokumentacją w formacie Markdown i tekstowym."
+    paths:
+      - "."
+    patterns:
+      - "**/*.md"
+      - "**/*.txt"

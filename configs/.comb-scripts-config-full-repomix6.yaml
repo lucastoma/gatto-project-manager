@@ -1,0 +1,52 @@
+# Przykładowa konfiguracja z pełnymi opcjami Repomix
+# Wszystkie parametry mają swoje wartości domyślne, ale można je nadpisać
+
+project_name: "gatto nero color matching algorithm 05"
+output:
+  filename: ".doc-gen/export/gatto-nero-color-matching-algorithm-05"
+  style: "md"
+gitignore_file: ".gitignore"
+
+# Globalne opcje Repomix - będą używane dla wszystkich grup, chyba że grupa je nadpisze
+repomix_global_options:
+  # Output options
+  # style: "xml" # Ten parametr jest teraz ignorowany, styl końcowy jest w sekcji 'output'
+  remove_comments: false # Usuwanie komentarzy z kodu
+  remove_empty_lines: false # Usuwanie pustych linii
+  show_line_numbers: false # Pokazywanie numerów linii
+  calculate_tokens: false # Obliczanie liczby tokenów
+  show_file_stats: false # Pokazywanie statystyk plików
+  show_directory_structure: tfalserue # Pokazywanie struktury katalogów
+  top_files_length: 3 # Liczba top plików w statystykach
+  copy_to_clipboard: false # Kopiowanie do schowka
+  include_empty_directories: false # Dołączanie pustych katalogów
+
+  # Compression options
+  compression:
+    enabled: false # Włączenie kompresji
+    keep_signatures: true # Zachowanie sygnatur funkcji
+    keep_docstrings: true # Zachowanie docstringów
+    keep_interfaces: true # Zachowanie interfejsów
+
+  # Security options
+  security_check: true # Sprawdzanie bezpieczeństwa
+
+groups:
+  - name: "gatto nero color matching algorithm 05"
+    description: "kod gatto nerro color matching algorithm 05"
+    patterns:
+      - "*.ts"
+      - "*.js"
+      - "*.json"
+      - "*.yaml"
+      - "*.yml"
+      - "*.cl"
+    exclude_patterns:
+      - "**node_modules/**"
+      - "**dist/**"
+      - "**build/**"
+      - "**.cache/**"
+      - "*legacy*"
+      - "*temp*"
+    paths:
+      - app/algorithms/algorithm_05_lab_transfer

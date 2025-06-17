@@ -1,0 +1,21 @@
+# Środowisko wirtualne
+venv/
+
+# Pliki Pythona
+__pycache__/
+*.pyc
+
+# Baza danych
+db.sqlite3
+
+# Sekrety
+.env
+
+# Pliki wgrywane i generowane
+media/
+output/
+
+# Ustawienia IDE
+.vscode/
+.idea/
+

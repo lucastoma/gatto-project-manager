@@ -1,0 +1,71 @@
+# Configuration file for Quick Context Collector filters
+
+filters:
+  Python Files (*.py):
+    description: "Collects all Python source files."
+    patterns:
+      - "*.py"
+
+  Web Files (HTML, CSS, JS):
+    description: "Collects common web development files."
+    patterns:
+      - "*.html"
+      - "*.css"
+      - "*.js"
+
+  Text & Docs (txt, md, rst):
+    description: "Collects text documents and markup files."
+    patterns:
+      - "*.txt"
+      - "*.md"
+      - "*.rst"
+
+  Configuration Files (yaml, json, ini, xml):
+    description: "Collects common configuration file formats."
+    patterns:
+      - "*.yaml"
+      - "*.yml"
+      - "*.json"
+      - "*.ini"
+      - "*.xml"
+
+  All Source Code (Common Types):
+    description: "Collects a broad range of source code file types."
+    patterns:
+      - "*.py"
+      - "*.js"
+      - "*.java"
+      - "*.c"
+      - "*.cpp"
+      - "*.h"
+      - "*.hpp"
+      - "*.cs"
+      - "*.go"
+      - "*.rb"
+      - "*.php"
+      - "*.swift"
+      - "*.kt"
+      - "*.kts"
+      - "*.rs"
+      - "*.scala"
+      - "*.sh"
+      - "*.ps1"
+      - "*.ts"
+      - "*.tsx"
+      - "*.jsx"
+      - "*.json"
+      - "*.yaml"
+      - "*.yml"
+      - "*.ini"
+      - "*.xml"
+
+  All Files (*.*):
+    description: "Collects all files in the directory (use with caution)."
+    patterns:
+      - "*.*"
+
+  Python & OpenCL (py, cl):
+    description: "Collects Python and OpenCL kernel files."
+    patterns:
+      - "*.py"
+      - "*.cl"
