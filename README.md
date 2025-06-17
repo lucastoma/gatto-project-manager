@@ -4,7 +4,7 @@
 
 Katalog `.doc-gen` zawiera skrypty do automatycznej agregacji plików projektowych w grupy tematyczne. Skrypty generują zbiorczy plik Markdown z zawartością wszystkich plików podzielonych na logiczne grupy.
 
-## Pliki w katalogu
+## Pliki w katalogu 
 
 ### Skrypty
 
