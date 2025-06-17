@@ -1,0 +1,231 @@
+{% extends 'collector/base.html' %}
+
+{% block title %}Quick Option - Gatto Project Manager{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'collector:home' %}">Strona główna</a></li>
+        <li class="breadcrumb-item active">Quick Option</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2"><i class="bi bi-lightning text-success"></i> Quick Option</h1>
+        <p class="text-muted">Szybka agregacja plików z jednego katalogu</p>
+    </div>
+    <div>
+        <a href="{% url 'collector:quick_config_list' %}" class="btn btn-outline-primary">
+            <i class="bi bi-list"></i> Wszystkie konfiguracje
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Formularz wyboru katalogu -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-folder"></i> Wybór katalogu</h5>
+            </div>
+            <div class="card-body">
+                <form method="post">
+                    {% csrf_token %}
+                    
+                    <div class="mb-3">
+                        <label for="{{ form.directory.id_for_label }}" class="form-label">
+                            {{ form.directory.label }}
+                        </label>
+                        <div class="input-group">
+                            {{ form.directory }}
+                            <button type="button" class="btn btn-outline-secondary" id="browse-btn">
+                                <i class="bi bi-folder"></i> Przeglądaj
+                            </button>
+                        </div>
+                        {% if form.directory.help_text %}
+                            <div class="form-text">{{ form.directory.help_text }}</div>
+                        {% endif %}
+                        {% if form.directory.errors %}
+                            <div class="text-danger">
+                                {% for error in form.directory.errors %}
+                                    <small>{{ error }}</small>
+                                {% endfor %}
+                            </div>
+                        {% endif %}
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.use_last_directory }}
+                            <label class="form-check-label" for="{{ form.use_last_directory.id_for_label }}">
+                                {{ form.use_last_directory.label }}
+                            </label>
+                        </div>
+                    </div>
+                    
+                    <div class="d-grid gap-2 d-md-flex justify-content-md-end">
+                        <button type="submit" class="btn btn-success">
+                            <i class="bi bi-arrow-right"></i> Dalej
+                        </button>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Informacje o Quick Option -->
+        <div class="card mt-4">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-info-circle"></i> Jak działa Quick Option?</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-1-circle text-primary"></i> Wybór katalogu</h6>
+                        <p class="small text-muted">Wybierz katalog do przetworzenia lub użyj ostatnio używanego.</p>
+                        
+                        <h6><i class="bi bi-2-circle text-primary"></i> Konfiguracja wzorców</h6>
+                        <p class="small text-muted">Edytuj listy wzorców glob dla różnych typów plików.</p>
+                    </div>
+                    <div class="col-md-6">
+                        <h6><i class="bi bi-3-circle text-primary"></i> Uruchomienie</h6>
+                        <p class="small text-muted">Uruchom agregację i pobierz wynikowy plik.</p>
+                        
+                        <h6><i class="bi bi-4-circle text-primary"></i> Plik .gatto-Q</h6>
+                        <p class="small text-muted">Ustawienia są zapisywane lokalnie w pliku .gatto-Q.</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+    
+    <!-- Ostatnie konfiguracje -->
+    <div class="col-md-4">
+        {% if recent_configs %}
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-clock-history"></i> Ostatnie konfiguracje</h5>
+            </div>
+            <div class="card-body">
+                {% for config in recent_configs %}
+                <div class="d-flex justify-content-between align-items-start mb-3 p-2 border rounded">
+                    <div class="flex-grow-1">
+                        <h6 class="mb-1">{{ config.directory_path|truncatechars:30 }}</h6>
+                        <p class="mb-1 text-muted small">
+                            <i class="bi bi-clock"></i> {{ config.updated_at|date:"d.m.Y H:i" }}
+                        </p>
+                        <p class="mb-0 text-muted small">
+                            Format: {{ config.get_output_format_display }}
+                        </p>
+                    </div>
+                    <div class="ms-2">
+                        <a href="{% url 'collector:quick_config_edit' config.pk %}" 
+                           class="btn btn-sm btn-outline-success" 
+                           title="Edytuj konfigurację">
+                            <i class="bi bi-pencil"></i>
+                        </a>
+                    </div>
+                </div>
+                {% endfor %}
+                
+                <div class="text-center">
+                    <a href="{% url 'collector:quick_config_list' %}" class="btn btn-sm btn-outline-primary">
+                        <i class="bi bi-arrow-right"></i> Zobacz wszystkie
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+        
+        <!-- Wskazówki -->
+        <div class="card mt-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightbulb"></i> Wskazówki</h5>
+            </div>
+            <div class="card-body">
+                <ul class="list-unstyled small">
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success"></i>
+                        Użyj wzorców glob jak <code>*.py</code> lub <code>**/*.js</code>
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success"></i>
+                        Pliki .gatto-Q są zapisywane lokalnie w każdym katalogu
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-check-circle text-success"></i>
+                        Możesz edytować wzorce przed każdym uruchomieniem
+                    </li>
+                    <li class="mb-2">
+                        <i class="bi bi-info-circle text-info"></i>
+                        Faza 3 wprowadzi zaawansowany panel glob
+                    </li>
+                </ul>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal do przeglądania katalogów (Faza 3) -->
+<div class="modal fade" id="directoryBrowserModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-folder"></i> Przeglądaj katalogi</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Przeglądarka katalogów będzie dostępna w Fazie 3 - Uniwersalny Panel Glob
+                </div>
+                <div class="mb-3">
+                    <label class="form-label">Ścieżka:</label>
+                    <input type="text" class="form-control" id="modal-directory-path" placeholder="/ścieżka/do/katalogu">
+                </div>
+                <div id="directory-list">
+                    <!-- Lista katalogów będzie tutaj -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <button type="button" class="btn btn-primary" id="select-directory-btn">Wybierz</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    // Przycisk przeglądania katalogów
+    const browseBtn = document.getElementById('browse-btn');
+    const directoryInput = document.getElementById('directory-input');
+    const modal = new bootstrap.Modal(document.getElementById('directoryBrowserModal'));
+    
+    browseBtn.addEventListener('click', function() {
+        // Na razie tylko otwórz modal z informacją
+        modal.show();
+    });
+    
+    // Przycisk wyboru katalogu w modalu
+    document.getElementById('select-directory-btn').addEventListener('click', function() {
+        const path = document.getElementById('modal-directory-path').value;
+        if (path) {
+            directoryInput.value = path;
+            modal.hide();
+        }
+    });
+    
+    // Auto-uzupełnianie ścieżki (placeholder dla Fazy 3)
+    directoryInput.addEventListener('input', function() {
+        // Tu będzie logika auto-uzupełniania w Fazie 3
+    });
+});
+</script>
+{% endblock %}

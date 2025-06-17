@@ -1,0 +1,462 @@
+{% extends 'collector/base.html' %}
+
+{% block title %}Edycja konfiguracji - {{ config.directory_path|truncatechars:30 }}{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'collector:home' %}">Strona główna</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'collector:quick_option' %}">Quick Option</a></li>
+        <li class="breadcrumb-item active">Edycja konfiguracji</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2"><i class="bi bi-gear text-primary"></i> Edycja konfiguracji</h1>
+        <p class="text-muted">{{ config.directory_path }}</p>
+    </div>
+    <div>
+        <a href="{% url 'collector:quick_config_run' config.pk %}" class="btn btn-success me-2">
+            <i class="bi bi-play"></i> Uruchom agregację
+        </a>
+        <a href="{% url 'collector:quick_config_list' %}" class="btn btn-outline-secondary">
+            <i class="bi bi-list"></i> Lista konfiguracji
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <!-- Główny formularz -->
+    <div class="col-lg-8">
+        <form method="post" id="config-form">
+            {% csrf_token %}
+            
+            <!-- Podstawowe ustawienia -->
+            <div class="card mb-4">
+                <div class="card-header">
+                    <h5 class="mb-0"><i class="bi bi-sliders"></i> Podstawowe ustawienia</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.output_filename.id_for_label }}" class="form-label">
+                                    {{ form.output_filename.label }}
+                                </label>
+                                {{ form.output_filename }}
+                                {% if form.output_filename.help_text %}
+                                    <div class="form-text">{{ form.output_filename.help_text }}</div>
+                                {% endif %}
+                                {% if form.output_filename.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.output_filename.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="mb-3">
+                                <label for="{{ form.output_format.id_for_label }}" class="form-label">
+                                    {{ form.output_format.label }}
+                                </label>
+                                {{ form.output_format }}
+                                {% if form.output_format.help_text %}
+                                    <div class="form-text">{{ form.output_format.help_text }}</div>
+                                {% endif %}
+                                {% if form.output_format.errors %}
+                                    <div class="text-danger">
+                                        {% for error in form.output_format.errors %}
+                                            <small>{{ error }}</small>
+                                        {% endfor %}
+                                    </div>
+                                {% endif %}
+                            </div>
+                        </div>
+                    </div>
+                    
+                    <div class="mb-3">
+                        <div class="form-check">
+                            {{ form.recursive_search }}
+                            <label class="form-check-label" for="{{ form.recursive_search.id_for_label }}">
+                                {{ form.recursive_search.label }}
+                            </label>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Wzorce plików -->
+            <div class="card mb-4">
+                <div class="card-header d-flex justify-content-between align-items-center">
+                    <h5 class="mb-0"><i class="bi bi-file-earmark-text"></i> Wzorce plików</h5>
+                    <button type="button" class="btn btn-sm btn-outline-primary" id="add-pattern-btn">
+                        <i class="bi bi-plus"></i> Dodaj wzorzec
+                    </button>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <i class="bi bi-info-circle"></i>
+                        <strong>Wzorce glob:</strong> Użyj <code>*.py</code> dla plików Python, <code>**/*.js</code> dla plików JS w podkatalogach, <code>src/**</code> dla wszystkich plików w katalogu src.
+                    </div>
+                    
+                    <div id="patterns-container">
+                        {% for pattern_form in pattern_formset %}
+                        <div class="pattern-item border rounded p-3 mb-3" data-pattern-index="{{ forloop.counter0 }}">
+                            {% for hidden in pattern_form.hidden_fields %}
+                                {{ hidden }}
+                            {% endfor %}
+                            
+                            <div class="row align-items-center">
+                                <div class="col-md-4">
+                                    <label class="form-label">Nazwa grupy</label>
+                                    {{ pattern_form.name }}
+                                    {% if pattern_form.name.errors %}
+                                        <div class="text-danger small">{{ pattern_form.name.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-6">
+                                    <label class="form-label">Wzorzec</label>
+                                    {{ pattern_form.pattern }}
+                                    {% if pattern_form.pattern.errors %}
+                                        <div class="text-danger small">{{ pattern_form.pattern.errors.0 }}</div>
+                                    {% endif %}
+                                </div>
+                                <div class="col-md-2">
+                                    <div class="d-flex gap-1">
+                                        <button type="button" class="btn btn-sm btn-outline-danger remove-pattern-btn" title="Usuń wzorzec">
+                                            <i class="bi bi-trash"></i>
+                                        </button>
+                                        {% if pattern_form.DELETE %}
+                                            {{ pattern_form.DELETE }}
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                            
+                            {% if pattern_form.description %}
+                            <div class="row mt-2">
+                                <div class="col-12">
+                                    <label class="form-label">Opis (opcjonalny)</label>
+                                    {{ pattern_form.description }}
+                                </div>
+                            </div>
+                            {% endif %}
+                        </div>
+                        {% endfor %}
+                    </div>
+                    
+                    <!-- Wzorce wykluczeń -->
+                    <div class="mt-4">
+                        <h6><i class="bi bi-x-circle"></i> Wzorce wykluczeń</h6>
+                        <div class="mb-3">
+                            <label for="{{ form.exclude_patterns.id_for_label }}" class="form-label">
+                                {{ form.exclude_patterns.label }}
+                            </label>
+                            {{ form.exclude_patterns }}
+                            {% if form.exclude_patterns.help_text %}
+                                <div class="form-text">{{ form.exclude_patterns.help_text }}</div>
+                            {% endif %}
+                            {% if form.exclude_patterns.errors %}
+                                <div class="text-danger">
+                                    {% for error in form.exclude_patterns.errors %}
+                                        <small>{{ error }}</small>
+                                    {% endfor %}
+                                </div>
+                            {% endif %}
+                        </div>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Przyciski akcji -->
+            <div class="card">
+                <div class="card-body">
+                    <div class="d-flex justify-content-between">
+                        <div>
+                            <a href="{% url 'collector:quick_option' %}" class="btn btn-outline-secondary">
+                                <i class="bi bi-arrow-left"></i> Powrót
+                            </a>
+                        </div>
+                        <div>
+                            <button type="submit" name="action" value="save" class="btn btn-primary me-2">
+                                <i class="bi bi-save"></i> Zapisz konfigurację
+                            </button>
+                            <button type="submit" name="action" value="save_and_run" class="btn btn-success">
+                                <i class="bi bi-play"></i> Zapisz i uruchom
+                            </button>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+    
+    <!-- Panel boczny -->
+    <div class="col-lg-4">
+        <!-- Podgląd wzorców -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-eye"></i> Podgląd plików</h5>
+            </div>
+            <div class="card-body">
+                <button type="button" class="btn btn-outline-primary btn-sm w-100" id="preview-files-btn">
+                    <i class="bi bi-search"></i> Pokaż pasujące pliki
+                </button>
+                <div id="files-preview" class="mt-3" style="display: none;">
+                    <div class="spinner-border spinner-border-sm" role="status">
+                        <span class="visually-hidden">Ładowanie...</span>
+                    </div>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Szablony wzorców -->
+        <div class="card mb-3">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-collection"></i> Szablony wzorców</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group list-group-flush">
+                    <button type="button" class="list-group-item list-group-item-action pattern-template" 
+                            data-name="Python" data-pattern="*.py">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Python</strong><br>
+                                <small class="text-muted">*.py</small>
+                            </div>
+                            <i class="bi bi-plus-circle text-success"></i>
+                        </div>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action pattern-template" 
+                            data-name="JavaScript" data-pattern="**/*.js">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>JavaScript</strong><br>
+                                <small class="text-muted">**/*.js</small>
+                            </div>
+                            <i class="bi bi-plus-circle text-success"></i>
+                        </div>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action pattern-template" 
+                            data-name="Dokumentacja" data-pattern="**/*.{md,txt,rst}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Dokumentacja</strong><br>
+                                <small class="text-muted">**/*.{md,txt,rst}</small>
+                            </div>
+                            <i class="bi bi-plus-circle text-success"></i>
+                        </div>
+                    </button>
+                    <button type="button" class="list-group-item list-group-item-action pattern-template" 
+                            data-name="Konfiguracja" data-pattern="**/*.{json,yaml,yml,toml,ini}">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <strong>Konfiguracja</strong><br>
+                                <small class="text-muted">**/*.{json,yaml,yml,toml,ini}</small>
+                            </div>
+                            <i class="bi bi-plus-circle text-success"></i>
+                        </div>
+                    </button>
+                </div>
+            </div>
+        </div>
+        
+        <!-- Informacje o pliku .gatto-Q -->
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-file-earmark-code"></i> Plik .gatto-Q</h5>
+            </div>
+            <div class="card-body">
+                <p class="small text-muted">
+                    Konfiguracja jest zapisywana w pliku <code>.gatto-Q</code> w katalogu docelowym.
+                </p>
+                <div class="d-grid">
+                    <button type="button" class="btn btn-outline-info btn-sm" id="show-gatto-q-btn">
+                        <i class="bi bi-code"></i> Pokaż zawartość .gatto-Q
+                    </button>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal podglądu plików -->
+<div class="modal fade" id="filesPreviewModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-eye"></i> Podgląd pasujących plików</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <div id="files-list">
+                    <!-- Lista plików będzie tutaj -->
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Modal zawartości .gatto-Q -->
+<div class="modal fade" id="gattoQModal" tabindex="-1">
+    <div class="modal-dialog modal-lg">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-file-earmark-code"></i> Zawartość pliku .gatto-Q</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <pre id="gatto-q-content" class="bg-light p-3 rounded"></pre>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Zamknij</button>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+document.addEventListener('DOMContentLoaded', function() {
+    let patternIndex = {{ pattern_formset.total_form_count }};
+    
+    // Dodawanie nowego wzorca
+    document.getElementById('add-pattern-btn').addEventListener('click', function() {
+        addNewPattern();
+    });
+    
+    // Usuwanie wzorca
+    document.addEventListener('click', function(e) {
+        if (e.target.closest('.remove-pattern-btn')) {
+            removePattern(e.target.closest('.pattern-item'));
+        }
+    });
+    
+    // Szablony wzorców
+    document.querySelectorAll('.pattern-template').forEach(function(btn) {
+        btn.addEventListener('click', function() {
+            const name = this.dataset.name;
+            const pattern = this.dataset.pattern;
+            addNewPattern(name, pattern);
+        });
+    });
+    
+    // Podgląd plików
+    document.getElementById('preview-files-btn').addEventListener('click', function() {
+        previewFiles();
+    });
+    
+    // Pokaż zawartość .gatto-Q
+    document.getElementById('show-gatto-q-btn').addEventListener('click', function() {
+        showGattoQContent();
+    });
+    
+    function addNewPattern(name = '', pattern = '') {
+        const container = document.getElementById('patterns-container');
+        const newPattern = document.createElement('div');
+        newPattern.className = 'pattern-item border rounded p-3 mb-3';
+        newPattern.dataset.patternIndex = patternIndex;
+        
+        newPattern.innerHTML = `
+            <input type="hidden" name="patterns-${patternIndex}-id" value="">
+            <div class="row align-items-center">
+                <div class="col-md-4">
+                    <label class="form-label">Nazwa grupy</label>
+                    <input type="text" name="patterns-${patternIndex}-name" class="form-control" value="${name}">
+                </div>
+                <div class="col-md-6">
+                    <label class="form-label">Wzorzec</label>
+                    <input type="text" name="patterns-${patternIndex}-pattern" class="form-control" value="${pattern}">
+                </div>
+                <div class="col-md-2">
+                    <div class="d-flex gap-1">
+                        <button type="button" class="btn btn-sm btn-outline-danger remove-pattern-btn" title="Usuń wzorzec">
+                            <i class="bi bi-trash"></i>
+                        </button>
+                        <input type="checkbox" name="patterns-${patternIndex}-DELETE" style="display: none;">
+                    </div>
+                </div>
+            </div>
+            <div class="row mt-2">
+                <div class="col-12">
+                    <label class="form-label">Opis (opcjonalny)</label>
+                    <input type="text" name="patterns-${patternIndex}-description" class="form-control">
+                </div>
+            </div>
+        `;
+        
+        container.appendChild(newPattern);
+        patternIndex++;
+        
+        // Aktualizuj TOTAL_FORMS
+        const totalFormsInput = document.querySelector('input[name="patterns-TOTAL_FORMS"]');
+        if (totalFormsInput) {
+            totalFormsInput.value = patternIndex;
+        }
+    }
+    
+    function removePattern(patternItem) {
+        const deleteInput = patternItem.querySelector('input[name$="-DELETE"]');
+        if (deleteInput) {
+            deleteInput.checked = true;
+            patternItem.style.display = 'none';
+        } else {
+            patternItem.remove();
+        }
+    }
+    
+    function previewFiles() {
+        const modal = new bootstrap.Modal(document.getElementById('filesPreviewModal'));
+        const filesList = document.getElementById('files-list');
+        
+        filesList.innerHTML = '<div class="text-center"><div class="spinner-border" role="status"></div></div>';
+        modal.show();
+        
+        // Symulacja ładowania plików (w rzeczywistości będzie AJAX)
+        setTimeout(function() {
+            filesList.innerHTML = `
+                <div class="alert alert-info">
+                    <i class="bi bi-info-circle"></i>
+                    Podgląd plików będzie dostępny po implementacji backendu w Fazie 2.
+                </div>
+                <div class="list-group">
+                    <div class="list-group-item">example.py</div>
+                    <div class="list-group-item">src/main.py</div>
+                    <div class="list-group-item">tests/test_example.py</div>
+                </div>
+            `;
+        }, 1000);
+    }
+    
+    function showGattoQContent() {
+        const modal = new bootstrap.Modal(document.getElementById('gattoQModal'));
+        const content = document.getElementById('gatto-q-content');
+        
+        // Symulacja zawartości .gatto-Q
+        content.textContent = `output_filename: "aggregated_files"
+output_format: "markdown"
+recursive_search: true
+patterns:
+  - name: "Python"
+    pattern: "*.py"
+    description: "Pliki Python"
+exclude_patterns:
+  - "__pycache__/**"
+  - "*.pyc"`;
+        
+        modal.show();
+    }
+});
+</script>
+{% endblock %}

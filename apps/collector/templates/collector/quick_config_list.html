@@ -1,0 +1,306 @@
+{% extends 'collector/base.html' %}
+
+{% block title %}Lista konfiguracji Quick Option{% endblock %}
+
+{% block breadcrumb %}
+<nav aria-label="breadcrumb">
+    <ol class="breadcrumb">
+        <li class="breadcrumb-item"><a href="{% url 'collector:home' %}">Strona główna</a></li>
+        <li class="breadcrumb-item"><a href="{% url 'collector:quick_option' %}">Quick Option</a></li>
+        <li class="breadcrumb-item active">Lista konfiguracji</li>
+    </ol>
+</nav>
+{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2"><i class="bi bi-list-ul text-primary"></i> Lista konfiguracji Quick Option</h1>
+        <p class="text-muted">Zarządzaj wszystkimi konfiguracjami .gatto-Q</p>
+    </div>
+    <div>
+        <a href="{% url 'collector:quick_option' %}" class="btn btn-success">
+            <i class="bi bi-plus"></i> Nowa konfiguracja
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<div class="row">
+    <div class="col-12">
+        <!-- Filtry i wyszukiwanie -->
+        <div class="card mb-4">
+            <div class="card-body">
+                <form method="get" class="row g-3">
+                    <div class="col-md-4">
+                        <label class="form-label">Wyszukaj w ścieżce</label>
+                        <input type="text" name="search" class="form-control" 
+                               value="{{ request.GET.search }}" 
+                               placeholder="Wpisz część ścieżki...">
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Format wyjściowy</label>
+                        <select name="format" class="form-select">
+                            <option value="">Wszystkie formaty</option>
+                            <option value="markdown" {% if request.GET.format == 'markdown' %}selected{% endif %}>Markdown</option>
+                            <option value="text" {% if request.GET.format == 'text' %}selected{% endif %}>Tekst</option>
+                            <option value="json" {% if request.GET.format == 'json' %}selected{% endif %}>JSON</option>
+                        </select>
+                    </div>
+                    <div class="col-md-3">
+                        <label class="form-label">Sortowanie</label>
+                        <select name="sort" class="form-select">
+                            <option value="-updated_at" {% if request.GET.sort == '-updated_at' %}selected{% endif %}>Najnowsze</option>
+                            <option value="updated_at" {% if request.GET.sort == 'updated_at' %}selected{% endif %}>Najstarsze</option>
+                            <option value="directory_path" {% if request.GET.sort == 'directory_path' %}selected{% endif %}>Ścieżka A-Z</option>
+                            <option value="-directory_path" {% if request.GET.sort == '-directory_path' %}selected{% endif %}>Ścieżka Z-A</option>
+                        </select>
+                    </div>
+                    <div class="col-md-2">
+                        <label class="form-label">&nbsp;</label>
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-outline-primary">
+                                <i class="bi bi-search"></i> Filtruj
+                            </button>
+                        </div>
+                    </div>
+                </form>
+            </div>
+        </div>
+        
+        <!-- Lista konfiguracji -->
+        {% if configs %}
+        <div class="row">
+            {% for config in configs %}
+            <div class="col-lg-6 col-xl-4 mb-4">
+                <div class="card h-100">
+                    <div class="card-header d-flex justify-content-between align-items-center">
+                        <h6 class="mb-0 text-truncate" title="{{ config.directory_path }}">
+                            <i class="bi bi-folder"></i> 
+                            {{ config.directory_path|truncatechars:30 }}
+                        </h6>
+                        <div class="dropdown">
+                            <button class="btn btn-sm btn-outline-secondary" type="button" 
+                                    data-bs-toggle="dropdown" aria-expanded="false">
+                                <i class="bi bi-three-dots-vertical"></i>
+                            </button>
+                            <ul class="dropdown-menu">
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'collector:quick_config_edit' config.pk %}">
+                                        <i class="bi bi-pencil"></i> Edytuj
+                                    </a>
+                                </li>
+                                <li>
+                                    <a class="dropdown-item" href="{% url 'collector:quick_config_run' config.pk %}">
+                                        <i class="bi bi-play"></i> Uruchom
+                                    </a>
+                                </li>
+                                <li><hr class="dropdown-divider"></li>
+                                <li>
+                                    <a class="dropdown-item text-danger" href="#" 
+                                       onclick="confirmDelete('{{ config.pk }}', '{{ config.directory_path|escapejs }}')">
+                                        <i class="bi bi-trash"></i> Usuń
+                                    </a>
+                                </li>
+                            </ul>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        <div class="mb-3">
+                            <div class="row text-center">
+                                <div class="col-4">
+                                    <div class="text-muted small">Format</div>
+                                    <div class="fw-bold">{{ config.get_output_format_display }}</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted small">Wzorce</div>
+                                    <div class="fw-bold">{{ config.patterns.count }}</div>
+                                </div>
+                                <div class="col-4">
+                                    <div class="text-muted small">Rekursywnie</div>
+                                    <div class="fw-bold">
+                                        {% if config.recursive_search %}
+                                            <i class="bi bi-check-circle text-success"></i>
+                                        {% else %}
+                                            <i class="bi bi-x-circle text-muted"></i>
+                                        {% endif %}
+                                    </div>
+                                </div>
+                            </div>
+                        </div>
+                        
+                        <div class="mb-3">
+                            <div class="text-muted small mb-1">Plik wyjściowy:</div>
+                            <code class="small">{{ config.output_filename }}.{{ config.output_format }}</code>
+                        </div>
+                        
+                        {% if config.patterns.exists %}
+                        <div class="mb-3">
+                            <div class="text-muted small mb-1">Wzorce:</div>
+                            <div class="d-flex flex-wrap gap-1">
+                                {% for pattern in config.patterns.all|slice:":3" %}
+                                <span class="badge bg-light text-dark border" title="{{ pattern.pattern }}">
+                                    {{ pattern.name|default:pattern.pattern|truncatechars:15 }}
+                                </span>
+                                {% endfor %}
+                                {% if config.patterns.count > 3 %}
+                                <span class="badge bg-secondary">+{{ config.patterns.count|add:"-3" }}</span>
+                                {% endif %}
+                            </div>
+                        </div>
+                        {% endif %}
+                        
+                        <div class="text-muted small">
+                            <i class="bi bi-clock"></i> 
+                            Ostatnia modyfikacja: {{ config.updated_at|date:"d.m.Y H:i" }}
+                        </div>
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="d-flex justify-content-between">
+                            <a href="{% url 'collector:quick_config_edit' config.pk %}" 
+                               class="btn btn-sm btn-outline-primary">
+                                <i class="bi bi-pencil"></i> Edytuj
+                            </a>
+                            <a href="{% url 'collector:quick_config_run' config.pk %}" 
+                               class="btn btn-sm btn-success">
+                                <i class="bi bi-play"></i> Uruchom
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+            {% endfor %}
+        </div>
+        
+        <!-- Paginacja -->
+        {% if is_paginated %}
+        <nav aria-label="Paginacja konfiguracji">
+            <ul class="pagination justify-content-center">
+                {% if page_obj.has_previous %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.format %}format={{ request.GET.format }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page=1">
+                            <i class="bi bi-chevron-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.format %}format={{ request.GET.format }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.previous_page_number }}">
+                            <i class="bi bi-chevron-left"></i>
+                        </a>
+                    </li>
+                {% endif %}
+                
+                {% for num in page_obj.paginator.page_range %}
+                    {% if page_obj.number == num %}
+                        <li class="page-item active">
+                            <span class="page-link">{{ num }}</span>
+                        </li>
+                    {% elif num > page_obj.number|add:'-3' and num < page_obj.number|add:'3' %}
+                        <li class="page-item">
+                            <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.format %}format={{ request.GET.format }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ num }}">{{ num }}</a>
+                        </li>
+                    {% endif %}
+                {% endfor %}
+                
+                {% if page_obj.has_next %}
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.format %}format={{ request.GET.format }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.next_page_number }}">
+                            <i class="bi bi-chevron-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="?{% if request.GET.search %}search={{ request.GET.search }}&{% endif %}{% if request.GET.format %}format={{ request.GET.format }}&{% endif %}{% if request.GET.sort %}sort={{ request.GET.sort }}&{% endif %}page={{ page_obj.paginator.num_pages }}">
+                            <i class="bi bi-chevron-double-right"></i>
+                        </a>
+                    </li>
+                {% endif %}
+            </ul>
+        </nav>
+        {% endif %}
+        
+        {% else %}
+        <!-- Brak konfiguracji -->
+        <div class="card">
+            <div class="card-body text-center py-5">
+                <i class="bi bi-folder-x display-1 text-muted mb-3"></i>
+                <h4>Brak konfiguracji</h4>
+                <p class="text-muted mb-4">
+                    {% if request.GET.search or request.GET.format %}
+                        Nie znaleziono konfiguracji pasujących do kryteriów wyszukiwania.
+                    {% else %}
+                        Nie masz jeszcze żadnych konfiguracji Quick Option.
+                    {% endif %}
+                </p>
+                <div>
+                    {% if request.GET.search or request.GET.format %}
+                        <a href="{% url 'collector:quick_config_list' %}" class="btn btn-outline-secondary me-2">
+                            <i class="bi bi-arrow-clockwise"></i> Wyczyść filtry
+                        </a>
+                    {% endif %}
+                    <a href="{% url 'collector:quick_option' %}" class="btn btn-success">
+                        <i class="bi bi-plus"></i> Utwórz pierwszą konfigurację
+                    </a>
+                </div>
+            </div>
+        </div>
+        {% endif %}
+    </div>
+</div>
+
+<!-- Modal potwierdzenia usunięcia -->
+<div class="modal fade" id="deleteModal" tabindex="-1">
+    <div class="modal-dialog">
+        <div class="modal-content">
+            <div class="modal-header">
+                <h5 class="modal-title"><i class="bi bi-exclamation-triangle text-warning"></i> Potwierdź usunięcie</h5>
+                <button type="button" class="btn-close" data-bs-dismiss="modal"></button>
+            </div>
+            <div class="modal-body">
+                <p>Czy na pewno chcesz usunąć konfigurację dla katalogu:</p>
+                <p class="fw-bold" id="delete-path"></p>
+                <div class="alert alert-warning">
+                    <i class="bi bi-info-circle"></i>
+                    Ta operacja usunie tylko konfigurację z bazy danych. Plik .gatto-Q w katalogu pozostanie niezmieniony.
+                </div>
+            </div>
+            <div class="modal-footer">
+                <button type="button" class="btn btn-secondary" data-bs-dismiss="modal">Anuluj</button>
+                <form method="post" style="display: inline;" id="delete-form">
+                    {% csrf_token %}
+                    <button type="submit" class="btn btn-danger">
+                        <i class="bi bi-trash"></i> Usuń konfigurację
+                    </button>
+                </form>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
+
+{% block extra_js %}
+<script>
+function confirmDelete(configId, directoryPath) {
+    const modal = new bootstrap.Modal(document.getElementById('deleteModal'));
+    const deleteForm = document.getElementById('delete-form');
+    const deletePath = document.getElementById('delete-path');
+    
+    deletePath.textContent = directoryPath;
+    deleteForm.action = `/quick-config/${configId}/delete/`; // Będzie zaktualizowane w URL patterns
+    
+    modal.show();
+}
+
+// Auto-submit formularza po zmianie sortowania
+document.querySelector('select[name="sort"]').addEventListener('change', function() {
+    this.form.submit();
+});
+
+// Wyczyść wyszukiwanie po naciśnięciu Escape
+document.querySelector('input[name="search"]').addEventListener('keydown', function(e) {
+    if (e.key === 'Escape') {
+        this.value = '';
+        this.form.submit();
+    }
+});
+</script>
+{% endblock %}

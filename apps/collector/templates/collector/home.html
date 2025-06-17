@@ -1,0 +1,258 @@
+{% extends 'collector/base.html' %}
+
+{% block title %}Strona główna - Gatto Project Manager{% endblock %}
+
+{% block page_header %}
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <div>
+        <h1 class="h2"><i class="bi bi-house"></i> Strona główna</h1>
+        <p class="text-muted">Zarządzaj projektami i agreguj pliki w prosty sposób</p>
+    </div>
+    <div>
+        <a href="{% url 'collector:quick_option' %}" class="btn btn-success me-2">
+            <i class="bi bi-lightning"></i> Quick Start
+        </a>
+        <a href="{% url 'collector:project_create' %}" class="btn btn-primary">
+            <i class="bi bi-plus"></i> Nowy projekt
+        </a>
+    </div>
+</div>
+{% endblock %}
+
+{% block content %}
+<!-- Statystyki -->
+<div class="row mb-4">
+    <div class="col-md-3">
+        <div class="card text-center card-hover">
+            <div class="card-body">
+                <i class="bi bi-folder text-primary" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-2">{{ recent_projects|length }}</h5>
+                <p class="card-text text-muted">Projektów</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center card-hover">
+            <div class="card-body">
+                <i class="bi bi-lightning text-success" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-2">{{ recent_quick_configs|length }}</h5>
+                <p class="card-text text-muted">Konfiguracji Quick</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center card-hover">
+            <div class="card-body">
+                <i class="bi bi-clock-history text-info" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-2">{{ recent_history|length }}</h5>
+                <p class="card-text text-muted">Ostatnich uruchomień</p>
+            </div>
+        </div>
+    </div>
+    <div class="col-md-3">
+        <div class="card text-center card-hover">
+            <div class="card-body">
+                <i class="bi bi-check-circle text-warning" style="font-size: 2rem;"></i>
+                <h5 class="card-title mt-2">Faza 1</h5>
+                <p class="card-text text-muted">W trakcie</p>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Główne opcje -->
+<div class="row mb-4">
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-success text-white">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Quick Option</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Szybka agregacja plików z jednego katalogu. Idealne do szybkich analiz i eksportów.</p>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check text-success"></i> Wybór katalogu</li>
+                    <li><i class="bi bi-check text-success"></i> Edycja wzorców glob</li>
+                    <li><i class="bi bi-check text-success"></i> Lokalne pliki .gatto-Q</li>
+                    <li><i class="bi bi-clock text-muted"></i> Uniwersalny panel glob (Faza 3)</li>
+                </ul>
+                <a href="{% url 'collector:quick_option' %}" class="btn btn-success">
+                    <i class="bi bi-play"></i> Rozpocznij Quick Option
+                </a>
+            </div>
+        </div>
+    </div>
+    
+    <div class="col-md-6">
+        <div class="card h-100">
+            <div class="card-header bg-primary text-white">
+                <h5 class="mb-0"><i class="bi bi-folder"></i> Projekty</h5>
+            </div>
+            <div class="card-body">
+                <p class="card-text">Zaawansowane zarządzanie projektami z grupami plików i konfiguracją YAML.</p>
+                <ul class="list-unstyled">
+                    <li><i class="bi bi-check text-success"></i> Grupy plików</li>
+                    <li><i class="bi bi-check text-success"></i> Wzorce include/exclude</li>
+                    <li><i class="bi bi-check text-success"></i> Konfiguracja YAML</li>
+                    <li><i class="bi bi-clock text-muted"></i> Zaawansowane funkcje (Faza 4)</li>
+                </ul>
+                <a href="{% url 'collector:project_list' %}" class="btn btn-primary me-2">
+                    <i class="bi bi-list"></i> Zobacz projekty
+                </a>
+                <a href="{% url 'collector:project_create' %}" class="btn btn-outline-primary">
+                    <i class="bi bi-plus"></i> Nowy
+                </a>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Ostatnie projekty -->
+{% if recent_projects %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-folder"></i> Ostatnie projekty</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    {% for project in recent_projects %}
+                    <div class="col-md-4 mb-3">
+                        <div class="card card-hover">
+                            <div class="card-body">
+                                <h6 class="card-title">{{ project.name }}</h6>
+                                <p class="card-text text-muted small">{{ project.description|truncatechars:60 }}</p>
+                                <p class="card-text">
+                                    <small class="text-muted">
+                                        <i class="bi bi-clock"></i> {{ project.updated_at|date:"d.m.Y H:i" }}
+                                    </small>
+                                </p>
+                                <a href="{% url 'collector:project_detail' project.pk %}" class="btn btn-sm btn-outline-primary">
+                                    <i class="bi bi-eye"></i> Zobacz
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center">
+                    <a href="{% url 'collector:project_list' %}" class="btn btn-outline-primary">
+                        <i class="bi bi-arrow-right"></i> Zobacz wszystkie projekty
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Ostatnie konfiguracje Quick -->
+{% if recent_quick_configs %}
+<div class="row mb-4">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-lightning"></i> Ostatnie konfiguracje Quick</h5>
+            </div>
+            <div class="card-body">
+                <div class="list-group">
+                    {% for config in recent_quick_configs %}
+                    <div class="list-group-item d-flex justify-content-between align-items-center">
+                        <div>
+                            <h6 class="mb-1">{{ config.directory_path }}</h6>
+                            <p class="mb-1 text-muted small">{{ config.updated_at|date:"d.m.Y H:i" }}</p>
+                        </div>
+                        <div>
+                            <a href="{% url 'collector:quick_config_edit' config.pk %}" class="btn btn-sm btn-outline-success">
+                                <i class="bi bi-pencil"></i> Edytuj
+                            </a>
+                        </div>
+                    </div>
+                    {% endfor %}
+                </div>
+                <div class="text-center mt-3">
+                    <a href="{% url 'collector:quick_config_list' %}" class="btn btn-outline-success">
+                        <i class="bi bi-arrow-right"></i> Zobacz wszystkie konfiguracje
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endif %}
+
+<!-- Plan rozwoju -->
+<div class="row">
+    <div class="col-12">
+        <div class="card">
+            <div class="card-header">
+                <h5 class="mb-0"><i class="bi bi-map"></i> Plan rozwoju Django GUI</h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-3">
+                        <div class="card border-success">
+                            <div class="card-header bg-success text-white">
+                                <h6 class="mb-0">Faza 1 ✅</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text small">Podstawy Django GUI</p>
+                                <ul class="list-unstyled small">
+                                    <li>✅ Modele Django</li>
+                                    <li>✅ Widoki i formularze</li>
+                                    <li>✅ Podstawowy interfejs</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-warning">
+                            <div class="card-header bg-warning text-dark">
+                                <h6 class="mb-0">Faza 2 ⏳</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text small">Format .gatto-Q</p>
+                                <ul class="list-unstyled small">
+                                    <li>⏳ Pliki konfiguracyjne</li>
+                                    <li>⏳ Integracja z skryptami</li>
+                                    <li>⏳ Auto-wykrywanie</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-secondary">
+                            <div class="card-header bg-secondary text-white">
+                                <h6 class="mb-0">Faza 3 📋</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text small">Uniwersalny Panel Glob</p>
+                                <ul class="list-unstyled small">
+                                    <li>📋 Zaawansowany interfejs</li>
+                                    <li>📋 Podgląd na żywo</li>
+                                    <li>📋 Walidacja wzorców</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-secondary">
+                            <div class="card-header bg-secondary text-white">
+                                <h6 class="mb-0">Faza 4 📋</h6>
+                            </div>
+                            <div class="card-body">
+                                <p class="card-text small">Zaawansowane Funkcje</p>
+                                <ul class="list-unstyled small">
+                                    <li>📋 Kopiowanie do schowka</li>
+                                    <li>📋 Drag & drop</li>
+                                    <li>📋 Optymalizacja UI</li>
+                                </ul>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+{% endblock %}
