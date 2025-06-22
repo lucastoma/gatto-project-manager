@@ -1,4 +1,4 @@
-// Configuration for IDE-specific tools
+// Enhanced server configuration with multi-client support detection
 interface ServerConfig {
   ide_type: 'vscode' | 'windsurf' | 'auto';
   search_tools: {
@@ -6,6 +6,8 @@ interface ServerConfig {
     windsurf: string[];
   };
   detected_ide?: 'vscode' | 'windsurf' | 'unknown';
+  server_instance_id?: string; // Add unique instance ID
+  logging_enabled?: boolean;
 }
 
 const serverConfig: ServerConfig = {
@@ -13,7 +15,9 @@ const serverConfig: ServerConfig = {
   search_tools: {
     vscode: ['workspace_symbol_search', 'text_search', 'file_search'],
     windsurf: ['codebase_search', 'semantic_search', 'symbol_search']
-  }
+  },
+  server_instance_id: `mcp-${Date.now()}-${Math.random().toString(36).substr(2, 9)}`, // Unique ID
+  logging_enabled: process.env.MCP_BRUTAL_LOGGING !== 'false' // Allow disabling logging
 };
 
 // Enhanced IDE detection with multiple indicators
@@ -62,13 +66,23 @@ if (allowedDirectories.length === 0) {
 
 console.error('🚀 Starting MCP Filesystem Server...');
 console.error('📂 Allowed directories:', allowedDirectories);
+console.error('🆔 Server instance ID:', serverConfig.server_instance_id);
 
-// Szczegółowe logowanie do pliku
-const logFile = '/tmp/mcp-brutal-debug.log';
+// Enhanced logging with instance ID to prevent conflicts
+const logFile = serverConfig.logging_enabled ? 
+  `/tmp/mcp-brutal-debug-${serverConfig.server_instance_id}.log` : 
+  '/tmp/mcp-brutal-debug.log';
+
+if (serverConfig.logging_enabled) {
+  console.error('📝 Logging to:', logFile);
+}
 
 async function logToFile(message: string, data?: any) {
+  if (!serverConfig.logging_enabled) return; // Skip logging if disabled
+  
   const timestamp = new Date().toISOString();
-  const logEntry = `[${timestamp}] ${message}${data ? '\nData: ' + JSON.stringify(data, null, 2) : ''}\n=================\n`;
+  const instanceId = serverConfig.server_instance_id;
+  const logEntry = `[${timestamp}] [${instanceId}] ${message}${data ? '\nData: ' + JSON.stringify(data, null, 2) : ''}\n=================\n`;
   try {
     await fs.appendFile(logFile, logEntry);
   } catch (error) {

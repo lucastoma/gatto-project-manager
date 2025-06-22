@@ -1,0 +1,44 @@
+[2025-06-16 13:34:09] [INFO] Server manager initialized for port 5000
+[2025-06-16 13:34:09] [INFO] Server started with PID 845491.
+  File "/home/lukasz/projects/gatto-ps-ai/run_server.py", line 17
+    def _kill_processes_on_port_windows(port):
+IndentationError: unexpected indent
+[2025-06-16 13:34:17] [INFO] Server manager initialized for port 5000
+[2025-06-16 13:34:27] [INFO] Server manager initialized for port 5000
+[2025-06-16 13:36:00] [INFO] Server manager initialized for port 5000
+[2025-06-16 13:36:00] [INFO] Server started with PID 847071.
+  File "/home/lukasz/projects/gatto-ps-ai/run_server.py", line 62
+    def _kill_processes_on_port_windows(port):
+IndentationError: unexpected indent
+[2025-06-16 13:36:07] [INFO] Server manager initialized for port 5000
+[2025-06-16 13:36:16] [INFO] Server manager initialized for port 5000
+[2025-06-16 13:37:09] [INFO] Server manager initialized for port 5000
+[2025-06-16 13:37:09] [INFO] Server started with PID 848075.
+[97m13:37:09.312[0m [94mINFO    [0m [96mrun_server_script[0m.[96m__init__[0m Development Logger initialized
+[97m13:37:09.316[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m Preparing to start server...
+[97m13:37:09.317[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m Attempting to free port 5000 on Linux/WSL...
+[97m13:37:09.333[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m No active processes found on port 5000.
+[97m13:37:09.334[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m Port 5000 is clear. Starting server at http://0.0.0.0:5000
+[97m13:37:09.334[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m ==================================================
+[97m13:37:09.335[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m   Server starting on:
+[97m13:37:09.335[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m   - Local:   http://localhost:5000
+[97m13:37:09.335[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m   - Network: http://172.21.30.59:5000
+[97m13:37:09.335[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m ==================================================
+[97m13:37:10.361[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m Performance Profiler initialized
+[97m13:37:10.362[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m Simple Health Monitor initialized
+[97m13:37:10.414[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m Initializing Enhanced Flask Server
+[97m13:37:10.415[0m [94mINFO    [0m [96mrun_server_script[0m.[96msuccess[0m All health checks passed
+[97m13:37:10.416[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m Enhanced Flask Server initialized successfully
+ * Serving Flask app 'app.server'
+ * Debug mode: on
+WARNING: This is a development server. Do not use it in a production deployment. Use a production WSGI server instead.
+ * Running on all addresses (0.0.0.0)
+ * Running on http://127.0.0.1:5000
+ * Running on http://172.21.30.59:5000
+Press CTRL+C to quit
+ * Restarting with stat
+[97m13:37:10.548[0m [94mINFO    [0m [96mrun_server_script[0m.[96m__init__[0m Development Logger initialized
+[97m13:37:10.556[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m Preparing to start server...
+[97m13:37:10.557[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m Attempting to free port 5000 on Linux/WSL...
+[97m13:37:10.575[0m [94mINFO    [0m [96mrun_server_script[0m.[96minfo[0m Terminating processes on port 5000: ['848075', '848116']
+[2025-06-16 13:37:28] [INFO] Server manager initialized for port 5000
